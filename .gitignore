@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Decentraland build output
+bin/
+*.crdt.bak
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local

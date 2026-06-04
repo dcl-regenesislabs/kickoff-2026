@@ -1,0 +1,19 @@
+{
+  "name": "dcl-prode",
+  "version": "1.0.0",
+  "description": "DCL Prode schedule scene",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "7.23.4-26106700711.commit-2afa13b",
+    "@dcl/sdk": "^7.23.4-26106700711.commit-2afa13b"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  }
+}
