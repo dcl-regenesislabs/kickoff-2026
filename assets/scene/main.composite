@@ -34,6 +34,124 @@
       "data": {}
     },
     {
+      "name": "core::Transform",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            }
+          },
+          "scale": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            }
+          },
+          "rotation": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              },
+              "w": {
+                "type": "number"
+              }
+            }
+          },
+          "parent": {
+            "type": "integer"
+          }
+        },
+        "serializationType": "transform"
+      },
+      "data": {
+        "512": {
+          "json": {
+            "position": {
+              "x": 85.25,
+              "y": 0,
+              "z": 48
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "core::GltfContainer",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {},
+        "serializationType": "protocol-buffer",
+        "protocolBuffer": "PBGltfContainer"
+      },
+      "data": {
+        "512": {
+          "json": {
+            "src": "assets/scene/Models/Stadium01/Stadium01.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "core-schema::Name",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "serializationType": "utf8-string"
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "512": {
+          "json": {
+            "value": "Stadium01.glb"
+          }
+        }
+      }
+    },
+    {
       "name": "core-schema::Tags",
       "jsonSchema": {
         "type": "object",
@@ -75,7 +193,7 @@
         "serializationType": "map"
       },
       "data": {
-        "0": {
+        "512": {
           "json": {
             "gizmo": 0
           }
@@ -126,8 +244,10 @@
             "value": [
               {
                 "entity": 0,
-                "children": [],
-                "open": true
+                "open": true,
+                "children": [
+                  512
+                ]
               },
               {
                 "entity": 1,
@@ -136,9 +256,35 @@
               {
                 "entity": 2,
                 "children": []
+              },
+              {
+                "entity": 512,
+                "children": []
               }
             ]
           }
+        }
+      }
+    },
+    {
+      "name": "inspector::TransformConfig",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "porportionalScaling": {
+            "type": "boolean",
+            "serializationType": "optional",
+            "optionalJsonSchema": {
+              "type": "boolean",
+              "serializationType": "boolean"
+            }
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "512": {
+          "json": {}
         }
       }
     },
@@ -487,67 +633,43 @@
               "parcels": [
                 {
                   "x": 0,
-                  "y": 0
+                  "y": 5
                 },
                 {
                   "x": 1,
-                  "y": 0
+                  "y": 5
                 },
                 {
                   "x": 2,
-                  "y": 0
+                  "y": 5
                 },
                 {
                   "x": 3,
-                  "y": 0
+                  "y": 5
                 },
                 {
-                  "x": 0,
-                  "y": 1
+                  "x": 4,
+                  "y": 5
                 },
                 {
-                  "x": 1,
-                  "y": 1
+                  "x": 5,
+                  "y": 5
                 },
                 {
-                  "x": 2,
-                  "y": 1
+                  "x": 6,
+                  "y": 5
                 },
                 {
-                  "x": 3,
-                  "y": 1
+                  "x": 7,
+                  "y": 5
                 },
                 {
-                  "x": 0,
-                  "y": 2
+                  "x": 8,
+                  "y": 5
                 },
                 {
-                  "x": 1,
-                  "y": 2
-                },
-                {
-                  "x": 2,
-                  "y": 2
-                },
-                {
-                  "x": 3,
-                  "y": 2
-                },
-                {
-                  "x": 0,
-                  "y": 3
-                },
-                {
-                  "x": 1,
-                  "y": 3
-                },
-                {
-                  "x": 2,
-                  "y": 3
-                },
-                {
-                  "x": 3,
-                  "y": 3
+                  "x": 9,
+                  "y": 5
                 },
                 {
                   "x": 0,
@@ -566,52 +688,188 @@
                   "y": 4
                 },
                 {
-                  "x": 0,
-                  "y": 5
+                  "x": 4,
+                  "y": 4
                 },
                 {
-                  "x": 1,
-                  "y": 5
+                  "x": 5,
+                  "y": 4
                 },
                 {
-                  "x": 2,
-                  "y": 5
+                  "x": 6,
+                  "y": 4
                 },
                 {
-                  "x": 3,
-                  "y": 5
+                  "x": 7,
+                  "y": 4
                 },
                 {
-                  "x": 0,
-                  "y": 6
+                  "x": 8,
+                  "y": 4
                 },
                 {
-                  "x": 1,
-                  "y": 6
-                },
-                {
-                  "x": 2,
-                  "y": 6
-                },
-                {
-                  "x": 3,
-                  "y": 6
+                  "x": 9,
+                  "y": 4
                 },
                 {
                   "x": 0,
-                  "y": 7
+                  "y": 3
                 },
                 {
                   "x": 1,
-                  "y": 7
+                  "y": 3
                 },
                 {
                   "x": 2,
-                  "y": 7
+                  "y": 3
                 },
                 {
                   "x": 3,
-                  "y": 7
+                  "y": 3
+                },
+                {
+                  "x": 4,
+                  "y": 3
+                },
+                {
+                  "x": 5,
+                  "y": 3
+                },
+                {
+                  "x": 6,
+                  "y": 3
+                },
+                {
+                  "x": 7,
+                  "y": 3
+                },
+                {
+                  "x": 8,
+                  "y": 3
+                },
+                {
+                  "x": 9,
+                  "y": 3
+                },
+                {
+                  "x": 0,
+                  "y": 2
+                },
+                {
+                  "x": 1,
+                  "y": 2
+                },
+                {
+                  "x": 2,
+                  "y": 2
+                },
+                {
+                  "x": 3,
+                  "y": 2
+                },
+                {
+                  "x": 4,
+                  "y": 2
+                },
+                {
+                  "x": 5,
+                  "y": 2
+                },
+                {
+                  "x": 6,
+                  "y": 2
+                },
+                {
+                  "x": 7,
+                  "y": 2
+                },
+                {
+                  "x": 8,
+                  "y": 2
+                },
+                {
+                  "x": 9,
+                  "y": 2
+                },
+                {
+                  "x": 0,
+                  "y": 1
+                },
+                {
+                  "x": 1,
+                  "y": 1
+                },
+                {
+                  "x": 2,
+                  "y": 1
+                },
+                {
+                  "x": 3,
+                  "y": 1
+                },
+                {
+                  "x": 4,
+                  "y": 1
+                },
+                {
+                  "x": 5,
+                  "y": 1
+                },
+                {
+                  "x": 6,
+                  "y": 1
+                },
+                {
+                  "x": 7,
+                  "y": 1
+                },
+                {
+                  "x": 8,
+                  "y": 1
+                },
+                {
+                  "x": 9,
+                  "y": 1
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 1,
+                  "y": 0
+                },
+                {
+                  "x": 2,
+                  "y": 0
+                },
+                {
+                  "x": 3,
+                  "y": 0
+                },
+                {
+                  "x": 4,
+                  "y": 0
+                },
+                {
+                  "x": 5,
+                  "y": 0
+                },
+                {
+                  "x": 6,
+                  "y": 0
+                },
+                {
+                  "x": 7,
+                  "y": 0
+                },
+                {
+                  "x": 8,
+                  "y": 0
+                },
+                {
+                  "x": 9,
+                  "y": 0
                 }
               ],
               "base": {
@@ -629,8 +887,8 @@
                   "x": {
                     "$case": "range",
                     "value": [
-                      28,
-                      36
+                      5.75,
+                      13.75
                     ]
                   },
                   "y": {
@@ -643,15 +901,15 @@
                   "z": {
                     "$case": "range",
                     "value": [
-                      4,
-                      8
+                      45.75,
+                      53.75
                     ]
                   }
                 },
                 "cameraTarget": {
                   "x": 32,
                   "y": 4,
-                  "z": 64
+                  "z": 47.25
                 }
               }
             ],
