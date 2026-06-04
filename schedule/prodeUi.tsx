@@ -41,9 +41,13 @@ const ProdeUi = () => {
   const btnColor = (w: typeof uiState.winner) =>
     uiState.winner === w ? TEAL : DARK_BTN
 
+  // A draw prediction is only valid when both scores match (e.g. 1-1, 2-2)
+  const drawMismatch = uiState.winner === 'draw' && uiState.score1 !== uiState.score2
+  const canConfirm   = !!uiState.winner && !drawMismatch
+
   const confirm = () => {
-    if (!uiState.winner) return
-    savePrediction(uiState.matchId, uiState.winner, uiState.score1, uiState.score2)
+    if (!canConfirm) return
+    savePrediction(uiState.matchId, uiState.winner!, uiState.score1, uiState.score2)
     uiState.visible = false
     uiState.onConfirm?.()
   }
@@ -211,6 +215,14 @@ const ProdeUi = () => {
           />
         </UiEntity>
 
+        {/* Draw validation warning */}
+        <Label
+          value={drawMismatch ? '⚠  A draw must have the same score on both sides' : ''}
+          fontSize={24}
+          color={Color4.fromHexString('#FF6B6Bff')}
+          uiTransform={{ width: '100%', height: 32, margin: '0 0 16px 0' }}
+        />
+
         {/* Actions */}
         <UiEntity
           uiTransform={{
@@ -224,10 +236,10 @@ const ProdeUi = () => {
             onMouseDown={() => { uiState.visible = false }}
           />
           <Button
-            value={uiState.winner ? 'Confirm' : 'Pick a winner'}
+            value={!uiState.winner ? 'Pick a winner' : drawMismatch ? 'Even the score' : 'Confirm'}
             variant="primary" fontSize={32}
             uiTransform={{ width: 460, height: 92, borderRadius: 20 }}
-            color={uiState.winner ? TEAL : Color4.create(0.3, 0.3, 0.3, 1)}
+            color={canConfirm ? TEAL : Color4.create(0.3, 0.3, 0.3, 1)}
             onMouseDown={confirm}
           />
         </UiEntity>
