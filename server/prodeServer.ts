@@ -65,5 +65,7 @@ function isValid(data: { matchId: number; winner: string; score1: number; score2
     Number.isInteger(data.score1) && Number.isInteger(data.score2) &&
     data.score1 >= 0 && data.score1 <= 99 &&
     data.score2 >= 0 && data.score2 <= 99
-  return validMatch && validWinner && validScore
+  // A draw prediction must carry equal scores (e.g. 1-1)
+  const validDraw   = data.winner !== 'draw' || data.score1 === data.score2
+  return validMatch && validWinner && validScore && validDraw
 }
