@@ -2,6 +2,7 @@ import { addProdePanel, refreshAllPanels } from '../schedule/prodePanel'
 import { setupProdeUi } from '../schedule/prodeUi'
 import { DATES } from '../schedule/prodeData'
 import { startProdeClient } from '../client/prodeClient'
+import { initProdeLeaderboard } from '../client/prodeLeaderboard'
 import { setupCrowdAudio, setupFieldTrigger } from '../client/sceneEffects'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { engine, Transform, GltfContainer, MeshRenderer, MeshCollider, Material } from '@dcl/sdk/ecs'
@@ -20,6 +21,12 @@ export async function main() {
   setupProdeUi()
   setupCrowdAudio()
   setupFieldTrigger()
+  // Leaderboard board standing at the field end, facing players up the tunnel.
+  initProdeLeaderboard({
+    position: Vector3.create(32, 7, 63),
+    rotation: Quaternion.fromEulerDegrees(0, 180, 0),
+    size: Vector3.create(5, 7, 1)
+  })
   startProdeClient(refreshAllPanels)
 }
 
@@ -44,20 +51,7 @@ function buildWorld() {
   })
   GltfContainer.create(stadium, { src: 'models/modern_stadium.glb' })
 
-  // Tunnel — large cylinder along the Z axis, centered on the x=32 corridor.
-  // Rotated 90° about X so its length runs in Z (z≈6 → z≈64), bore ~14m diameter.
-  // NOTE: SDK primitives are single-sided; if the walls look invisible from
-  // inside, swap this for an inverted-normal tube GLB.
-  const tunnel = engine.addEntity()
-  Transform.create(tunnel, {
-    position: Vector3.create(32, 4, 35),
-    rotation: Quaternion.fromEulerDegrees(90, 0, 0),
-    scale: Vector3.create(14, 58, 14)
-  })
-  MeshRenderer.setCylinder(tunnel, 7, 7)
-  Material.setPbrMaterial(tunnel, { albedoColor: Color4.create(0.1, 0.1, 0.16, 1) })
-
-  // 18 panels lining the tunnel walls, alternating left/right in date order so
+  // 18 panels, alternating left/right in date order so
   // the player passes them one by one walking toward the ramp.
   for (let i = 0; i < DATES.length; i++) {
     const left = i % 2 === 0
