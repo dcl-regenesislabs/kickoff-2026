@@ -10,5 +10,9 @@
     "schedule/**/*.ts",
     "schedule/**/*.tsx"
   ],
+  "exclude": [
+    "src/dispenser.ts",
+    "src/claiming/**"
+  ],
   "extends": "@dcl/sdk/types/tsconfig.ecs7.json"
 }
