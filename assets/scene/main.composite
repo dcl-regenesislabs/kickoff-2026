@@ -110,6 +110,89 @@
             },
             "parent": 0
           }
+        },
+        "513": {
+          "json": {
+            "position": {
+              "x": 17.75,
+              "y": 0,
+              "z": 14.25
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.13052618503570557,
+              "z": 0,
+              "w": 0.9914448857307434
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        },
+        "514": {
+          "json": {
+            "position": {
+              "x": 16,
+              "y": 0.25,
+              "z": 37
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "core::Animator",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {},
+        "serializationType": "protocol-buffer",
+        "protocolBuffer": "PBAnimator"
+      },
+      "data": {
+        "513": {
+          "json": {
+            "states": [
+              {
+                "clip": "Cylinder.135Action",
+                "playing": false,
+                "weight": 1,
+                "speed": 1,
+                "loop": false,
+                "shouldReset": false
+              },
+              {
+                "clip": "Cylinder.138Action.001",
+                "playing": false,
+                "weight": 1,
+                "speed": 1,
+                "loop": false,
+                "shouldReset": false
+              },
+              {
+                "clip": "Dispenser_gownAction",
+                "playing": false,
+                "weight": 1,
+                "speed": 1,
+                "loop": false,
+                "shouldReset": false
+              }
+            ]
+          }
         }
       }
     },
@@ -127,6 +210,20 @@
             "src": "assets/scene/Models/Stadium01/Stadium01.glb",
             "visibleMeshesCollisionMask": 2,
             "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "513": {
+          "json": {
+            "src": "assets/scene/Models/dispenser_1/dispenser_1.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "514": {
+          "json": {
+            "src": "assets/scene/Models/Bondex_Jacket_M_emote/Bondex_Jacket_M_emote.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
           }
         }
       }
@@ -147,6 +244,16 @@
         "512": {
           "json": {
             "value": "Stadium01.glb"
+          }
+        },
+        "513": {
+          "json": {
+            "value": "dispenser_1.glb"
+          }
+        },
+        "514": {
+          "json": {
+            "value": "Bondex_Jacket_M_emote.glb"
           }
         }
       }
@@ -193,9 +300,9 @@
         "serializationType": "map"
       },
       "data": {
-        "512": {
+        "514": {
           "json": {
-            "gizmo": 0
+            "gizmo": 1
           }
         }
       }
@@ -246,7 +353,9 @@
                 "entity": 0,
                 "open": true,
                 "children": [
-                  512
+                  512,
+                  513,
+                  514
                 ]
               },
               {
@@ -259,6 +368,14 @@
               },
               {
                 "entity": 512,
+                "children": []
+              },
+              {
+                "entity": 513,
+                "children": []
+              },
+              {
+                "entity": 514,
                 "children": []
               }
             ]
@@ -284,6 +401,12 @@
       },
       "data": {
         "512": {
+          "json": {}
+        },
+        "513": {
+          "json": {}
+        },
+        "514": {
           "json": {}
         }
       }
@@ -887,8 +1010,8 @@
                   "x": {
                     "$case": "range",
                     "value": [
-                      5.75,
-                      13.75
+                      3.5,
+                      11.5
                     ]
                   },
                   "y": {

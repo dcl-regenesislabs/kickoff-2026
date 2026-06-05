@@ -194,7 +194,7 @@ export function addProdePanel(dateGroupIndex: number, transform: TransformTypeWi
     parent: root
   })
   TextShape.createOrReplace(submittedLbl, {
-    text: '✓ Prediction saved',
+    text: 'Prediction saved',
     fontSize: 0.5,
     textColor: ACCENT,
     textAlign: TextAlignMode.TAM_MIDDLE_CENTER

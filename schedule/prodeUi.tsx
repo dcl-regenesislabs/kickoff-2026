@@ -5,7 +5,7 @@ import {
   MATCHES, predictions, savePrediction, getCompletedCount,
   getResult, hasResult, submitOfficialResult, myPoints, Outcome
 } from './prodeData'
-import { isAdmin } from './prodeConfig'
+import { isAdmin, PTS_WINNER, PTS_SCORE } from './prodeConfig'
 import { ConfettiOverlay, setupConfettiSystem } from './confetti'
 
 // ── UI state ──────────────────────────────────────────────────────────────────
@@ -26,6 +26,10 @@ const adminState = {
   score2:    0,
   onConfirm: null as (() => void) | null
 }
+
+// Info overlay — explains the scoring rules (opened from the instructions banner).
+const infoState = { visible: false }
+export function openProdeInfo() { infoState.visible = true }
 
 export function openPredictionForm(matchId: number, onConfirm: () => void) {
   const pred = predictions.find(p => p.matchId === matchId)
@@ -160,7 +164,7 @@ const ProdeUi = () => {
             width: 200, height: 64
           }}
         >
-          <Button value="⚙ ADMIN" variant="primary" fontSize={24}
+          <Button value="ADMIN" variant="primary" fontSize={24}
             uiTransform={{ width: 200, height: 64, borderRadius: 14 }}
             color={GOLD}
             onMouseDown={() => openAdminForm(adminState.index)}
@@ -281,7 +285,7 @@ const ProdeUi = () => {
 
         {/* Draw validation warning */}
         <Label
-          value={drawMismatch ? '⚠  A draw must have the same score on both sides' : ''}
+          value={drawMismatch ? 'A draw must have the same score on both sides' : ''}
           fontSize={24}
           color={RED}
           uiTransform={{ width: '100%', height: 32, margin: '0 0 16px 0' }}
@@ -314,6 +318,62 @@ const ProdeUi = () => {
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
       <AdminForm />
 
+      {/* ── Scoring info overlay ─────────────────────────────────────────────── */}
+      <InfoForm />
+
+    </UiEntity>
+  )
+}
+
+// ── Info: how the scoring works ────────────────────────────────────────────────
+const InfoForm = () => {
+  if (!infoState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const row = (title: string, pts: string, note: string) => (
+    <UiEntity uiTransform={{ width: '100%', height: 96, flexDirection: 'column', margin: '0 0 18px 0' }}>
+      <UiEntity uiTransform={{ width: '100%', height: 48, flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Label value={title} fontSize={30} color={Color4.White()} uiTransform={{ height: 48 }} />
+        <Label value={pts} fontSize={32} color={GOLD} uiTransform={{ height: 48 }} />
+      </UiEntity>
+      <Label value={note} fontSize={22} color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: 36 }} />
+    </UiEntity>
+  )
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: 1000, height: 820, padding: 56, alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch',
+          justifyContent: 'space-between', borderRadius: 36
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        <Label value="How scoring works" fontSize={44} color={TEAL}
+          uiTransform={{ width: '100%', height: 64, margin: '0 0 8px 0' }} />
+        <Label value="Predict the winner and the score of every match." fontSize={24}
+          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: 36, margin: '0 0 28px 0' }} />
+
+        {row('Correct winner', `${PTS_WINNER} pt`, 'You called who wins (or a draw), but not the exact score.')}
+        {row('Exact score', `${PTS_WINNER + PTS_SCORE} pts`, `You nailed the exact result - winner included (${PTS_WINNER} + ${PTS_SCORE}).`)}
+        {row('Wrong winner', '0 pts', 'No points if you miss the outcome of the match.')}
+
+        <Label value="A draw must have the same score on both sides (e.g. 1-1)." fontSize={22}
+          color={RED} uiTransform={{ width: '100%', height: 36, margin: '0 0 6px 0' }} />
+        <Label value="Predictions lock once the match result is loaded." fontSize={22}
+          color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: 36, margin: '0 0 24px 0' }} />
+
+        <Button value="Got it" variant="primary" fontSize={32}
+          uiTransform={{ width: '100%', height: 92, borderRadius: 20 }}
+          color={TEAL}
+          onMouseDown={() => { infoState.visible = false }} />
+      </UiEntity>
     </UiEntity>
   )
 }
@@ -345,7 +405,7 @@ const AdminForm = () => {
     <UiEntity
       uiTransform={{
         width: '100%', height: '100%',
-        positionType: 'absolute',
+        positionType: 'absolute', position: { top: 0, left: 0 },
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center'
@@ -354,7 +414,7 @@ const AdminForm = () => {
     >
       <UiEntity
         uiTransform={{
-          width: 1000, height: 900, padding: 56,
+          width: 1000, height: 900, padding: 56, alignSelf: 'center',
           flexDirection: 'column', alignItems: 'stretch',
           justifyContent: 'space-between', borderRadius: 36
         }}
@@ -362,7 +422,7 @@ const AdminForm = () => {
       >
         {/* Header */}
         <UiEntity uiTransform={{ width: '100%', height: 50, flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 8px 0' }}>
-          <Label value="⚙ ADMIN — Load result" fontSize={32} color={GOLD} uiTransform={{ height: 50 }} />
+          <Label value="ADMIN - Load result" fontSize={32} color={GOLD} uiTransform={{ height: 50 }} />
           <Label value={`${adminState.index + 1} / ${MATCHES.length}`} fontSize={28} color={Color4.create(0.7,0.7,0.7,1)} uiTransform={{ height: 50 }} />
         </UiEntity>
 
@@ -372,7 +432,7 @@ const AdminForm = () => {
           uiTransform={{ width: '100%', height: 64, margin: '0 0 4px 0' }}
         />
         <Label
-          value={`${match.group}  ·  ${match.time}${saved ? '   ✓ result loaded' : ''}`}
+          value={`${match.group}  -  ${match.time}${saved ? '   (result loaded)' : ''}`}
           fontSize={24} color={saved ? TEAL : Color4.create(0.6,0.6,0.6,1)}
           uiTransform={{ width: '100%', height: 36, margin: '0 0 20px 0' }}
         />
@@ -411,14 +471,14 @@ const AdminForm = () => {
 
         {/* Match navigation */}
         <UiEntity uiTransform={{ width: '100%', height: 84, flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 16px 0' }}>
-          <Button value="◀ Prev match" variant="secondary" fontSize={26}
+          <Button value="< Prev match" variant="secondary" fontSize={26}
             uiTransform={{ width: 300, height: 80, borderRadius: 18 }}
             onMouseDown={() => go(-1)} />
           <Button value="Save result" variant="primary" fontSize={28}
             uiTransform={{ width: 320, height: 80, borderRadius: 18 }}
             color={GOLD}
             onMouseDown={save} />
-          <Button value="Next match ▶" variant="secondary" fontSize={26}
+          <Button value="Next match >" variant="secondary" fontSize={26}
             uiTransform={{ width: 300, height: 80, borderRadius: 18 }}
             onMouseDown={() => go(1)} />
         </UiEntity>
