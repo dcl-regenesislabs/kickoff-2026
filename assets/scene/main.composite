@@ -97,16 +97,16 @@
               "y": 0,
               "z": 36.31999969482422
             },
+            "scale": {
+              "x": 1.5,
+              "y": 1.5,
+              "z": 1.5
+            },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1.5,
-              "y": 1.5,
-              "z": 1.5
             },
             "parent": 0
           }
@@ -132,6 +132,27 @@
             "parent": 0
           }
         },
+        "514": {
+          "json": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        },
         "515": {
           "json": {
             "position": {
@@ -149,27 +170,6 @@
               "y": 0.7071067690849304,
               "z": 0,
               "w": 0.7071067690849304
-            },
-            "parent": 0
-          }
-        },
-        "516": {
-          "json": {
-            "position": {
-              "x": 15.75,
-              "y": 0,
-              "z": 47.75
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
             },
             "parent": 0
           }
@@ -223,6 +223,27 @@
               "y": 0,
               "z": 58
             },
+            "scale": {
+              "x": 1.5,
+              "y": 1.5,
+              "z": 1.5
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
+        "520": {
+          "json": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": 88
+            },
             "rotation": {
               "x": 0,
               "y": 0,
@@ -230,11 +251,1250 @@
               "w": 1
             },
             "scale": {
-              "x": 1.5,
-              "y": 1.5,
-              "z": 1.5
+              "x": 1,
+              "y": 1,
+              "z": 1
             },
-            "parent": 0
+            "parent": 514
+          }
+        },
+        "521": {
+          "json": {
+            "position": {
+              "x": 24,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "522": {
+          "json": {
+            "position": {
+              "x": 40,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "523": {
+          "json": {
+            "position": {
+              "x": 56,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "524": {
+          "json": {
+            "position": {
+              "x": 72,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "525": {
+          "json": {
+            "position": {
+              "x": 88,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "526": {
+          "json": {
+            "position": {
+              "x": 104,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "527": {
+          "json": {
+            "position": {
+              "x": 120,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "528": {
+          "json": {
+            "position": {
+              "x": 136,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "529": {
+          "json": {
+            "position": {
+              "x": 152,
+              "y": 0,
+              "z": 88
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "530": {
+          "json": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "531": {
+          "json": {
+            "position": {
+              "x": 24,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "532": {
+          "json": {
+            "position": {
+              "x": 40,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "533": {
+          "json": {
+            "position": {
+              "x": 56,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "534": {
+          "json": {
+            "position": {
+              "x": 72,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "535": {
+          "json": {
+            "position": {
+              "x": 88,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "536": {
+          "json": {
+            "position": {
+              "x": 104,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "537": {
+          "json": {
+            "position": {
+              "x": 120,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "538": {
+          "json": {
+            "position": {
+              "x": 136,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "539": {
+          "json": {
+            "position": {
+              "x": 152,
+              "y": 0,
+              "z": 72
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "540": {
+          "json": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "541": {
+          "json": {
+            "position": {
+              "x": 24,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "542": {
+          "json": {
+            "position": {
+              "x": 40,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "543": {
+          "json": {
+            "position": {
+              "x": 56,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "544": {
+          "json": {
+            "position": {
+              "x": 72,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "545": {
+          "json": {
+            "position": {
+              "x": 88,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "546": {
+          "json": {
+            "position": {
+              "x": 104,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "547": {
+          "json": {
+            "position": {
+              "x": 120,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "548": {
+          "json": {
+            "position": {
+              "x": 136,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "549": {
+          "json": {
+            "position": {
+              "x": 152,
+              "y": 0,
+              "z": 56
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "550": {
+          "json": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "551": {
+          "json": {
+            "position": {
+              "x": 24,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "552": {
+          "json": {
+            "position": {
+              "x": 40,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "553": {
+          "json": {
+            "position": {
+              "x": 56,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "554": {
+          "json": {
+            "position": {
+              "x": 72,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "555": {
+          "json": {
+            "position": {
+              "x": 88,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "556": {
+          "json": {
+            "position": {
+              "x": 104,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "557": {
+          "json": {
+            "position": {
+              "x": 120,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "558": {
+          "json": {
+            "position": {
+              "x": 136,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "559": {
+          "json": {
+            "position": {
+              "x": 152,
+              "y": 0,
+              "z": 40
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "560": {
+          "json": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "561": {
+          "json": {
+            "position": {
+              "x": 24,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "562": {
+          "json": {
+            "position": {
+              "x": 40,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "563": {
+          "json": {
+            "position": {
+              "x": 56,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "564": {
+          "json": {
+            "position": {
+              "x": 72,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "565": {
+          "json": {
+            "position": {
+              "x": 88,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "566": {
+          "json": {
+            "position": {
+              "x": 104,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "567": {
+          "json": {
+            "position": {
+              "x": 120,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "568": {
+          "json": {
+            "position": {
+              "x": 136,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "569": {
+          "json": {
+            "position": {
+              "x": 152,
+              "y": 0,
+              "z": 24
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "570": {
+          "json": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "571": {
+          "json": {
+            "position": {
+              "x": 24,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "572": {
+          "json": {
+            "position": {
+              "x": 40,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "573": {
+          "json": {
+            "position": {
+              "x": 56,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "574": {
+          "json": {
+            "position": {
+              "x": 72,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "575": {
+          "json": {
+            "position": {
+              "x": 88,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "576": {
+          "json": {
+            "position": {
+              "x": 104,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "577": {
+          "json": {
+            "position": {
+              "x": 120,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "578": {
+          "json": {
+            "position": {
+              "x": 136,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
+          }
+        },
+        "579": {
+          "json": {
+            "position": {
+              "x": 152,
+              "y": 0,
+              "z": 8
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 514
           }
         }
       }
@@ -273,20 +1533,6 @@
                 "weight": 1,
                 "speed": 1,
                 "loop": false,
-                "shouldReset": false
-              }
-            ]
-          }
-        },
-        "516": {
-          "json": {
-            "states": [
-              {
-                "clip": "JoinAreaAction",
-                "playing": true,
-                "weight": 1,
-                "speed": 1,
-                "loop": true,
                 "shouldReset": false
               }
             ]
@@ -350,22 +1596,15 @@
         "515": {
           "json": {
             "src": "assets/scene/Models/Stadium01/Stadium01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "516": {
-          "json": {
-            "src": "assets/scene/Models/StadiumJoinArea/StadiumJoinArea.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
           }
         },
         "517": {
           "json": {
             "src": "assets/scene/Models/StadiumGrass01/StadiumGrass01.glb",
             "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
+            "invisibleMeshesCollisionMask": 0
           }
         },
         "518": {
@@ -380,6 +1619,426 @@
             "src": "assets/scene/Models/trikot_final_male#/trikot_final_male#.glb",
             "visibleMeshesCollisionMask": 0,
             "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "520": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "521": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "522": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "523": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "524": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "525": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "526": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "527": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "528": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "529": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "530": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "531": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "532": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "533": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "534": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "535": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "536": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "537": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "538": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "539": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "540": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "541": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "542": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "543": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "544": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "545": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "546": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "547": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "548": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "549": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "550": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "551": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "552": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "553": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "554": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "555": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "556": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "557": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "558": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "559": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "560": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "561": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "562": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "563": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "564": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "565": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "566": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "567": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "568": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "569": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "570": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "571": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "572": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "573": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "574": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "575": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "576": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "577": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "578": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "579": {
+          "json": {
+            "src": "assets/asset-packs/concrete/FloorBaseConcrete_01/FloorBaseConcrete_01.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 2
           }
         }
       }
@@ -407,14 +2066,14 @@
             "value": "dispenser_1.glb"
           }
         },
+        "514": {
+          "json": {
+            "value": "Ground"
+          }
+        },
         "515": {
           "json": {
             "value": "Stadium01.glb"
-          }
-        },
-        "516": {
-          "json": {
-            "value": "StadiumJoinArea.glb"
           }
         },
         "517": {
@@ -430,6 +2089,306 @@
         "519": {
           "json": {
             "value": "trikot_final_male#.glb"
+          }
+        },
+        "520": {
+          "json": {
+            "value": "Tile 1"
+          }
+        },
+        "521": {
+          "json": {
+            "value": "Tile 2"
+          }
+        },
+        "522": {
+          "json": {
+            "value": "Tile 3"
+          }
+        },
+        "523": {
+          "json": {
+            "value": "Tile 4"
+          }
+        },
+        "524": {
+          "json": {
+            "value": "Tile 5"
+          }
+        },
+        "525": {
+          "json": {
+            "value": "Tile 6"
+          }
+        },
+        "526": {
+          "json": {
+            "value": "Tile 7"
+          }
+        },
+        "527": {
+          "json": {
+            "value": "Tile 8"
+          }
+        },
+        "528": {
+          "json": {
+            "value": "Tile 9"
+          }
+        },
+        "529": {
+          "json": {
+            "value": "Tile 10"
+          }
+        },
+        "530": {
+          "json": {
+            "value": "Tile 11"
+          }
+        },
+        "531": {
+          "json": {
+            "value": "Tile 12"
+          }
+        },
+        "532": {
+          "json": {
+            "value": "Tile 13"
+          }
+        },
+        "533": {
+          "json": {
+            "value": "Tile 14"
+          }
+        },
+        "534": {
+          "json": {
+            "value": "Tile 15"
+          }
+        },
+        "535": {
+          "json": {
+            "value": "Tile 16"
+          }
+        },
+        "536": {
+          "json": {
+            "value": "Tile 17"
+          }
+        },
+        "537": {
+          "json": {
+            "value": "Tile 18"
+          }
+        },
+        "538": {
+          "json": {
+            "value": "Tile 19"
+          }
+        },
+        "539": {
+          "json": {
+            "value": "Tile 20"
+          }
+        },
+        "540": {
+          "json": {
+            "value": "Tile 21"
+          }
+        },
+        "541": {
+          "json": {
+            "value": "Tile 22"
+          }
+        },
+        "542": {
+          "json": {
+            "value": "Tile 23"
+          }
+        },
+        "543": {
+          "json": {
+            "value": "Tile 24"
+          }
+        },
+        "544": {
+          "json": {
+            "value": "Tile 25"
+          }
+        },
+        "545": {
+          "json": {
+            "value": "Tile 26"
+          }
+        },
+        "546": {
+          "json": {
+            "value": "Tile 27"
+          }
+        },
+        "547": {
+          "json": {
+            "value": "Tile 28"
+          }
+        },
+        "548": {
+          "json": {
+            "value": "Tile 29"
+          }
+        },
+        "549": {
+          "json": {
+            "value": "Tile 30"
+          }
+        },
+        "550": {
+          "json": {
+            "value": "Tile 31"
+          }
+        },
+        "551": {
+          "json": {
+            "value": "Tile 32"
+          }
+        },
+        "552": {
+          "json": {
+            "value": "Tile 33"
+          }
+        },
+        "553": {
+          "json": {
+            "value": "Tile 34"
+          }
+        },
+        "554": {
+          "json": {
+            "value": "Tile 35"
+          }
+        },
+        "555": {
+          "json": {
+            "value": "Tile 36"
+          }
+        },
+        "556": {
+          "json": {
+            "value": "Tile 37"
+          }
+        },
+        "557": {
+          "json": {
+            "value": "Tile 38"
+          }
+        },
+        "558": {
+          "json": {
+            "value": "Tile 39"
+          }
+        },
+        "559": {
+          "json": {
+            "value": "Tile 40"
+          }
+        },
+        "560": {
+          "json": {
+            "value": "Tile 41"
+          }
+        },
+        "561": {
+          "json": {
+            "value": "Tile 42"
+          }
+        },
+        "562": {
+          "json": {
+            "value": "Tile 43"
+          }
+        },
+        "563": {
+          "json": {
+            "value": "Tile 44"
+          }
+        },
+        "564": {
+          "json": {
+            "value": "Tile 45"
+          }
+        },
+        "565": {
+          "json": {
+            "value": "Tile 46"
+          }
+        },
+        "566": {
+          "json": {
+            "value": "Tile 47"
+          }
+        },
+        "567": {
+          "json": {
+            "value": "Tile 48"
+          }
+        },
+        "568": {
+          "json": {
+            "value": "Tile 49"
+          }
+        },
+        "569": {
+          "json": {
+            "value": "Tile 50"
+          }
+        },
+        "570": {
+          "json": {
+            "value": "Tile 51"
+          }
+        },
+        "571": {
+          "json": {
+            "value": "Tile 52"
+          }
+        },
+        "572": {
+          "json": {
+            "value": "Tile 53"
+          }
+        },
+        "573": {
+          "json": {
+            "value": "Tile 54"
+          }
+        },
+        "574": {
+          "json": {
+            "value": "Tile 55"
+          }
+        },
+        "575": {
+          "json": {
+            "value": "Tile 56"
+          }
+        },
+        "576": {
+          "json": {
+            "value": "Tile 57"
+          }
+        },
+        "577": {
+          "json": {
+            "value": "Tile 58"
+          }
+        },
+        "578": {
+          "json": {
+            "value": "Tile 59"
+          }
+        },
+        "579": {
+          "json": {
+            "value": "Tile 60"
           }
         }
       }
@@ -476,7 +2435,7 @@
         "serializationType": "map"
       },
       "data": {
-        "519": {
+        "517": {
           "json": {
             "gizmo": 0
           }
@@ -532,10 +2491,10 @@
                   513,
                   518,
                   515,
-                  516,
                   517,
                   512,
-                  519
+                  519,
+                  514
                 ]
               },
               {
@@ -555,10 +2514,6 @@
                 "children": []
               },
               {
-                "entity": 516,
-                "children": []
-              },
-              {
                 "entity": 517,
                 "children": []
               },
@@ -572,6 +2527,311 @@
               },
               {
                 "entity": 519,
+                "children": []
+              },
+              {
+                "entity": 514,
+                "children": [
+                  520,
+                  521,
+                  522,
+                  523,
+                  524,
+                  525,
+                  526,
+                  527,
+                  528,
+                  529,
+                  530,
+                  531,
+                  532,
+                  533,
+                  534,
+                  535,
+                  536,
+                  537,
+                  538,
+                  539,
+                  540,
+                  541,
+                  542,
+                  543,
+                  544,
+                  545,
+                  546,
+                  547,
+                  548,
+                  549,
+                  550,
+                  551,
+                  552,
+                  553,
+                  554,
+                  555,
+                  556,
+                  557,
+                  558,
+                  559,
+                  560,
+                  561,
+                  562,
+                  563,
+                  564,
+                  565,
+                  566,
+                  567,
+                  568,
+                  569,
+                  570,
+                  571,
+                  572,
+                  573,
+                  574,
+                  575,
+                  576,
+                  577,
+                  578,
+                  579
+                ]
+              },
+              {
+                "entity": 520,
+                "children": []
+              },
+              {
+                "entity": 521,
+                "children": []
+              },
+              {
+                "entity": 522,
+                "children": []
+              },
+              {
+                "entity": 523,
+                "children": []
+              },
+              {
+                "entity": 524,
+                "children": []
+              },
+              {
+                "entity": 525,
+                "children": []
+              },
+              {
+                "entity": 526,
+                "children": []
+              },
+              {
+                "entity": 527,
+                "children": []
+              },
+              {
+                "entity": 528,
+                "children": []
+              },
+              {
+                "entity": 529,
+                "children": []
+              },
+              {
+                "entity": 530,
+                "children": []
+              },
+              {
+                "entity": 531,
+                "children": []
+              },
+              {
+                "entity": 532,
+                "children": []
+              },
+              {
+                "entity": 533,
+                "children": []
+              },
+              {
+                "entity": 534,
+                "children": []
+              },
+              {
+                "entity": 535,
+                "children": []
+              },
+              {
+                "entity": 536,
+                "children": []
+              },
+              {
+                "entity": 537,
+                "children": []
+              },
+              {
+                "entity": 538,
+                "children": []
+              },
+              {
+                "entity": 539,
+                "children": []
+              },
+              {
+                "entity": 540,
+                "children": []
+              },
+              {
+                "entity": 541,
+                "children": []
+              },
+              {
+                "entity": 542,
+                "children": []
+              },
+              {
+                "entity": 543,
+                "children": []
+              },
+              {
+                "entity": 544,
+                "children": []
+              },
+              {
+                "entity": 545,
+                "children": []
+              },
+              {
+                "entity": 546,
+                "children": []
+              },
+              {
+                "entity": 547,
+                "children": []
+              },
+              {
+                "entity": 548,
+                "children": []
+              },
+              {
+                "entity": 549,
+                "children": []
+              },
+              {
+                "entity": 550,
+                "children": []
+              },
+              {
+                "entity": 551,
+                "children": []
+              },
+              {
+                "entity": 552,
+                "children": []
+              },
+              {
+                "entity": 553,
+                "children": []
+              },
+              {
+                "entity": 554,
+                "children": []
+              },
+              {
+                "entity": 555,
+                "children": []
+              },
+              {
+                "entity": 556,
+                "children": []
+              },
+              {
+                "entity": 557,
+                "children": []
+              },
+              {
+                "entity": 558,
+                "children": []
+              },
+              {
+                "entity": 559,
+                "children": []
+              },
+              {
+                "entity": 560,
+                "children": []
+              },
+              {
+                "entity": 561,
+                "children": []
+              },
+              {
+                "entity": 562,
+                "children": []
+              },
+              {
+                "entity": 563,
+                "children": []
+              },
+              {
+                "entity": 564,
+                "children": []
+              },
+              {
+                "entity": 565,
+                "children": []
+              },
+              {
+                "entity": 566,
+                "children": []
+              },
+              {
+                "entity": 567,
+                "children": []
+              },
+              {
+                "entity": 568,
+                "children": []
+              },
+              {
+                "entity": 569,
+                "children": []
+              },
+              {
+                "entity": 570,
+                "children": []
+              },
+              {
+                "entity": 571,
+                "children": []
+              },
+              {
+                "entity": 572,
+                "children": []
+              },
+              {
+                "entity": 573,
+                "children": []
+              },
+              {
+                "entity": 574,
+                "children": []
+              },
+              {
+                "entity": 575,
+                "children": []
+              },
+              {
+                "entity": 576,
+                "children": []
+              },
+              {
+                "entity": 577,
+                "children": []
+              },
+              {
+                "entity": 578,
+                "children": []
+              },
+              {
+                "entity": 579,
                 "children": []
               }
             ]
@@ -605,9 +2865,6 @@
         "515": {
           "json": {}
         },
-        "516": {
-          "json": {}
-        },
         "517": {
           "json": {}
         },
@@ -615,6 +2872,529 @@
           "json": {}
         },
         "519": {
+          "json": {}
+        }
+      }
+    },
+    {
+      "name": "inspector::Lock",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "boolean",
+            "serializationType": "boolean"
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "514": {
+          "json": {
+            "value": true
+          }
+        },
+        "520": {
+          "json": {
+            "value": true
+          }
+        },
+        "521": {
+          "json": {
+            "value": true
+          }
+        },
+        "522": {
+          "json": {
+            "value": true
+          }
+        },
+        "523": {
+          "json": {
+            "value": true
+          }
+        },
+        "524": {
+          "json": {
+            "value": true
+          }
+        },
+        "525": {
+          "json": {
+            "value": true
+          }
+        },
+        "526": {
+          "json": {
+            "value": true
+          }
+        },
+        "527": {
+          "json": {
+            "value": true
+          }
+        },
+        "528": {
+          "json": {
+            "value": true
+          }
+        },
+        "529": {
+          "json": {
+            "value": true
+          }
+        },
+        "530": {
+          "json": {
+            "value": true
+          }
+        },
+        "531": {
+          "json": {
+            "value": true
+          }
+        },
+        "532": {
+          "json": {
+            "value": true
+          }
+        },
+        "533": {
+          "json": {
+            "value": true
+          }
+        },
+        "534": {
+          "json": {
+            "value": true
+          }
+        },
+        "535": {
+          "json": {
+            "value": true
+          }
+        },
+        "536": {
+          "json": {
+            "value": true
+          }
+        },
+        "537": {
+          "json": {
+            "value": true
+          }
+        },
+        "538": {
+          "json": {
+            "value": true
+          }
+        },
+        "539": {
+          "json": {
+            "value": true
+          }
+        },
+        "540": {
+          "json": {
+            "value": true
+          }
+        },
+        "541": {
+          "json": {
+            "value": true
+          }
+        },
+        "542": {
+          "json": {
+            "value": true
+          }
+        },
+        "543": {
+          "json": {
+            "value": true
+          }
+        },
+        "544": {
+          "json": {
+            "value": true
+          }
+        },
+        "545": {
+          "json": {
+            "value": true
+          }
+        },
+        "546": {
+          "json": {
+            "value": true
+          }
+        },
+        "547": {
+          "json": {
+            "value": true
+          }
+        },
+        "548": {
+          "json": {
+            "value": true
+          }
+        },
+        "549": {
+          "json": {
+            "value": true
+          }
+        },
+        "550": {
+          "json": {
+            "value": true
+          }
+        },
+        "551": {
+          "json": {
+            "value": true
+          }
+        },
+        "552": {
+          "json": {
+            "value": true
+          }
+        },
+        "553": {
+          "json": {
+            "value": true
+          }
+        },
+        "554": {
+          "json": {
+            "value": true
+          }
+        },
+        "555": {
+          "json": {
+            "value": true
+          }
+        },
+        "556": {
+          "json": {
+            "value": true
+          }
+        },
+        "557": {
+          "json": {
+            "value": true
+          }
+        },
+        "558": {
+          "json": {
+            "value": true
+          }
+        },
+        "559": {
+          "json": {
+            "value": true
+          }
+        },
+        "560": {
+          "json": {
+            "value": true
+          }
+        },
+        "561": {
+          "json": {
+            "value": true
+          }
+        },
+        "562": {
+          "json": {
+            "value": true
+          }
+        },
+        "563": {
+          "json": {
+            "value": true
+          }
+        },
+        "564": {
+          "json": {
+            "value": true
+          }
+        },
+        "565": {
+          "json": {
+            "value": true
+          }
+        },
+        "566": {
+          "json": {
+            "value": true
+          }
+        },
+        "567": {
+          "json": {
+            "value": true
+          }
+        },
+        "568": {
+          "json": {
+            "value": true
+          }
+        },
+        "569": {
+          "json": {
+            "value": true
+          }
+        },
+        "570": {
+          "json": {
+            "value": true
+          }
+        },
+        "571": {
+          "json": {
+            "value": true
+          }
+        },
+        "572": {
+          "json": {
+            "value": true
+          }
+        },
+        "573": {
+          "json": {
+            "value": true
+          }
+        },
+        "574": {
+          "json": {
+            "value": true
+          }
+        },
+        "575": {
+          "json": {
+            "value": true
+          }
+        },
+        "576": {
+          "json": {
+            "value": true
+          }
+        },
+        "577": {
+          "json": {
+            "value": true
+          }
+        },
+        "578": {
+          "json": {
+            "value": true
+          }
+        },
+        "579": {
+          "json": {
+            "value": true
+          }
+        }
+      }
+    },
+    {
+      "name": "inspector::Ground",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {},
+        "serializationType": "map"
+      },
+      "data": {
+        "514": {
+          "json": {}
+        }
+      }
+    },
+    {
+      "name": "inspector::Tile",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {},
+        "serializationType": "map"
+      },
+      "data": {
+        "520": {
+          "json": {}
+        },
+        "521": {
+          "json": {}
+        },
+        "522": {
+          "json": {}
+        },
+        "523": {
+          "json": {}
+        },
+        "524": {
+          "json": {}
+        },
+        "525": {
+          "json": {}
+        },
+        "526": {
+          "json": {}
+        },
+        "527": {
+          "json": {}
+        },
+        "528": {
+          "json": {}
+        },
+        "529": {
+          "json": {}
+        },
+        "530": {
+          "json": {}
+        },
+        "531": {
+          "json": {}
+        },
+        "532": {
+          "json": {}
+        },
+        "533": {
+          "json": {}
+        },
+        "534": {
+          "json": {}
+        },
+        "535": {
+          "json": {}
+        },
+        "536": {
+          "json": {}
+        },
+        "537": {
+          "json": {}
+        },
+        "538": {
+          "json": {}
+        },
+        "539": {
+          "json": {}
+        },
+        "540": {
+          "json": {}
+        },
+        "541": {
+          "json": {}
+        },
+        "542": {
+          "json": {}
+        },
+        "543": {
+          "json": {}
+        },
+        "544": {
+          "json": {}
+        },
+        "545": {
+          "json": {}
+        },
+        "546": {
+          "json": {}
+        },
+        "547": {
+          "json": {}
+        },
+        "548": {
+          "json": {}
+        },
+        "549": {
+          "json": {}
+        },
+        "550": {
+          "json": {}
+        },
+        "551": {
+          "json": {}
+        },
+        "552": {
+          "json": {}
+        },
+        "553": {
+          "json": {}
+        },
+        "554": {
+          "json": {}
+        },
+        "555": {
+          "json": {}
+        },
+        "556": {
+          "json": {}
+        },
+        "557": {
+          "json": {}
+        },
+        "558": {
+          "json": {}
+        },
+        "559": {
+          "json": {}
+        },
+        "560": {
+          "json": {}
+        },
+        "561": {
+          "json": {}
+        },
+        "562": {
+          "json": {}
+        },
+        "563": {
+          "json": {}
+        },
+        "564": {
+          "json": {}
+        },
+        "565": {
+          "json": {}
+        },
+        "566": {
+          "json": {}
+        },
+        "567": {
+          "json": {}
+        },
+        "568": {
+          "json": {}
+        },
+        "569": {
+          "json": {}
+        },
+        "570": {
+          "json": {}
+        },
+        "571": {
+          "json": {}
+        },
+        "572": {
+          "json": {}
+        },
+        "573": {
+          "json": {}
+        },
+        "574": {
+          "json": {}
+        },
+        "575": {
+          "json": {}
+        },
+        "576": {
+          "json": {}
+        },
+        "577": {
+          "json": {}
+        },
+        "578": {
+          "json": {}
+        },
+        "579": {
           "json": {}
         }
       }
@@ -957,10 +3737,12 @@
             "description": "Schedule panel scene",
             "thumbnail": "images/scene-thumbnail.png",
             "categories": [],
-            "author": "",
-            "email": "",
             "tags": [],
             "layout": {
+              "base": {
+                "x": 0,
+                "y": 0
+              },
               "parcels": [
                 {
                   "x": 0,
@@ -1202,14 +3984,8 @@
                   "x": 9,
                   "y": 0
                 }
-              ],
-              "base": {
-                "x": 0,
-                "y": 0
-              }
+              ]
             },
-            "silenceVoiceChat": false,
-            "disablePortableExperiences": false,
             "spawnPoints": [
               {
                 "name": "spawn1",
@@ -1244,9 +4020,9 @@
                 }
               }
             ],
-            "skyboxConfig": {},
-            "creator": "",
-            "disableNearbyVoiceChat": false
+            "skyboxConfig": {
+              "fixedTime": 43200
+            }
           }
         }
       }
