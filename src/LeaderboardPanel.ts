@@ -4,13 +4,9 @@ import {
   Transform,
   TransformTypeWithOptionals,
   MeshRenderer,
-  MeshCollider,
   Material,
   TextShape,
-  TextAlignMode,
-  InputAction,
-  pointerEventsSystem,
-  VisibilityComponent
+  TextAlignMode
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 
@@ -32,29 +28,33 @@ export type LeaderboardPanelOptions = {
 
 type PanelState = {
   root: Entity
-  tabs: Entity[]
-  tabLabels: Array<Entity | null>
-  tabUnderlines: Array<Entity | null>
-  tabRows: Entity[][]
-  tabVisibility: Entity[][]
+  rowNames: Entity[]
+  rowValues: Entity[]
   currentTab: number
-  leftButton: Entity | null
-  rightButton: Entity | null
 }
 
-const DEFAULT_SIZE = Vector3.create(4, 6.0, 1)
-const DEFAULT_TABS = ['KILLS', 'WAVES']
-const DEFAULT_ROWS = 10
+const DEFAULT_SIZE = Vector3.create(6, 4, 1)
+const DEFAULT_ROWS = 6
 
-const DEFAULT_TAB_DATA: LeaderboardPanelEntry[][] = [[], []]
+function addPanelPlane(parent: Entity, position: Vector3, scale: Vector3, color: Color4) {
+  const entity = engine.addEntity()
+  Transform.createOrReplace(entity, {
+    parent,
+    position,
+    rotation: Quaternion.Identity(),
+    scale
+  })
+  MeshRenderer.setPlane(entity)
+  Material.setBasicMaterial(entity, {
+    diffuseColor: color
+  })
+  return entity
+}
 
 export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
   const size = options.size ?? DEFAULT_SIZE
-  const tabs = options.tabs && options.tabs.length > 0 ? options.tabs : DEFAULT_TABS
-  const tabColumnHeaders = options.tabColumnHeaders ?? tabs.map(() => 'COUNT')
-  const tabData = options.tabData && options.tabData.length > 0 ? options.tabData : DEFAULT_TAB_DATA
-  const skipBackground = options.skipBackground ?? false
-  const hideTabNav = options.hideTabNav ?? false
+  const title = options.tabs?.[0] ?? 'LEADERBOARD'
+  const valueHeader = options.tabColumnHeaders?.[0] ?? 'PTS'
 
   const root = engine.addEntity()
   if (options.parent) {
@@ -68,331 +68,168 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
     Transform.createOrReplace(root, options.transform ?? {})
   }
 
-  // Background panel (skipped when the scene already provides a background plane)
-  if (!skipBackground) {
-    const background = engine.addEntity()
-    Transform.createOrReplace(background, {
-      parent: root,
-      position: Vector3.create(0, 0, 0),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.create(size.x, size.y, 1)
-    })
-    MeshRenderer.setPlane(background)
-    Material.setBasicMaterial(background, {
-      diffuseColor: Color4.fromHexString('#111111ff')
-    })
-  }
+  const panelW = size.x * 0.96
+  const panelH = size.y * 0.9
+  const frameOuter = Color4.fromHexString('#a237ffff')
+  const frameInner = Color4.fromHexString('#ffb22fff')
+  const panelBg = Color4.fromHexString('#120022ee')
+  const headerBg = Color4.fromHexString('#371064ff')
+  const separator = Color4.fromHexString('#6f28c8ff')
 
-  const tabLabels: Array<Entity | null> = []
-  const tabUnderlines: Array<Entity | null> = []
-  const tabLabelRoot = engine.addEntity()
-  Transform.createOrReplace(tabLabelRoot, {
+  addPanelPlane(root, Vector3.create(0, 0, 0.01), Vector3.create(panelW, panelH, 1), panelBg)
+  addPanelPlane(root, Vector3.create(0, panelH / 2 - 0.58, 0.012), Vector3.create(panelW * 0.9, 0.88, 1), headerBg)
+
+  const borderThickness = 0.08
+  const innerBorderInset = 0.16
+  addPanelPlane(root, Vector3.create(0, panelH / 2, 0.015), Vector3.create(panelW, borderThickness, 1), frameOuter)
+  addPanelPlane(root, Vector3.create(0, -panelH / 2, 0.015), Vector3.create(panelW, borderThickness, 1), frameOuter)
+  addPanelPlane(root, Vector3.create(-panelW / 2, 0, 0.015), Vector3.create(borderThickness, panelH, 1), frameOuter)
+  addPanelPlane(root, Vector3.create(panelW / 2, 0, 0.015), Vector3.create(borderThickness, panelH, 1), frameOuter)
+  addPanelPlane(root, Vector3.create(0, panelH / 2 - innerBorderInset, 0.03), Vector3.create(panelW - innerBorderInset * 2, borderThickness, 1), frameInner)
+  addPanelPlane(root, Vector3.create(0, -panelH / 2 + innerBorderInset, 0.03), Vector3.create(panelW - innerBorderInset * 2, borderThickness, 1), frameInner)
+  addPanelPlane(root, Vector3.create(-panelW / 2 + innerBorderInset, 0, 0.03), Vector3.create(borderThickness, panelH - innerBorderInset * 2, 1), frameInner)
+  addPanelPlane(root, Vector3.create(panelW / 2 - innerBorderInset, 0, 0.03), Vector3.create(borderThickness, panelH - innerBorderInset * 2, 1), frameInner)
+
+  const titleFont = Math.max(1.7, size.y * 0.26) * 5
+  const headerFont = Math.max(1.0, size.y * 0.15) * 5
+  const rowFont = Math.max(1.0, size.y * 0.165) * 5
+  const leftX = -panelW / 2 + 0.9
+  const rightX = panelW / 2 - 0.8
+
+  const titleEntity = engine.addEntity()
+  Transform.createOrReplace(titleEntity, {
     parent: root,
-    position: Vector3.create(0, size.y / 2 - 0.9, -0.03),
+    position: Vector3.create(0, panelH / 2 - 0.58, -0.02),
     rotation: Quaternion.Identity(),
     scale: Vector3.One()
   })
+  TextShape.createOrReplace(titleEntity, {
+    text: title,
+    fontSize: titleFont,
+    textColor: Color4.White(),
+    outlineColor: Color4.fromHexString('#3c0068ff'),
+    outlineWidth: 0.18,
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
 
-  for (let i = 0; i < tabs.length; i++) {
-    const tabLabel = engine.addEntity()
-    const tabX = (i - (tabs.length - 1) / 2) * 1.6
-    Transform.createOrReplace(tabLabel, {
-      parent: tabLabelRoot,
-      position: Vector3.create(tabX, 0, 0),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One()
-    })
-    TextShape.createOrReplace(tabLabel, {
-      text: tabs[i],
-      fontSize: 1.6,
-      textColor: i === 0 ? Color4.White() : Color4.fromHexString('#bbbbbbff'),
-      outlineColor: Color4.Black(),
-      outlineWidth: 0.15,
-      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
-    })
+  const headerName = engine.addEntity()
+  Transform.createOrReplace(headerName, {
+    parent: root,
+    position: Vector3.create(leftX, panelH / 2 - 1.52, -0.02),
+    rotation: Quaternion.Identity(),
+    scale: Vector3.One()
+  })
+  TextShape.createOrReplace(headerName, {
+    text: 'PLAYER',
+    fontSize: headerFont,
+    textColor: Color4.fromHexString('#ffcf73ff'),
+    outlineColor: Color4.fromHexString('#2b0047ff'),
+    outlineWidth: 0.12,
+    textAlign: TextAlignMode.TAM_MIDDLE_LEFT
+  })
 
-    const underline = engine.addEntity()
-    Transform.createOrReplace(underline, {
-      parent: tabLabelRoot,
-      position: Vector3.create(tabX, -0.25, 0),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.create(0.9, 0.05, 1)
-    })
-    MeshRenderer.setPlane(underline)
-    Material.setBasicMaterial(underline, {
-      diffuseColor: Color4.fromHexString('#9f78e7')
-    })
-    VisibilityComponent.createOrReplace(underline, { visible: i === 0 })
+  const headerValue = engine.addEntity()
+  Transform.createOrReplace(headerValue, {
+    parent: root,
+    position: Vector3.create(rightX, panelH / 2 - 1.52, -0.02),
+    rotation: Quaternion.Identity(),
+    scale: Vector3.One()
+  })
+  TextShape.createOrReplace(headerValue, {
+    text: valueHeader,
+    fontSize: headerFont,
+    textColor: Color4.fromHexString('#ffcf73ff'),
+    outlineColor: Color4.fromHexString('#2b0047ff'),
+    outlineWidth: 0.12,
+    textAlign: TextAlignMode.TAM_MIDDLE_RIGHT
+  })
 
-    tabLabels.push(tabLabel)
-    tabUnderlines.push(underline)
-  }
+  const rowNames: Entity[] = []
+  const rowValues: Entity[] = []
+  const contentTop = panelH / 2 - 2.55
+  const contentBottom = -panelH / 2 + 0.8
+  const rowGap = (contentTop - contentBottom) / (DEFAULT_ROWS - 1)
 
-  const tabRoots: Entity[] = []
-  const tabRows: Entity[][] = []
-  const tabVisibility: Entity[][] = []
+  for (let i = 0; i < DEFAULT_ROWS; i++) {
+    const y = contentTop - i * rowGap
 
-  for (let i = 0; i < tabs.length; i++) {
-    const tabRoot = engine.addEntity()
-    Transform.createOrReplace(tabRoot, {
-      parent: root,
-      position: Vector3.create(0, -0.1, -0.03),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One()
-    })
-
-    const headerRow = engine.addEntity()
-    Transform.createOrReplace(headerRow, {
-      parent: tabRoot,
-      position: Vector3.create(0, size.y / 2 - 1.25, -0.01),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One()
-    })
-    const headerName = engine.addEntity()
-    Transform.createOrReplace(headerName, {
-      parent: headerRow,
-      position: Vector3.create(-1.2, 0, 0),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One()
-    })
-    TextShape.createOrReplace(headerName, {
-      text: 'PLAYER',
-      fontSize: 1.35,
-      textColor: Color4.fromHexString('#9f78e7'),
-      outlineColor: Color4.Black(),
-      outlineWidth: 0.1,
-      textAlign: TextAlignMode.TAM_MIDDLE_LEFT
-    })
-    VisibilityComponent.createOrReplace(headerName, { visible: i === 0 })
-
-    const headerValue = engine.addEntity()
-    Transform.createOrReplace(headerValue, {
-      parent: headerRow,
-      position: Vector3.create(1.25, 0, 0),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One()
-    })
-    TextShape.createOrReplace(headerValue, {
-      text: tabColumnHeaders[i] ?? 'COUNT',
-      fontSize: 1.35,
-      textColor: Color4.fromHexString('#9f78e7'),
-      outlineColor: Color4.Black(),
-      outlineWidth: 0.1,
-      textAlign: TextAlignMode.TAM_MIDDLE_RIGHT
-    })
-    VisibilityComponent.createOrReplace(headerValue, { visible: i === 0 })
-
-    const rows: Entity[] = []
-    const visibilityList: Entity[] = [headerName, headerValue]
-    const contentTop = size.y / 2 - 1.7
-    const contentBottom = -size.y / 2 + 0.9
-    const rowGap = (contentTop - contentBottom) / (DEFAULT_ROWS - 1)
-
-    for (let r = 0; r < DEFAULT_ROWS; r++) {
-      const rowRoot = engine.addEntity()
-      Transform.createOrReplace(rowRoot, {
-        parent: tabRoot,
-        position: Vector3.create(0, contentTop - r * rowGap, -0.01),
-        rotation: Quaternion.Identity(),
-        scale: Vector3.One()
-      })
-
-      const rankText = engine.addEntity()
-      Transform.createOrReplace(rankText, {
-        parent: rowRoot,
-        position: Vector3.create(-1.75, 0, 0),
-        rotation: Quaternion.Identity(),
-        scale: Vector3.One()
-      })
-      TextShape.createOrReplace(rankText, {
-        text: `${r + 1}.`,
-        fontSize: 1.2,
-        textColor: Color4.fromHexString('#bbbbbbff'),
-        outlineColor: Color4.Black(),
-        outlineWidth: 0.1,
-        textAlign: TextAlignMode.TAM_MIDDLE_LEFT
-      })
-      VisibilityComponent.createOrReplace(rankText, { visible: i === 0 })
-
-      const nameText = engine.addEntity()
-      Transform.createOrReplace(nameText, {
-        parent: rowRoot,
-        position: Vector3.create(-1.2, 0, 0),
-        rotation: Quaternion.Identity(),
-        scale: Vector3.One()
-      })
-      TextShape.createOrReplace(nameText, {
-        text: '---',
-        fontSize: 1.5,
-        textColor: Color4.White(),
-        outlineColor: Color4.Black(),
-        outlineWidth: 0.1,
-        textAlign: TextAlignMode.TAM_MIDDLE_LEFT
-      })
-      VisibilityComponent.createOrReplace(nameText, { visible: i === 0 })
-
-      const valueText = engine.addEntity()
-      Transform.createOrReplace(valueText, {
-        parent: rowRoot,
-        position: Vector3.create(1.25, 0, 0),
-        rotation: Quaternion.Identity(),
-        scale: Vector3.One()
-      })
-      TextShape.createOrReplace(valueText, {
-        text: '-',
-        fontSize: 1.5,
-        textColor: Color4.White(),
-        outlineColor: Color4.Black(),
-        outlineWidth: 0.1,
-        textAlign: TextAlignMode.TAM_MIDDLE_RIGHT
-      })
-      VisibilityComponent.createOrReplace(valueText, { visible: i === 0 })
-
-      rows.push(nameText)
-      rows.push(valueText)
-      visibilityList.push(rankText, nameText, valueText)
+    if (i < DEFAULT_ROWS - 1) {
+      addPanelPlane(
+        root,
+        Vector3.create(0, y - rowGap / 2, 0.013),
+        Vector3.create(panelW * 0.78, 0.018, 1),
+        separator
+      )
     }
 
-    VisibilityComponent.createOrReplace(tabRoot, { visible: i === 0 })
-    tabRoots.push(tabRoot)
-    tabRows.push(rows)
-    tabVisibility.push(visibilityList)
-  }
-
-  // Tab navigation buttons (skipped when hideTabNav is set, e.g. single-tab panels)
-  let leftButton: Entity | null = null
-  let rightButton: Entity | null = null
-
-  if (!hideTabNav) {
-    // Left button (prev tab)
-    leftButton = engine.addEntity()
-    Transform.createOrReplace(leftButton, {
+    const nameEntity = engine.addEntity()
+    Transform.createOrReplace(nameEntity, {
       parent: root,
-      position: Vector3.create(-size.x / 2 + 0.9, -size.y / 2 + 0.3, -0.03),
+      position: Vector3.create(leftX, y, -0.02),
       rotation: Quaternion.Identity(),
-      scale: Vector3.create(1.4, 0.85, 1)
+      scale: Vector3.One()
     })
-    MeshRenderer.setPlane(leftButton)
-    MeshCollider.setBox(leftButton)
-    Material.setBasicMaterial(leftButton, {
-      texture: Material.Texture.Common({ src: 'assets/images/backButton.png' }),
-      alphaTexture: Material.Texture.Common({ src: 'assets/images/backButton.png' }),
-      diffuseColor: Color4.create(1, 1, 1, 1),
-      alphaTest: 0.5
+    TextShape.createOrReplace(nameEntity, {
+      text: `${i + 1}. ---`,
+      fontSize: rowFont,
+      textColor: Color4.White(),
+      outlineColor: Color4.fromHexString('#22003dff'),
+      outlineWidth: 0.12,
+      textAlign: TextAlignMode.TAM_MIDDLE_LEFT
     })
 
-    // Right button (next tab)
-    rightButton = engine.addEntity()
-    Transform.createOrReplace(rightButton, {
+    const valueEntity = engine.addEntity()
+    Transform.createOrReplace(valueEntity, {
       parent: root,
-      position: Vector3.create(size.x / 2 - 0.9, -size.y / 2 + 0.3, -0.03),
+      position: Vector3.create(rightX, y, -0.02),
       rotation: Quaternion.Identity(),
-      scale: Vector3.create(1.4, 0.85, 1)
+      scale: Vector3.One()
     })
-    MeshRenderer.setPlane(rightButton)
-    MeshCollider.setBox(rightButton)
-    Material.setBasicMaterial(rightButton, {
-      texture: Material.Texture.Common({ src: 'assets/images/nextButton.png' }),
-      alphaTexture: Material.Texture.Common({ src: 'assets/images/nextButton.png' }),
-      diffuseColor: Color4.create(1, 1, 1, 1),
-      alphaTest: 0.5
+    TextShape.createOrReplace(valueEntity, {
+      text: '-',
+      fontSize: rowFont,
+      textColor: Color4.fromHexString('#ffcf73ff'),
+      outlineColor: Color4.fromHexString('#22003dff'),
+      outlineWidth: 0.12,
+      textAlign: TextAlignMode.TAM_MIDDLE_RIGHT
     })
+
+    rowNames.push(nameEntity)
+    rowValues.push(valueEntity)
   }
 
   const state: PanelState = {
     root,
-    tabs: tabRoots,
-    tabLabels,
-    tabUnderlines,
-    tabRows,
-    tabVisibility,
-    currentTab: 0,
-    leftButton,
-    rightButton
+    rowNames,
+    rowValues,
+    currentTab: 0
   }
 
-  if (leftButton) {
-    pointerEventsSystem.onPointerDown(
-      {
-        entity: leftButton,
-        opts: {
-          button: InputAction.IA_POINTER,
-          hoverText: 'PREV TAB',
-          showHighlight: false,
-          maxDistance: 15
-        }
-      },
-      () => setActiveTab(state, state.currentTab - 1)
-    )
-  }
-
-  if (rightButton) {
-    pointerEventsSystem.onPointerDown(
-      {
-        entity: rightButton,
-        opts: {
-          button: InputAction.IA_POINTER,
-          hoverText: 'NEXT TAB',
-          showHighlight: false,
-          maxDistance: 15
-        }
-      },
-      () => setActiveTab(state, state.currentTab + 1)
-    )
-  }
-
-  for (let i = 0; i < tabs.length; i++) {
-    setTabData(state, i, tabData[i] ?? [])
-  }
+  const initialData = options.tabData?.[0] ?? []
+  setTabData(state, 0, initialData)
 
   return state
 }
 
 export function setActiveTab(panel: PanelState, index: number) {
-  if (panel.tabs.length === 0) return
-  if (index < 0) index = panel.tabs.length - 1
-  if (index >= panel.tabs.length) index = 0
-
-  for (let i = 0; i < panel.tabs.length; i++) {
-    VisibilityComponent.getMutable(panel.tabs[i]).visible = i === index
-    const label = panel.tabLabels[i]
-    if (label) {
-      TextShape.getMutable(label).textColor = i === index ? Color4.White() : Color4.fromHexString('#bbbbbbff')
-    }
-    const underline = panel.tabUnderlines[i]
-    if (underline) {
-      VisibilityComponent.getMutable(underline).visible = i === index
-    }
-    const list = panel.tabVisibility[i]
-    if (list) {
-      for (let j = 0; j < list.length; j++) {
-        VisibilityComponent.getMutable(list[j]).visible = i === index
-      }
-    }
-  }
-
   panel.currentTab = index
 }
 
-export function setTabData(panel: PanelState, tabIndex: number, entries: LeaderboardPanelEntry[]) {
-  const rowEntities = panel.tabRows[tabIndex]
-  if (!rowEntities) return
-
-  if (entries.length === 0) {
-    for (let i = 0; i < DEFAULT_ROWS; i++) {
-      const nameEntity = rowEntities[i * 2]
-      const valueEntity = rowEntities[i * 2 + 1]
-      TextShape.getMutable(nameEntity).text = i === 0 ? 'No data yet' : ''
-      TextShape.getMutable(valueEntity).text = ''
-    }
-    return
-  }
+export function setTabData(panel: PanelState, _tabIndex: number, entries: LeaderboardPanelEntry[]) {
+  const rows = entries.slice(0, DEFAULT_ROWS)
 
   for (let i = 0; i < DEFAULT_ROWS; i++) {
-    const entry = entries[i]
-    const nameEntity = rowEntities[i * 2]
-    const valueEntity = rowEntities[i * 2 + 1]
-    TextShape.getMutable(nameEntity).text = entry ? entry.name : '---'
-    TextShape.getMutable(valueEntity).text = entry ? entry.value : '-'
+    const entry = rows[i]
+    const name = TextShape.getMutable(panel.rowNames[i])
+    const value = TextShape.getMutable(panel.rowValues[i])
+
+    if (!entry) {
+      name.text = i === 0 && rows.length === 0 ? 'No data yet' : ''
+      value.text = ''
+      continue
+    }
+
+    name.text = `${i + 1}. ${entry.name}`
+    value.text = entry.value
   }
 }
