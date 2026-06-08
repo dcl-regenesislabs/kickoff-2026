@@ -15,10 +15,10 @@ export function isAdmin(address: string | undefined | null): boolean {
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
-// Correct winner only ............. 1 pt
-// Exact score (winner implied) .... 1 + 3 = 4 pts
-export const PTS_WINNER = 1
-export const PTS_SCORE  = 3
+// Correct winner only ............. 3 pts
+// Exact score (winner implied) .... 3 + 2 = 5 pts
+export const PTS_WINNER = 3
+export const PTS_SCORE  = 2
 
 // How many rows the leaderboard returns/shows (the 3D panel renders 10 rows).
 export const LEADERBOARD_SIZE = 10

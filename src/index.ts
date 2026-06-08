@@ -81,7 +81,7 @@ function makeBanner(src: string, z: number, w: number, h: number, clickable: boo
   if (clickable) {
     MeshCollider.setPlane(banner, ColliderLayer.CL_POINTER)
     pointerEventsSystem.onPointerDown(
-      { entity: banner, opts: { button: InputAction.IA_POINTER, hoverText: 'How points work' } },
+      { entity: banner, opts: { button: InputAction.IA_POINTER, hoverText: 'How scoring works' } },
       () => { playClick(); openProdeInfo() }
     )
   }
