@@ -5,6 +5,7 @@
  * Object containing all entity names in the scene for autocomplete support.
  */
 export enum EntityNames {
+  Cushion___Black = "Cushion - Black",
   Ground = "Ground",
   Stadium01_glb = "Stadium01.glb",
   StadiumGrass01_glb = "StadiumGrass01.glb",
@@ -68,8 +69,11 @@ export enum EntityNames {
   Tile_7 = "Tile 7",
   Tile_8 = "Tile 8",
   Tile_9 = "Tile 9",
+  banner_left = "banner_left",
+  banner_right = "banner_right",
   dispenser_1_glb = "dispenser_1.glb",
   dispenser_1_glb_2 = "dispenser_1.glb_2",
+  leaderboard = "leaderboard",
   trikot_final_female_fix1__glb = "trikot_final_female_fix1#.glb",
   trikot_final_male__glb = "trikot_final_male#.glb",
 } 
