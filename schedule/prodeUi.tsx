@@ -235,10 +235,10 @@ const MatchChecklist = () => {
     </UiEntity>
   )
 
-  // Desktop: one row of 12. Mobile: 6 rows × 2 groups (vertical left sidebar).
+  // Desktop: 2 rows × 6 groups centered. Mobile: 6 rows × 2 groups (vertical sidebar).
   const rows = mob
     ? [GROUPS.slice(0, 2), GROUPS.slice(2, 4), GROUPS.slice(4, 6), GROUPS.slice(6, 8), GROUPS.slice(8, 10), GROUPS.slice(10, 12)]
-    : [GROUPS]
+    : [GROUPS.slice(0, 6), GROUPS.slice(6, 12)]
 
   return (
     <UiEntity
