@@ -5,30 +5,18 @@ import { startConfetti, isConfettiActive } from '../schedule/confetti'
 
 const CROWD_SRC = 'sounds/vishiv-crowd-cheering-in-stadium-435357.mp3'
 
-// Crowd audio that rises as the player walks forward (+X) from spawn toward the
-// stands. Player X is mapped to volume: barely audible at spawn (x≈X_START) and
-// full from the goal line (x≈X_LOUD) onward.
-const X_START = 10   // spawn — quietest
-const X_LOUD  = 32   // goal line — crowd at full volume from here on
-const VOL_MIN = 0.05
-const VOL_MAX = 1.0
+// Crowd audio — always playing at a constant, gentle volume (no position ramp).
+const CROWD_VOLUME = 0.15   // soft background
 
 export function setupCrowdAudio() {
   const crowd = engine.addEntity()
-  Transform.create(crowd, { position: Vector3.create(X_LOUD, 5, 32) })
+  Transform.create(crowd, { position: Vector3.create(32, 5, 32) })
   AudioSource.create(crowd, {
     audioClipUrl: CROWD_SRC,
     playing: true,
     loop: true,
-    volume: VOL_MIN,
+    volume: CROWD_VOLUME,
     global: true
-  })
-
-  engine.addSystem(() => {
-    const p = getPlayer()
-    if (!p?.position) return
-    const t = clamp01((p.position.x - X_START) / (X_LOUD - X_START))
-    AudioSource.getMutable(crowd).volume = VOL_MIN + t * (VOL_MAX - VOL_MIN)
   })
 }
 
@@ -51,5 +39,3 @@ export function setupFieldTrigger() {
     }
   })
 }
-
-function clamp01(v: number): number { return v < 0 ? 0 : v > 1 ? 1 : v }

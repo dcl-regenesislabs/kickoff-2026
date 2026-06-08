@@ -85,16 +85,16 @@
       "default": true,
       "position": {
         "x": [
-          3.5,
-          11.5
+          12,
+          20
         ],
         "y": [
           0,
           0
         ],
         "z": [
-          45.75,
-          53.75
+          44,
+          52
         ]
       },
       "cameraTarget": {
@@ -106,7 +106,7 @@
   ],
   "authoritativeMultiplayer": true,
   "worldConfiguration": {
-    "name": "dcl-prode.dcl.eth"
+    "name": "kickoff.dcl.eth"
   },
   "logsPermissions": [
     "0xc502975b49398f9754afc4e9693cf0e1594f3275"
