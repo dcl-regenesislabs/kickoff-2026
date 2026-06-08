@@ -117,7 +117,9 @@
     "portableExperiences": "enabled",
     "nearbyVoiceChat": "enabled"
   },
-  "skyboxConfig": {},
+  "skyboxConfig": {
+    "fixedTime": 43200
+  },
   "source": {
     "origin": "creator-hub",
     "projectId": "c575708a-5824-49e0-a4ce-ddec5cac843a"
