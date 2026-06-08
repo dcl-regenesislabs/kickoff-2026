@@ -46,7 +46,7 @@ export async function main() {
 // The instructions banner (banner2) is clickable and opens the scoring info UI.
 function buildBanner() {
   // Same height, each width derived from its own image so neither is distorted.
-  const BANNER_H = 8.6
+  const BANNER_H = 6.7
   const wPlain   = BANNER_H * (1080 / 1920)   // Banner.png
   const wRules   = BANNER_H * (1536 / 2752)   // Banner-Rules.png
   const LB_Z     = 47.25   // leaderboard center (along its width axis)
