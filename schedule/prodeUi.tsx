@@ -368,7 +368,7 @@ const GroupForm = () => {
     >
       <UiEntity
         uiTransform={{
-          width: S(1360), height: S(mob ? 980 : 900), padding: S(56), alignSelf: 'center',
+          width: S(1360), height: S(mob ? 1040 : 900), padding: S(56), alignSelf: 'center',
           flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
           borderRadius: S(40)
         }}
