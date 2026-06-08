@@ -12,8 +12,10 @@ export type Match = {
   flag2: string
 }
 
-export type DateGroup = {
-  date: string
+export type Group = {
+  name: string
+  teams: string[]
+  flags: string[]
   matches: Match[]
 }
 
@@ -87,179 +89,39 @@ function f(team: string): string {
   return code ? `${FLAG_DIR}${code}.png` : PH
 }
 
-// ── Match builder ─────────────────────────────────────────────────────────────
+// ── Match builder ────────────────────────────────────
 let _id = 0
-const m = (group: string, time: string, t1: string, t2: string): Match => ({
-  id: _id++, group, time, team1: t1, team2: t2, flag1: f(t1), flag2: f(t2)
+const mk = (group: string, t1: string, t2: string): Match => ({
+  id: _id++, group, time: '', team1: t1, team2: t2, flag1: f(t1), flag2: f(t2)
 })
 
-// ── All dates ─────────────────────────────────────────────────────────────────
-export const DATES: DateGroup[] = [
-  {
-    date: 'June 11',
-    matches: [
-      m('Group A', '9:00 PM',  'Mexico',     'South Africa'),
-    ]
-  },
-  {
-    date: 'June 12',
-    matches: [
-      m('Group A', '4:00 AM',  'South Korea',         'Czechia'),
-      m('Group A', '9:00 PM',  'Canada',              'Bosnia & Herzegovina'),
-    ]
-  },
-  {
-    date: 'June 13',
-    matches: [
-      m('Group D', '3:00 AM',  'USA',         'Paraguay'),
-      m('Group B', '9:00 PM',  'Qatar',       'Switzerland'),
-    ]
-  },
-  {
-    date: 'June 14',
-    matches: [
-      m('Group C', '12:00 AM', 'Brazil',      'Morocco'),
-      m('Group C', '3:00 AM',  'Haiti',       'Scotland'),
-      m('Group D', '6:00 AM',  'Australia',   'Turkey'),
-      m('Group E', '7:00 PM',  'Germany',     'Curaçao'),
-      m('Group F', '10:00 PM', 'Netherlands', 'Japan'),
-    ]
-  },
-  {
-    date: 'June 15',
-    matches: [
-      m('Group E', '1:00 AM',  'Ivory Coast',  'Ecuador'),
-      m('Group F', '4:00 AM',  'Sweden',       'Tunisia'),
-      m('Group H', '6:00 PM',  'Spain',        'Cape Verde'),
-      m('Group G', '9:00 PM',  'Belgium',      'Egypt'),
-    ]
-  },
-  {
-    date: 'June 16',
-    matches: [
-      m('Group H', '12:00 AM', 'Saudi Arabia', 'Uruguay'),
-      m('Group G', '3:00 AM',  'Iran',         'New Zealand'),
-      m('Group I', '9:00 PM',  'France',       'Senegal'),
-    ]
-  },
-  {
-    date: 'June 17',
-    matches: [
-      m('Group I', '12:00 AM', 'Iraq',      'Norway'),
-      m('Group J', '3:00 AM',  'Argentina', 'Algeria'),
-      m('Group J', '6:00 AM',  'Austria',   'Jordan'),
-      m('Group K', '7:00 PM',  'Portugal',  'DR Congo'),
-      m('Group L', '10:00 PM', 'England',   'Croatia'),
-    ]
-  },
-  {
-    date: 'June 18',
-    matches: [
-      m('Group L', '1:00 AM',  'Ghana',      'Panama'),
-      m('Group K', '4:00 AM',  'Uzbekistan', 'Colombia'),
-      m('Group A', '6:00 PM',  'Czechia',    'South Africa'),
-      m('Group B', '9:00 PM',  'Switzerland','Bosnia & Herzegovina'),
-    ]
-  },
-  {
-    date: 'June 19',
-    matches: [
-      m('Group B', '12:00 AM', 'Canada',     'Qatar'),
-      m('Group A', '3:00 AM',  'Mexico',     'South Korea'),
-      m('Group D', '9:00 PM',  'USA',        'Australia'),
-    ]
-  },
-  {
-    date: 'June 20',
-    matches: [
-      m('Group C', '12:00 AM', 'Scotland',    'Morocco'),
-      m('Group C', '2:30 AM',  'Brazil',      'Haiti'),
-      m('Group D', '5:00 AM',  'Turkey',      'Paraguay'),
-      m('Group F', '7:00 PM',  'Netherlands', 'Sweden'),
-      m('Group E', '10:00 PM', 'Germany',     'Ivory Coast'),
-    ]
-  },
-  {
-    date: 'June 21',
-    matches: [
-      m('Group E', '2:00 AM',  'Ecuador',      'Curaçao'),
-      m('Group F', '6:00 AM',  'Tunisia',      'Japan'),
-      m('Group H', '6:00 PM',  'Spain',        'Saudi Arabia'),
-      m('Group G', '9:00 PM',  'Belgium',      'Iran'),
-    ]
-  },
-  {
-    date: 'June 22',
-    matches: [
-      m('Group H', '12:00 AM', 'Uruguay',     'Cape Verde'),
-      m('Group G', '3:00 AM',  'New Zealand', 'Egypt'),
-      m('Group J', '7:00 PM',  'Argentina',   'Austria'),
-      m('Group I', '11:00 PM', 'France',      'Iraq'),
-    ]
-  },
-  {
-    date: 'June 23',
-    matches: [
-      m('Group I', '2:00 AM',  'Norway',   'Senegal'),
-      m('Group J', '5:00 AM',  'Jordan',   'Algeria'),
-      m('Group K', '7:00 PM',  'Portugal', 'Uzbekistan'),
-      m('Group L', '10:00 PM', 'England',  'Ghana'),
-    ]
-  },
-  {
-    date: 'June 24',
-    matches: [
-      m('Group L', '1:00 AM',  'Panama',              'Croatia'),
-      m('Group K', '4:00 AM',  'Colombia',            'DR Congo'),
-      m('Group B', '9:00 PM',  'Switzerland',         'Canada'),
-      m('Group B', '9:00 PM',  'Bosnia & Herzegovina','Qatar'),
-    ]
-  },
-  {
-    date: 'June 25',
-    matches: [
-      m('Group C', '12:00 AM', 'Morocco',      'Haiti'),
-      m('Group C', '12:00 AM', 'Scotland',     'Brazil'),
-      m('Group A', '3:00 AM',  'South Africa', 'South Korea'),
-      m('Group A', '3:00 AM',  'Czechia',      'Mexico'),
-      m('Group E', '10:00 PM', 'Curaçao',      'Ivory Coast'),
-      m('Group E', '10:00 PM', 'Ecuador',      'Germany'),
-    ]
-  },
-  {
-    date: 'June 26',
-    matches: [
-      m('Group F', '1:00 AM',  'Tunisia',     'Netherlands'),
-      m('Group F', '1:00 AM',  'Japan',       'Sweden'),
-      m('Group D', '4:00 AM',  'Turkey',      'USA'),
-      m('Group D', '4:00 AM',  'Paraguay',    'Australia'),
-      m('Group I', '9:00 PM',  'Norway',      'France'),
-      m('Group I', '9:00 PM',  'Senegal',     'Iraq'),
-    ]
-  },
-  {
-    date: 'June 27',
-    matches: [
-      m('Group H', '2:00 AM',  'Cape Verde',  'Saudi Arabia'),
-      m('Group H', '2:00 AM',  'Uruguay',     'Spain'),
-      m('Group G', '5:00 AM',  'New Zealand', 'Belgium'),
-      m('Group G', '5:00 AM',  'Egypt',       'Iran'),
-      m('Group L', '11:00 PM', 'Panama',      'England'),
-      m('Group L', '11:00 PM', 'Croatia',     'Ghana'),
-    ]
-  },
-  {
-    date: 'June 28',
-    matches: [
-      m('Group K', '1:30 AM',  'Colombia', 'Portugal'),
-      m('Group K', '1:30 AM',  'DR Congo', 'Uzbekistan'),
-      m('Group J', '4:00 AM',  'Algeria',  'Austria'),
-      m('Group J', '4:00 AM',  'Jordan',   'Argentina'),
-    ]
-  },
+// ── Groups (official 2026 WC draw) ────────────────────────────
+// Each group is a 4-team round robin -> 6 matches, generated in the order below.
+const RR: [number, number][] = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]]
+
+const GROUP_TEAMS: { name: string; teams: [string, string, string, string] }[] = [
+  { name: 'Group A', teams: ['Mexico', 'South Africa', 'South Korea', 'Czechia'] },
+  { name: 'Group B', teams: ['Canada', 'Bosnia & Herzegovina', 'Qatar', 'Switzerland'] },
+  { name: 'Group C', teams: ['Brazil', 'Morocco', 'Haiti', 'Scotland'] },
+  { name: 'Group D', teams: ['USA', 'Paraguay', 'Australia', 'Turkey'] },
+  { name: 'Group E', teams: ['Germany', 'Curaçao', 'Ivory Coast', 'Ecuador'] },
+  { name: 'Group F', teams: ['Netherlands', 'Japan', 'Sweden', 'Tunisia'] },
+  { name: 'Group G', teams: ['Belgium', 'Egypt', 'Iran', 'New Zealand'] },
+  { name: 'Group H', teams: ['Spain', 'Cape Verde', 'Saudi Arabia', 'Uruguay'] },
+  { name: 'Group I', teams: ['France', 'Senegal', 'Iraq', 'Norway'] },
+  { name: 'Group J', teams: ['Argentina', 'Algeria', 'Austria', 'Jordan'] },
+  { name: 'Group K', teams: ['Portugal', 'DR Congo', 'Uzbekistan', 'Colombia'] },
+  { name: 'Group L', teams: ['England', 'Croatia', 'Ghana', 'Panama'] },
 ]
 
-export const MATCHES: Match[] = DATES.flatMap(d => d.matches)
+export const GROUPS: Group[] = GROUP_TEAMS.map(g => ({
+  name: g.name,
+  teams: g.teams,
+  flags: g.teams.map(f),
+  matches: RR.map(([a, b]) => mk(g.name, g.teams[a], g.teams[b])),
+}))
+
+export const MATCHES: Match[] = GROUPS.flatMap(g => g.matches)
 
 // ── Predictions ───────────────────────────────────────────────────────────────
 export type Prediction = {
@@ -282,10 +144,10 @@ export function getCompletedCount(): number {
   return predictions.filter(p => p.submitted).length
 }
 
-export function isDateComplete(dateGroupIndex: number): boolean {
-  const dg = DATES[dateGroupIndex]
-  if (!dg) return false
-  return dg.matches.every(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false)
+export function isGroupComplete(groupIndex: number): boolean {
+  const g = GROUPS[groupIndex]
+  if (!g) return false
+  return g.matches.every(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false)
 }
 
 // ── Persistence hooks ─────────────────────────────────────────────────────────

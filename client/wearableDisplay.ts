@@ -1,25 +1,40 @@
 import {
-  EasingFunction, Entity, Name, Tween, TweenLoop, TweenSequence, engine
+  Animator, EasingFunction, Entity, Name, Tween, TweenLoop, TweenSequence, engine
 } from '@dcl/sdk/ecs'
 import { Quaternion } from '@dcl/sdk/math'
 import { EntityNames } from '../assets/scene/entity-names'
 
-// The dispenser base and the wearable jacket are placed from the Creator Hub
-// (they live in the scene composite). Here we only find the wearable by its
-// editor name and spin it in place, like it span in the original scene.
-const WEARABLE_NAME = EntityNames.Bondex_Jacket_M_emote_glb
+// The dispenser bases and the wearable jerseys are placed from the Creator Hub
+// (they live in the scene composite). Here we find them by their editor names and
+// spin the jerseys + play the dispenser animation (not set up in the editor).
+const WEARABLE_NAMES: string[] = [
+  EntityNames.trikot_final_male__glb,
+  EntityNames.trikot_final_female_fix1__glb
+]
+const DISPENSER_NAMES: string[] = [
+  EntityNames.dispenser_1_glb,
+  EntityNames.dispenser_1_glb_2
+]
+const DISPENSER_CLIPS = ['Cylinder.135Action', 'Cylinder.138Action.001', 'Dispenser_gownAction']
 
 export function setupWearableSpin() {
-  let applied = false
+  const done = new Set<string>()
+  const total = WEARABLE_NAMES.length + DISPENSER_NAMES.length
   engine.addSystem(() => {
-    if (applied) return
+    if (done.size >= total) return
     // The composite entities may not exist on the first frame — poll until found.
     for (const [entity, name] of engine.getEntitiesWith(Name)) {
-      if (name.value !== WEARABLE_NAME) continue
-      spin(entity)
-      applied = true
-      break
+      if (done.has(name.value)) continue
+      if (WEARABLE_NAMES.includes(name.value)) { spin(entity); done.add(name.value) }
+      else if (DISPENSER_NAMES.includes(name.value)) { animateDispenser(entity); done.add(name.value) }
     }
+  })
+}
+
+// Play all of the dispenser's clips on a loop.
+function animateDispenser(entity: Entity) {
+  Animator.createOrReplace(entity, {
+    states: DISPENSER_CLIPS.map(clip => ({ clip, playing: true, loop: true }))
   })
 }
 

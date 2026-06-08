@@ -2,20 +2,32 @@ import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/react-ecs'
 import { getPlayer } from '@dcl/sdk/players'
 import {
-  MATCHES, predictions, savePrediction, getCompletedCount,
-  getResult, hasResult, submitOfficialResult, myPoints, Outcome
+  MATCHES, GROUPS, predictions, savePrediction, getCompletedCount, isGroupComplete,
+  getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome
 } from './prodeData'
+import { getLeaderboard } from '../client/prodeClient'
+import { playClick, playComplete } from '../client/sfx'
+import { layoutScale, isMobile } from './responsive'
 import { isAdmin, PTS_WINNER, PTS_SCORE } from './prodeConfig'
-import { ConfettiOverlay, setupConfettiSystem } from './confetti'
 
-// ── UI state ──────────────────────────────────────────────────────────────────
-const uiState = {
-  visible:         false,
-  matchId:         0,
-  winner:          null as Outcome | null,
-  score1:          0,
-  score2:          0,
-  onConfirm:       null as (() => void) | null
+// Responsive helpers — read the live layout scale each render (desktop ~1, mobile x1.5).
+// S() scales sizes/spacings, F() scales font sizes. On desktop scale is 1 so the
+// carefully-tuned layout is unchanged.
+const S = (n: number) => Math.round(n * layoutScale())
+const F = (n: number) => Math.round(n * layoutScale())
+import { ConfettiOverlay, setupConfettiSystem, startConfetti } from './confetti'
+
+// ── Group form state ──────────────────────────────────────────────────────────
+// The board is just a clickable; opening it shows this UI to step through the
+// group's matches and set each score.
+const groupState = {
+  visible:    false,
+  groupIndex: 0,
+  matchIndex: 0,
+  score1:     0,
+  score2:     0,
+  dirty:      false,                          // true once the score was edited
+  onChange:   null as (() => void) | null   // refresh the 3D board progress
 }
 
 // Admin form state — iterates the flat MATCHES list to load official results.
@@ -31,14 +43,58 @@ const adminState = {
 const infoState = { visible: false }
 export function openProdeInfo() { infoState.visible = true }
 
-export function openPredictionForm(matchId: number, onConfirm: () => void) {
-  const pred = predictions.find(p => p.matchId === matchId)
-  uiState.matchId    = matchId
-  uiState.winner     = pred?.winner  ?? null
-  uiState.score1     = pred?.score1  ?? 0
-  uiState.score2     = pred?.score2  ?? 0
-  uiState.onConfirm  = onConfirm
-  uiState.visible    = true
+// Player stats overlay ("MY SCORE").
+const scoreState = { visible: false }
+export function openScorePanel() { scoreState.visible = true }
+
+// Welcome overlay shown on entry; dismissed with "Go!".
+const welcomeState = { visible: true }
+
+// All-predictions-complete celebration (fires once when the 72nd is saved).
+const celebrateState = { visible: false }
+let celebrated = false
+function maybeCelebrate() {
+  if (celebrated) return
+  if (getCompletedCount() < MATCHES.length) return
+  celebrated = true
+  celebrateState.visible = true
+  startConfetti()
+  playComplete()
+}
+
+// Button wrapper that plays the UI click sound before its handler.
+// `RawButton` avoids the global `<Button>`→`<SfxButton>` rename hitting itself.
+const RawButton: typeof Button = Button
+const SfxButton = (props: any) => (
+  <RawButton {...props} onMouseDown={() => { playClick(); props.onMouseDown?.() }} />
+)
+
+// Image button: a clickable UiEntity whose face is a texture (text baked into it).
+// `tint` lets us dim it for a disabled look.
+const ImgButton = (props: { src: string; width: number; height: number; onMouseDown: () => void; tint?: Color4 }) => (
+  <UiEntity
+    uiTransform={{ width: props.width, height: props.height }}
+    uiBackground={{ texture: { src: props.src }, textureMode: 'stretch', color: props.tint }}
+    onMouseDown={() => { playClick(); props.onMouseDown() }}
+  />
+)
+
+export function openGroupForm(groupIndex: number, onChange: () => void) {
+  groupState.groupIndex = groupIndex
+  groupState.matchIndex = 0
+  groupState.onChange   = onChange
+  loadGroupMatch()
+  groupState.visible    = true
+}
+
+// Load the currently-selected match's saved score into the form.
+function loadGroupMatch() {
+  const g = GROUPS[groupState.groupIndex]
+  const match = g?.matches[groupState.matchIndex]
+  const pred = match ? predictions.find(p => p.matchId === match.id) : undefined
+  groupState.score1 = pred?.score1 ?? 0
+  groupState.score2 = pred?.score2 ?? 0
+  groupState.dirty  = false
 }
 
 function openAdminForm(index: number) {
@@ -71,6 +127,9 @@ const DARK_BTN  = Color4.create(0.15, 0.15, 0.32, 1)
 const OVERLAY   = Color4.create(0, 0, 0, 0.7)
 const RED       = Color4.fromHexString('#FF6B6Bff')
 const GOLD      = Color4.fromHexString('#F2C14Eff')
+const VIOLET    = Color4.fromHexString('#9f78e7ff')      // completed checklist cell
+const CELL_EMPTY = Color4.create(0.42, 0.42, 0.52, 1)    // pending checklist cell
+const BTN_DISABLED = Color4.create(0.24, 0.24, 0.30, 1)  // greyed/disabled button
 
 // Outcome implied by a score (used by the admin result form).
 function impliedWinner(s1: number, s2: number): Outcome {
@@ -79,23 +138,7 @@ function impliedWinner(s1: number, s2: number): Outcome {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const ProdeUi = () => {
-  const match = MATCHES.find(m => m.id === uiState.matchId)
-  const locked = match ? hasResult(match.id) : false
-
-  const btnColor = (w: Outcome | null) =>
-    uiState.winner === w ? TEAL : DARK_BTN
-
-  // A draw prediction is only valid when both scores match (e.g. 1-1, 2-2)
-  const drawMismatch = uiState.winner === 'draw' && uiState.score1 !== uiState.score2
-  const canConfirm   = !!uiState.winner && !drawMismatch && !locked
-
-  const confirm = () => {
-    if (!canConfirm) return
-    savePrediction(uiState.matchId, uiState.winner!, uiState.score1, uiState.score2)
-    uiState.visible = false
-    uiState.onConfirm?.()
-  }
-
+  const allComplete = getCompletedCount() === MATCHES.length
   return (
     // Single root wrapper
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}>
@@ -103,217 +146,44 @@ const ProdeUi = () => {
       {/* ── Confetti celebration overlay (on top) ───────────────────────────── */}
       <ConfettiOverlay />
 
-      {/* ── Bottom HUD: progress + my points ────────────────────────────────── */}
-      <UiEntity
-        uiTransform={{
-          positionType: 'absolute',
-          position: { bottom: 24, left: 0 },
-          width: '100%',
-          height: 80,
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
+      {/* ── Progress checklist — top on desktop, bottom-center on mobile ─────── */}
+      <MatchChecklist />
+
+      {/* ── My Score entry button — only once every match is predicted ──────── */}
+      {allComplete && !scoreState.visible && (
         <UiEntity
           uiTransform={{
-            width: 600,
-            padding: 14,
-            flexDirection: 'column',
-            alignItems: 'stretch',
-            borderRadius: 14
+            positionType: 'absolute',
+            position: { bottom: S(24), left: 0 },
+            width: '100%', height: S(64),
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
           }}
-          uiBackground={{ color: Color4.create(0, 0, 0, 0.75) }}
         >
-          <UiEntity uiTransform={{ width: '100%', height: 24, flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 6px 0' }}>
-            <Label
-              value={`${getCompletedCount()} / ${MATCHES.length} predictions submitted`}
-              fontSize={18}
-              color={TEAL}
-              uiTransform={{ height: 24 }}
-            />
-            <Label
-              value={`${myPoints()} pts`}
-              fontSize={18}
-              color={GOLD}
-              uiTransform={{ height: 24 }}
-            />
-          </UiEntity>
-          <UiEntity
-            uiTransform={{ width: '100%', height: 14, borderRadius: 7 }}
-            uiBackground={{ color: Color4.create(0.15, 0.15, 0.3, 1) }}
-          >
-            <UiEntity
-              uiTransform={{
-                width: Math.max(0, Math.round(572 * getCompletedCount() / MATCHES.length)),
-                height: 14,
-                borderRadius: 7
-              }}
-              uiBackground={{ color: TEAL }}
-            />
-          </UiEntity>
+          <ImgButton src="images/buttons/myscore.png"
+            width={S(72 * 2.716)} height={S(72)}
+            onMouseDown={() => openScorePanel()} />
         </UiEntity>
-      </UiEntity>
+      )}
 
-      {/* ── Admin entry button (only visible to the admin wallet) ────────────── */}
+      {/* ── Admin entry button — TOP-right (off the bottom joystick/action area) */}
       {localIsAdmin() && !adminState.visible && (
         <UiEntity
           uiTransform={{
             positionType: 'absolute',
-            position: { bottom: 24, right: 24 },
-            width: 200, height: 64
+            position: { top: S(120), right: S(24) },
+            width: S(200), height: S(64)
           }}
         >
-          <Button value="ADMIN" variant="primary" fontSize={24}
-            uiTransform={{ width: 200, height: 64, borderRadius: 14 }}
+          <SfxButton value="ADMIN" variant="primary" fontSize={F(24)}
+            uiTransform={{ width: S(200), height: S(64), borderRadius: S(14) }}
             color={GOLD}
             onMouseDown={() => openAdminForm(adminState.index)}
           />
         </UiEntity>
       )}
 
-      {/* ── Prediction form overlay ──────────────────────────────────────────── */}
-      <UiEntity
-        uiTransform={{
-          width: '100%',
-          height: '100%',
-          positionType: 'absolute',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-        uiBackground={{ color: uiState.visible ? OVERLAY : Color4.create(0, 0, 0, 0) }}
-      >
-      {uiState.visible && match && (
-      <UiEntity
-        uiTransform={{
-          width: 1000,
-          height: 860,
-          padding: 56,
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          justifyContent: 'space-between',
-          borderRadius: 36
-        }}
-        uiBackground={{ color: DARK }}
-      >
-        {/* Header */}
-        <Label
-          value={`${match.team1}  vs  ${match.team2}`}
-          fontSize={44}
-          color={Color4.White()}
-          uiTransform={{ width: '100%', height: 68, margin: '0 0 12px 0' }}
-        />
-        <Label
-          value={locked ? 'Match finished — predictions are locked' : 'Who wins?'}
-          fontSize={28}
-          color={locked ? RED : Color4.create(0.7, 0.7, 0.7, 1)}
-          uiTransform={{ width: '100%', height: 40, margin: '0 0 20px 0' }}
-        />
-
-        {/* Winner buttons */}
-        <UiEntity
-          uiTransform={{
-            width: '100%', height: 100,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            margin: '0 0 44px 0'
-          }}
-        >
-          <Button value={match.team1} variant="primary" fontSize={28}
-            uiTransform={{ width: 296, height: 92, borderRadius: 20 }}
-            color={btnColor('team1')}
-            onMouseDown={() => { if (!locked) uiState.winner = 'team1' }}
-          />
-          <Button value="Draw" variant="primary" fontSize={28}
-            uiTransform={{ width: 220, height: 92, borderRadius: 20 }}
-            color={btnColor('draw')}
-            onMouseDown={() => { if (!locked) uiState.winner = 'draw' }}
-          />
-          <Button value={match.team2} variant="primary" fontSize={28}
-            uiTransform={{ width: 296, height: 92, borderRadius: 20 }}
-            color={btnColor('team2')}
-            onMouseDown={() => { if (!locked) uiState.winner = 'team2' }}
-          />
-        </UiEntity>
-
-        {/* Score */}
-        <Label
-          value="Score"
-          fontSize={28}
-          color={Color4.create(0.7, 0.7, 0.7, 1)}
-          uiTransform={{ width: '100%', height: 40, margin: '0 0 20px 0' }}
-        />
-        <UiEntity
-          uiTransform={{
-            width: '100%', height: 128,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 0 48px 0'
-          }}
-        >
-          <Button value="-" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }}
-            color={DARK_BTN}
-            onMouseDown={() => { if (!locked && uiState.score1 > 0) uiState.score1-- }}
-          />
-          <Label value={String(uiState.score1)} fontSize={56} color={Color4.White()}
-            uiTransform={{ width: 104, height: 88 }} />
-          <Button value="+" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }}
-            color={DARK_BTN}
-            onMouseDown={() => { if (!locked) uiState.score1++ }}
-          />
-
-          <Label value=" — " fontSize={48} color={Color4.create(0.5, 0.5, 0.5, 1)}
-            uiTransform={{ width: 72, height: 88 }} />
-
-          <Button value="-" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }}
-            color={DARK_BTN}
-            onMouseDown={() => { if (!locked && uiState.score2 > 0) uiState.score2-- }}
-          />
-          <Label value={String(uiState.score2)} fontSize={56} color={Color4.White()}
-            uiTransform={{ width: 104, height: 88 }} />
-          <Button value="+" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }}
-            color={DARK_BTN}
-            onMouseDown={() => { if (!locked) uiState.score2++ }}
-          />
-        </UiEntity>
-
-        {/* Draw validation warning */}
-        <Label
-          value={drawMismatch ? 'A draw must have the same score on both sides' : ''}
-          fontSize={24}
-          color={RED}
-          uiTransform={{ width: '100%', height: 32, margin: '0 0 16px 0' }}
-        />
-
-        {/* Actions */}
-        <UiEntity
-          uiTransform={{
-            width: '100%', height: 100,
-            flexDirection: 'row',
-            justifyContent: 'space-between'
-          }}
-        >
-          <Button value="Cancel" variant="secondary" fontSize={32}
-            uiTransform={{ width: 380, height: 92, borderRadius: 20 }}
-            onMouseDown={() => { uiState.visible = false }}
-          />
-          <Button
-            value={locked ? 'Locked' : !uiState.winner ? 'Pick a winner' : drawMismatch ? 'Even the score' : 'Confirm'}
-            variant="primary" fontSize={32}
-            uiTransform={{ width: 460, height: 92, borderRadius: 20 }}
-            color={canConfirm ? TEAL : Color4.create(0.3, 0.3, 0.3, 1)}
-            onMouseDown={confirm}
-          />
-        </UiEntity>
-      </UiEntity>
-      )}
-      </UiEntity>
+      {/* ── Group prediction form overlay ───────────────────────────────────── */}
+      <GroupForm />
 
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
       <AdminForm />
@@ -321,6 +191,410 @@ const ProdeUi = () => {
       {/* ── Scoring info overlay ─────────────────────────────────────────────── */}
       <InfoForm />
 
+      {/* ── My Score / stats overlay ─────────────────────────────────────────── */}
+      <ScorePanel />
+
+      {/* ── All-complete celebration overlay ─────────────────────────────────── */}
+      <CompletionOverlay />
+
+      {/* ── Welcome overlay (on entry) ───────────────────────────────────────── */}
+      <WelcomeOverlay />
+
+    </UiEntity>
+  )
+}
+
+// ── Match checklist — horizontal strip of 72 cells, always visible at the top ──
+// 12 clusters (one per group) × 6 cells (matches), filled violet as you predict.
+const MatchChecklist = () => {
+  const mob = isMobile()
+  // Mobile sits alone at the bottom → render it ~2x the desktop strip.
+  const k = mob ? 2 : 1
+  // Keep the element mounted and only toggle `display`. Re-mounting it on modal
+  // close was leaving the black panel stretched to full width. Hidden while any
+  // modal is open, and on mobile once everything is predicted (My Score shows).
+  const hidden =
+    welcomeState.visible ||
+    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
+    (mob && getCompletedCount() === MATCHES.length)
+
+  const cluster = (g: (typeof GROUPS)[number]) => (
+    <UiEntity key={g.name} uiTransform={{ flexDirection: 'column', alignItems: 'center', margin: `${S(mob ? 10 : 0)}px ${S(5 * k)}px ${S(mob ? 10 : 0)}px ${S(5 * k)}px` }}>
+      <UiEntity uiTransform={{ flexDirection: 'row' }}>
+        {g.matches.map((m, mi) => {
+          const sub = predictions.find(p => p.matchId === m.id)?.submitted ?? false
+          return (
+            <UiEntity key={mi}
+              uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3) }}
+              uiBackground={{ color: sub ? VIOLET : CELL_EMPTY }} />
+          )
+        })}
+      </UiEntity>
+      <Label value={g.name.replace('Group ', '')} fontSize={F(13 * k)}
+        color={Color4.create(0.6, 0.6, 0.7, 1)} uiTransform={{ height: S(16 * k) }} />
+    </UiEntity>
+  )
+
+  // Desktop: one row of 12 at the top. Mobile: two rows of 6 at the bottom (raised a bit).
+  const rows = mob ? [GROUPS.slice(0, 6), GROUPS.slice(6)] : [GROUPS]
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: mob ? { bottom: S(110), left: 0 } : { top: S(12), left: 0 },
+        width: '100%',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+        display: hidden ? 'none' : 'flex'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          padding: S(14 * k), flexDirection: 'column', alignItems: 'center', alignSelf: 'center', borderRadius: S(16)
+        }}
+        uiBackground={{ color: Color4.create(0, 0, 0, 0.94) }}
+      >
+        <Label
+          value={`Predictions  ${getCompletedCount()} / ${MATCHES.length}      ${myPoints()} pts`}
+          fontSize={F(18 * k)} color={VIOLET} uiTransform={{ height: S(24 * k), margin: '0 0 8px 0' }}
+        />
+        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
+          {rows.map((rowGroups, ri) => (
+            <UiEntity key={ri} uiTransform={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              {rowGroups.map(g => cluster(g))}
+            </UiEntity>
+          ))}
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Group prediction form — step through a group's matches and set scores ──────
+const GroupForm = () => {
+  if (!groupState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const g = GROUPS[groupState.groupIndex]
+  if (!g) return <UiEntity uiTransform={{ display: 'none' }} />
+  const match = g.matches[groupState.matchIndex]
+  if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const total  = g.matches.length
+  const locked = hasResult(match.id)
+  const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
+  const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
+  const complete = total > 0 && done === total
+  const canPrev = groupState.matchIndex > 0
+  const canNext = groupState.matchIndex < total - 1
+
+  const mob = isMobile()
+  const inferred = impliedWinner(groupState.score1, groupState.score2)
+  const resultText =
+    inferred === 'draw'  ? 'Draw' :
+    inferred === 'team1' ? `${match.team1} wins` :
+                           `${match.team2} wins`
+
+  // Persist the current match. `force` saves even an untouched 0-0 (explicit Save);
+  // otherwise (nav/close) we only save if it was actually edited.
+  const commit = (force: boolean) => {
+    if (!locked && (force || groupState.dirty)) {
+      const wasComplete = isGroupComplete(groupState.groupIndex)
+      savePrediction(match.id, inferred, groupState.score1, groupState.score2)
+      groupState.onChange?.()
+      // Group just got completed (but not the whole prode) → play the complete sound.
+      if (!wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
+        playComplete()
+      }
+      maybeCelebrate()
+      groupState.dirty = false
+    }
+  }
+  const go = (delta: number) => {
+    const next = groupState.matchIndex + delta
+    if (next < 0 || next >= total) return
+    commit(false)                         // navigating: save only edited matches
+    groupState.matchIndex = next
+    loadGroupMatch()
+  }
+  const close = () => { commit(false); groupState.visible = false }
+  // Explicit save: always records this match (incl. 0-0), then next or close.
+  const saveNext = () => {
+    commit(true)
+    if (canNext) { groupState.matchIndex += 1; loadGroupMatch() }
+    else groupState.visible = false
+  }
+
+  // One team column: flag + name + score + +/- , highlighted when it's the winner.
+  const teamCol = (
+    name: string, flag: string, score: number, win: boolean,
+    dec: () => void, inc: () => void
+  ) => (
+    <UiEntity
+      uiTransform={{
+        width: S(510), height: S(440), padding: S(22),
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: S(28)
+      }}
+      uiBackground={{ color: win ? TEAL : DARK_BTN }}
+    >
+      <UiEntity uiTransform={{ width: S(240), height: S(160) }}
+        uiBackground={{ texture: { src: flag }, textureMode: 'stretch' }} />
+      <Label value={name} fontSize={F(32)} color={Color4.White()} uiTransform={{ width: '100%', height: S(56) }} />
+      <Label value={String(score)} fontSize={F(92)} color={Color4.White()} uiTransform={{ width: '100%', height: S(110) }} />
+      <UiEntity uiTransform={{ width: '100%', height: S(84), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <ImgButton src="images/buttons/-.png"
+          width={S(84 * 1.116)} height={S(84)}
+          tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+          onMouseDown={() => { if (!locked && score > 0) dec() }} />
+        <ImgButton src="images/buttons/+.png"
+          width={S(84 * 1.144)} height={S(84)}
+          tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+          onMouseDown={() => { if (!locked) inc() }} />
+      </UiEntity>
+    </UiEntity>
+  )
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%',
+        positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(1360), height: S(mob ? 980 : 900), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
+          borderRadius: S(40)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        {/* Header: group name + completion badge */}
+        <UiEntity uiTransform={{ width: '100%', height: S(64), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
+          <Label value={g.name} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
+          <UiEntity uiTransform={{ height: S(52), alignItems: 'center', justifyContent: 'center', padding: `0 ${S(22)}px 0 ${S(22)}px`, borderRadius: S(26) }}
+            uiBackground={ complete ? { color: VIOLET } : undefined }>
+            <Label value={complete ? 'GROUP COMPLETE' : `${done} / ${total} predicted`}
+              fontSize={F(30)} color={complete ? Color4.White() : TEAL} uiTransform={{ height: S(52) }} />
+          </UiEntity>
+        </UiEntity>
+
+        {/* Progress bar */}
+        <UiEntity uiTransform={{ width: '100%', height: S(18), borderRadius: S(9), margin: `0 0 ${S(22)}px 0` }}
+          uiBackground={{ color: Color4.create(0.15, 0.15, 0.3, 1) }}>
+          <UiEntity uiTransform={{ width: `${Math.round(100 * done / total)}%`, height: S(18), borderRadius: S(9) }}
+            uiBackground={{ color: VIOLET }} />
+        </UiEntity>
+
+        {/* Match indicator (navigation lives in the bottom buttons now) */}
+        <Label value={`Match ${groupState.matchIndex + 1} / ${total}${saved ? '   (saved)' : ''}`}
+          fontSize={F(30)} color={saved ? TEAL : Color4.create(0.7, 0.7, 0.7, 1)}
+          uiTransform={{ width: '100%', height: S(56), margin: `0 0 ${S(14)}px 0` }} />
+
+        {/* Teams */}
+        <UiEntity uiTransform={{ width: '100%', height: S(440), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(10)}px 0` }}>
+          {teamCol(match.team1, match.flag1, groupState.score1, inferred === 'team1',
+            () => { groupState.score1--; groupState.dirty = true }, () => { groupState.score1++; groupState.dirty = true })}
+          <Label value="VS" fontSize={F(44)} color={Color4.create(0.55, 0.55, 0.55, 1)} uiTransform={{ width: S(110), height: S(440) }} />
+          {teamCol(match.team2, match.flag2, groupState.score2, inferred === 'team2',
+            () => { groupState.score2--; groupState.dirty = true }, () => { groupState.score2++; groupState.dirty = true })}
+        </UiEntity>
+
+        {/* Inferred result / lock status */}
+        <Label
+          value={locked ? 'Match finished - predictions are locked' : resultText}
+          fontSize={F(36)} color={locked ? RED : GOLD}
+          uiTransform={{ width: '100%', height: S(52), margin: `0 0 ${S(mob ? 26 : 18)}px 0` }}
+        />
+
+        {/* Actions — CLOSE · PREV (images) · SAVE & NEXT (text until its image) */}
+        <UiEntity uiTransform={{ width: '100%', height: S(mob ? 88 : 100), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <ImgButton src="images/buttons/close.png"
+            width={S((mob ? 86 : 96) * 2.27)} height={S(mob ? 86 : 96)}
+            onMouseDown={close} />
+          <ImgButton src="images/buttons/prev.png"
+            width={S((mob ? 86 : 96) * 2.18)} height={S(mob ? 86 : 96)}
+            tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
+            onMouseDown={() => { if (canPrev) go(-1) }} />
+          <ImgButton src="images/buttons/saveandnext.png"
+            width={S((mob ? 86 : 96) * 3.148)} height={S(mob ? 86 : 96)}
+            tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+            onMouseDown={saveNext} />
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Celebration: all 72 predictions complete ──────────────────────────────────
+const CompletionOverlay = () => {
+  if (!celebrateState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(900), height: S(520), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+          borderRadius: S(36)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        <Label value="ALL PREDICTIONS COMPLETE!" fontSize={F(48)} color={VIOLET}
+          uiTransform={{ width: '100%', height: S(70), margin: '0 0 8px 0' }} />
+        <Label value={`You predicted all ${MATCHES.length} matches across the 12 groups.`}
+          fontSize={F(28)} color={Color4.White()} uiTransform={{ width: '100%', height: S(44) }} />
+        <Label value="Now sit back and watch the leaderboard - good luck!"
+          fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(40) }} />
+        <Label value={`${myPoints()} pts so far`} fontSize={F(30)} color={GOLD}
+          uiTransform={{ width: '100%', height: S(44) }} />
+        <SfxButton value="Let's go!" variant="primary" fontSize={F(32)}
+          uiTransform={{ width: '100%', height: S(92), borderRadius: S(20) }}
+          color={VIOLET}
+          onMouseDown={() => { celebrateState.visible = false }} />
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── My Score — player stats (points + rank, hits breakdown, accuracy) ──────────
+const ScorePanel = () => {
+  if (!scoreState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+
+  // Hits breakdown over matches that already have an official result.
+  let exact = 0, winner = 0, missed = 0, pending = 0
+  for (const p of predictions) {
+    if (!p.submitted) continue
+    const r = getResult(p.matchId)
+    if (!r) { pending++; continue }
+    const s = scorePrediction(p, r)
+    if (s === PTS_WINNER + PTS_SCORE) exact++
+    else if (s === PTS_WINNER) winner++
+    else missed++
+  }
+  const played   = exact + winner + missed
+  const accuracy = played > 0 ? Math.round(((exact + winner) / played) * 100) : null
+  const points   = myPoints()
+
+  // Rank from the cached leaderboard (sorted desc by points), matched by wallet.
+  const lb   = getLeaderboard()
+  const me   = getPlayer()?.userId?.toLowerCase()
+  const idx  = me ? lb.findIndex(r => r.address?.toLowerCase() === me) : -1
+  const rank = idx >= 0 ? `#${idx + 1} / ${lb.length}` : 'Unranked'
+
+  const statBlock = (label: string, value: string, color: Color4) => (
+    <UiEntity uiTransform={{ width: S(360), height: S(150), padding: S(16), flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: S(20) }}
+      uiBackground={{ color: DARK_BTN }}>
+      <Label value={value} fontSize={F(56)} color={color} uiTransform={{ width: '100%', height: S(80) }} />
+      <Label value={label} fontSize={F(24)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(36) }} />
+    </UiEntity>
+  )
+
+  const breakdownRow = (label: string, count: number, color: Color4) => (
+    <UiEntity uiTransform={{ width: '100%', height: S(52), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: `0 0 ${S(10)}px 0` }}>
+      <Label value={label} fontSize={F(28)} color={Color4.White()} uiTransform={{ height: S(52) }} />
+      <Label value={String(count)} fontSize={F(30)} color={color} uiTransform={{ height: S(52) }} />
+    </UiEntity>
+  )
+
+  // Matches already played in the tournament (those with an official result).
+  const playedTotal = MATCHES.filter(m => hasResult(m.id)).length
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(880), height: S(mob ? 860 : 800), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
+          borderRadius: S(36)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        <Label value="MY SCORE" fontSize={F(46)} color={VIOLET}
+          uiTransform={{ width: '100%', height: S(60), margin: `0 0 ${S(4)}px 0` }} />
+        <Label value={`Matches played: ${playedTotal} / ${MATCHES.length}`} fontSize={F(24)}
+          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(34), margin: `0 0 ${S(14)}px 0` }} />
+
+        {/* Points + rank */}
+        <UiEntity uiTransform={{ width: '100%', height: S(150), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(24)}px 0` }}>
+          {statBlock('Total points', `${points}`, GOLD)}
+          {statBlock('Leaderboard', rank, VIOLET)}
+        </UiEntity>
+
+        {/* Hits breakdown */}
+        <Label value="Results so far" fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)}
+          uiTransform={{ width: '100%', height: S(36), margin: `0 0 ${S(12)}px 0` }} />
+        {breakdownRow(`Exact scores  (+${PTS_WINNER + PTS_SCORE})`, exact, GOLD)}
+        {breakdownRow(`Correct winner  (+${PTS_WINNER})`, winner, TEAL)}
+        {breakdownRow('Missed', missed, RED)}
+        {breakdownRow('Pending (not played yet)', pending, Color4.create(0.6, 0.6, 0.7, 1))}
+
+        {/* Accuracy */}
+        <Label
+          value={accuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${accuracy}%   (${exact + winner} hits / ${played} played)`}
+          fontSize={F(26)} color={VIOLET}
+          uiTransform={{ width: '100%', height: S(40), margin: `${S(6)}px 0 ${S(14)}px 0` }}
+        />
+
+        <UiEntity uiTransform={{ width: '100%', height: S(88), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <ImgButton src="images/buttons/close.png"
+            width={S(88 * 2.27)} height={S(88)}
+            onMouseDown={() => { scoreState.visible = false }} />
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Welcome — shown on entry, dismissed with "Go!" ────────────────────────────
+const WelcomeOverlay = () => {
+  if (!welcomeState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(mob ? 900 : 1040), height: S(560), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+          borderRadius: S(36)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        <Label value="Welcome to Decentraland Prode!" fontSize={F(44)} color={VIOLET}
+          uiTransform={{ width: '100%', height: S(64), margin: `0 0 ${S(8)}px 0` }} />
+        <Label
+          value="Walk through the field and click each group board to predict every match result."
+          fontSize={F(28)} color={Color4.White()} uiTransform={{ width: '100%', height: S(80) }} />
+        <Label
+          value="Complete the 12 groups, climb the leaderboard and win!"
+          fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(48) }} />
+        <ImgButton src="images/buttons/jointhechallenge.png"
+          width={S(560)} height={S(560 / 6.66)}
+          onMouseDown={() => { welcomeState.visible = false }} />
+      </UiEntity>
     </UiEntity>
   )
 }
@@ -330,12 +604,12 @@ const InfoForm = () => {
   if (!infoState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
 
   const row = (title: string, pts: string, note: string) => (
-    <UiEntity uiTransform={{ width: '100%', height: 96, flexDirection: 'column', margin: '0 0 18px 0' }}>
-      <UiEntity uiTransform={{ width: '100%', height: 48, flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Label value={title} fontSize={30} color={Color4.White()} uiTransform={{ height: 48 }} />
-        <Label value={pts} fontSize={32} color={GOLD} uiTransform={{ height: 48 }} />
+    <UiEntity uiTransform={{ width: '100%', height: S(96), flexDirection: 'column', margin: '0 0 18px 0' }}>
+      <UiEntity uiTransform={{ width: '100%', height: S(48), flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Label value={title} fontSize={F(30)} color={Color4.White()} uiTransform={{ height: S(48) }} />
+        <Label value={pts} fontSize={F(32)} color={GOLD} uiTransform={{ height: S(48) }} />
       </UiEntity>
-      <Label value={note} fontSize={22} color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: 36 }} />
+      <Label value={note} fontSize={F(22)} color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36) }} />
     </UiEntity>
   )
 
@@ -343,34 +617,35 @@ const InfoForm = () => {
     <UiEntity
       uiTransform={{
         width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
-        flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
       }}
       uiBackground={{ color: OVERLAY }}
     >
       <UiEntity
         uiTransform={{
-          width: 1000, height: 820, padding: 56, alignSelf: 'center',
+          width: S(1000), height: S(820), padding: S(56), alignSelf: 'center',
           flexDirection: 'column', alignItems: 'stretch',
-          justifyContent: 'space-between', borderRadius: 36
+          justifyContent: 'space-between', borderRadius: S(36)
         }}
         uiBackground={{ color: DARK }}
       >
-        <Label value="How scoring works" fontSize={44} color={TEAL}
-          uiTransform={{ width: '100%', height: 64, margin: '0 0 8px 0' }} />
-        <Label value="Predict the winner and the score of every match." fontSize={24}
-          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: 36, margin: '0 0 28px 0' }} />
+        <Label value="How scoring works" fontSize={F(44)} color={TEAL}
+          uiTransform={{ width: '100%', height: S(64), margin: '0 0 8px 0' }} />
+        <Label value="Predict the winner and the score of every match." fontSize={F(24)}
+          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 28px 0' }} />
 
         {row('Correct winner', `${PTS_WINNER} pt`, 'You called who wins (or a draw), but not the exact score.')}
         {row('Exact score', `${PTS_WINNER + PTS_SCORE} pts`, `You nailed the exact result - winner included (${PTS_WINNER} + ${PTS_SCORE}).`)}
         {row('Wrong winner', '0 pts', 'No points if you miss the outcome of the match.')}
 
-        <Label value="A draw must have the same score on both sides (e.g. 1-1)." fontSize={22}
-          color={RED} uiTransform={{ width: '100%', height: 36, margin: '0 0 6px 0' }} />
-        <Label value="Predictions lock once the match result is loaded." fontSize={22}
-          color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: 36, margin: '0 0 24px 0' }} />
+        <Label value="A draw must have the same score on both sides (e.g. 1-1)." fontSize={F(22)}
+          color={RED} uiTransform={{ width: '100%', height: S(36), margin: '0 0 6px 0' }} />
+        <Label value="Predictions lock once the match result is loaded." fontSize={F(22)}
+          color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 24px 0' }} />
 
-        <Button value="Got it" variant="primary" fontSize={32}
-          uiTransform={{ width: '100%', height: 92, borderRadius: 20 }}
+        <SfxButton value="Got it" variant="primary" fontSize={F(32)}
+          uiTransform={{ width: '100%', height: S(92), borderRadius: S(20) }}
           color={TEAL}
           onMouseDown={() => { infoState.visible = false }} />
       </UiEntity>
@@ -408,84 +683,85 @@ const AdminForm = () => {
         positionType: 'absolute', position: { top: 0, left: 0 },
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        pointerFilter: 'block'
       }}
       uiBackground={{ color: OVERLAY }}
     >
       <UiEntity
         uiTransform={{
-          width: 1000, height: 900, padding: 56, alignSelf: 'center',
+          width: S(1000), height: S(900), padding: S(56), alignSelf: 'center',
           flexDirection: 'column', alignItems: 'stretch',
-          justifyContent: 'space-between', borderRadius: 36
+          justifyContent: 'space-between', borderRadius: S(36)
         }}
         uiBackground={{ color: DARK }}
       >
         {/* Header */}
-        <UiEntity uiTransform={{ width: '100%', height: 50, flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 8px 0' }}>
-          <Label value="ADMIN - Load result" fontSize={32} color={GOLD} uiTransform={{ height: 50 }} />
-          <Label value={`${adminState.index + 1} / ${MATCHES.length}`} fontSize={28} color={Color4.create(0.7,0.7,0.7,1)} uiTransform={{ height: 50 }} />
+        <UiEntity uiTransform={{ width: '100%', height: S(50), flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 8px 0' }}>
+          <Label value="ADMIN - Load result" fontSize={F(32)} color={GOLD} uiTransform={{ height: S(50) }} />
+          <Label value={`${adminState.index + 1} / ${MATCHES.length}`} fontSize={F(28)} color={Color4.create(0.7,0.7,0.7,1)} uiTransform={{ height: S(50) }} />
         </UiEntity>
 
         <Label
           value={`${match.team1}  vs  ${match.team2}`}
-          fontSize={44} color={Color4.White()}
-          uiTransform={{ width: '100%', height: 64, margin: '0 0 4px 0' }}
+          fontSize={F(44)} color={Color4.White()}
+          uiTransform={{ width: '100%', height: S(64), margin: '0 0 4px 0' }}
         />
         <Label
           value={`${match.group}  -  ${match.time}${saved ? '   (result loaded)' : ''}`}
-          fontSize={24} color={saved ? TEAL : Color4.create(0.6,0.6,0.6,1)}
-          uiTransform={{ width: '100%', height: 36, margin: '0 0 20px 0' }}
+          fontSize={F(24)} color={saved ? TEAL : Color4.create(0.6,0.6,0.6,1)}
+          uiTransform={{ width: '100%', height: S(36), margin: '0 0 20px 0' }}
         />
 
         {/* Score editor */}
-        <Label value="Final score" fontSize={28} color={Color4.create(0.7,0.7,0.7,1)}
-          uiTransform={{ width: '100%', height: 40, margin: '0 0 16px 0' }} />
+        <Label value="Final score" fontSize={F(28)} color={Color4.create(0.7,0.7,0.7,1)}
+          uiTransform={{ width: '100%', height: S(40), margin: '0 0 16px 0' }} />
         <UiEntity
           uiTransform={{
-            width: '100%', height: 128, flexDirection: 'row',
+            width: '100%', height: S(128), flexDirection: 'row',
             alignItems: 'center', justifyContent: 'center', margin: '0 0 24px 0'
           }}
         >
-          <Button value="-" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }} color={DARK_BTN}
+          <SfxButton value="-" variant="primary" fontSize={F(40)}
+            uiTransform={{ width: S(80), height: S(80), borderRadius: S(16) }} color={DARK_BTN}
             onMouseDown={() => { if (adminState.score1 > 0) adminState.score1-- }} />
-          <Label value={String(adminState.score1)} fontSize={56} color={Color4.White()} uiTransform={{ width: 104, height: 88 }} />
-          <Button value="+" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }} color={DARK_BTN}
+          <Label value={String(adminState.score1)} fontSize={F(56)} color={Color4.White()} uiTransform={{ width: S(104), height: S(88) }} />
+          <SfxButton value="+" variant="primary" fontSize={F(40)}
+            uiTransform={{ width: S(80), height: S(80), borderRadius: S(16) }} color={DARK_BTN}
             onMouseDown={() => { adminState.score1++ }} />
 
-          <Label value=" — " fontSize={48} color={Color4.create(0.5,0.5,0.5,1)} uiTransform={{ width: 72, height: 88 }} />
+          <Label value=" — " fontSize={F(48)} color={Color4.create(0.5,0.5,0.5,1)} uiTransform={{ width: S(72), height: S(88) }} />
 
-          <Button value="-" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }} color={DARK_BTN}
+          <SfxButton value="-" variant="primary" fontSize={F(40)}
+            uiTransform={{ width: S(80), height: S(80), borderRadius: S(16) }} color={DARK_BTN}
             onMouseDown={() => { if (adminState.score2 > 0) adminState.score2-- }} />
-          <Label value={String(adminState.score2)} fontSize={56} color={Color4.White()} uiTransform={{ width: 104, height: 88 }} />
-          <Button value="+" variant="primary" fontSize={40}
-            uiTransform={{ width: 80, height: 80, borderRadius: 16 }} color={DARK_BTN}
+          <Label value={String(adminState.score2)} fontSize={F(56)} color={Color4.White()} uiTransform={{ width: S(104), height: S(88) }} />
+          <SfxButton value="+" variant="primary" fontSize={F(40)}
+            uiTransform={{ width: S(80), height: S(80), borderRadius: S(16) }} color={DARK_BTN}
             onMouseDown={() => { adminState.score2++ }} />
         </UiEntity>
 
         {/* Derived outcome */}
-        <Label value={`Outcome:  ${outcomeText}`} fontSize={30} color={TEAL}
-          uiTransform={{ width: '100%', height: 44, margin: '0 0 20px 0' }} />
+        <Label value={`Outcome:  ${outcomeText}`} fontSize={F(30)} color={TEAL}
+          uiTransform={{ width: '100%', height: S(44), margin: '0 0 20px 0' }} />
 
         {/* Match navigation */}
-        <UiEntity uiTransform={{ width: '100%', height: 84, flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 16px 0' }}>
-          <Button value="< Prev match" variant="secondary" fontSize={26}
-            uiTransform={{ width: 300, height: 80, borderRadius: 18 }}
+        <UiEntity uiTransform={{ width: '100%', height: S(84), flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 16px 0' }}>
+          <SfxButton value="< Prev match" variant="secondary" fontSize={F(26)}
+            uiTransform={{ width: S(300), height: S(80), borderRadius: S(18) }}
             onMouseDown={() => go(-1)} />
-          <Button value="Save result" variant="primary" fontSize={28}
-            uiTransform={{ width: 320, height: 80, borderRadius: 18 }}
+          <SfxButton value="Save result" variant="primary" fontSize={F(28)}
+            uiTransform={{ width: S(320), height: S(80), borderRadius: S(18) }}
             color={GOLD}
             onMouseDown={save} />
-          <Button value="Next match >" variant="secondary" fontSize={26}
-            uiTransform={{ width: 300, height: 80, borderRadius: 18 }}
+          <SfxButton value="Next match >" variant="secondary" fontSize={F(26)}
+            uiTransform={{ width: S(300), height: S(80), borderRadius: S(18) }}
             onMouseDown={() => go(1)} />
         </UiEntity>
 
         {/* Close */}
-        <Button value="Close" variant="secondary" fontSize={30}
-          uiTransform={{ width: '100%', height: 84, borderRadius: 18 }}
+        <SfxButton value="Close" variant="secondary" fontSize={F(30)}
+          uiTransform={{ width: '100%', height: S(84), borderRadius: S(18) }}
           onMouseDown={() => { adminState.visible = false }} />
       </UiEntity>
     </UiEntity>
