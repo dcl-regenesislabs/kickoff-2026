@@ -204,28 +204,28 @@ const ProdeUi = () => {
   )
 }
 
-// ── Match checklist — horizontal strip of 72 cells, always visible at the top ──
-// 12 clusters (one per group) × 6 cells (matches), filled violet as you predict.
+// ── Match checklist ───────────────────────────────────────────────────────────
+// Desktop: single horizontal row of 12 groups at the top.
+// Mobile:  compact 3×4 vertical sidebar on the left (avoids blocking gameplay).
 const MatchChecklist = () => {
   const mob = isMobile()
-  // Mobile sits alone at the bottom → render it ~2x the desktop strip.
-  const k = mob ? 2 : 1
-  // Keep the element mounted and only toggle `display`. Re-mounting it on modal
-  // close was leaving the black panel stretched to full width. Hidden while any
-  // modal is open, and on mobile once everything is predicted (My Score shows).
+  const k = mob ? 1.55 : 1
   const hidden =
     welcomeState.visible ||
     groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
     (mob && getCompletedCount() === MATCHES.length)
 
   const cluster = (g: (typeof GROUPS)[number]) => (
-    <UiEntity key={g.name} uiTransform={{ flexDirection: 'column', alignItems: 'center', margin: `${S(mob ? 10 : 0)}px ${S(5 * k)}px ${S(mob ? 10 : 0)}px ${S(5 * k)}px` }}>
+    <UiEntity key={g.name} uiTransform={{
+      flexDirection: 'column', alignItems: 'center',
+      margin: mob ? `${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px` : `0px ${S(5)}px 0px ${S(5)}px`
+    }}>
       <UiEntity uiTransform={{ flexDirection: 'row' }}>
         {g.matches.map((m, mi) => {
           const sub = predictions.find(p => p.matchId === m.id)?.submitted ?? false
           return (
             <UiEntity key={mi}
-              uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3) }}
+              uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3 * k) }}
               uiBackground={{ color: sub ? VIOLET : CELL_EMPTY }} />
           )
         })}
@@ -235,28 +235,39 @@ const MatchChecklist = () => {
     </UiEntity>
   )
 
-  // Desktop: one row of 12 at the top. Mobile: two rows of 6 at the bottom (raised a bit).
-  const rows = mob ? [GROUPS.slice(0, 6), GROUPS.slice(6)] : [GROUPS]
+  // Desktop: 2 rows × 6 groups centered. Mobile: 6 rows × 2 groups (vertical sidebar).
+  const rows = mob
+    ? [GROUPS.slice(0, 2), GROUPS.slice(2, 4), GROUPS.slice(4, 6), GROUPS.slice(6, 8), GROUPS.slice(8, 10), GROUPS.slice(10, 12)]
+    : [GROUPS.slice(0, 6), GROUPS.slice(6, 12)]
 
   return (
     <UiEntity
       uiTransform={{
         positionType: 'absolute',
-        position: mob ? { bottom: S(110), left: 0 } : { top: S(12), left: 0 },
-        width: '100%',
-        flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+        position: mob ? { top: S(300), left: S(240) } : { top: S(12), left: 0 },
+        width: mob ? 'auto' : '100%',
+        flexDirection: 'column',
+        alignItems: mob ? 'flex-start' : 'center',
+        justifyContent: 'flex-start',
         display: hidden ? 'none' : 'flex'
       }}
     >
       <UiEntity
         uiTransform={{
-          padding: S(14 * k), flexDirection: 'column', alignItems: 'center', alignSelf: 'center', borderRadius: S(16)
+          padding: S(10 * k),
+          flexDirection: 'column',
+          alignItems: 'center',
+          alignSelf: mob ? 'flex-start' : 'center',
+          borderRadius: S(16)
         }}
-        uiBackground={{ color: Color4.create(0, 0, 0, 0.94) }}
+        uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
       >
         <Label
-          value={`Predictions  ${getCompletedCount()} / ${MATCHES.length}      ${myPoints()} pts`}
-          fontSize={F(18 * k)} color={VIOLET} uiTransform={{ height: S(24 * k), margin: '0 0 8px 0' }}
+          value={mob
+            ? `${getCompletedCount()}/${MATCHES.length}  •  ${myPoints()} pts`
+            : `Predictions  ${getCompletedCount()} / ${MATCHES.length}      ${myPoints()} pts`}
+          fontSize={F(mob ? 14 * k : 18)} color={VIOLET}
+          uiTransform={{ height: S(mob ? 18 * k : 24), margin: '0 0 6px 0' }}
         />
         <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
           {rows.map((rowGroups, ri) => (
