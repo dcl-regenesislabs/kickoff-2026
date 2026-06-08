@@ -287,6 +287,9 @@ const GroupForm = () => {
   const canNext = groupState.matchIndex < total - 1
 
   const mob = isMobile()
+  const stepH = mob ? 112 : 84    // +/- score buttons (bigger touch target on mobile)
+  const actH  = mob ? 116 : 96    // bottom action buttons
+  const teamsH = mob ? 470 : 440  // team column height (room for bigger +/- on mobile)
   const inferred = impliedWinner(groupState.score1, groupState.score2)
   const resultText =
     inferred === 'draw'  ? 'Draw' :
@@ -330,7 +333,7 @@ const GroupForm = () => {
   ) => (
     <UiEntity
       uiTransform={{
-        width: S(510), height: S(440), padding: S(22),
+        width: S(510), height: S(teamsH), padding: S(22),
         flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
         borderRadius: S(28)
       }}
@@ -340,13 +343,13 @@ const GroupForm = () => {
         uiBackground={{ texture: { src: flag }, textureMode: 'stretch' }} />
       <Label value={name} fontSize={F(32)} color={Color4.White()} uiTransform={{ width: '100%', height: S(56) }} />
       <Label value={String(score)} fontSize={F(92)} color={Color4.White()} uiTransform={{ width: '100%', height: S(110) }} />
-      <UiEntity uiTransform={{ width: '100%', height: S(84), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <UiEntity uiTransform={{ width: '100%', height: S(stepH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <ImgButton src="images/buttons/-.png"
-          width={S(84 * 1.116)} height={S(84)}
+          width={S(stepH * 1.116)} height={S(stepH)}
           tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
           onMouseDown={() => { if (!locked && score > 0) dec() }} />
         <ImgButton src="images/buttons/+.png"
-          width={S(84 * 1.144)} height={S(84)}
+          width={S(stepH * 1.144)} height={S(stepH)}
           tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
           onMouseDown={() => { if (!locked) inc() }} />
       </UiEntity>
@@ -394,10 +397,10 @@ const GroupForm = () => {
           uiTransform={{ width: '100%', height: S(56), margin: `0 0 ${S(14)}px 0` }} />
 
         {/* Teams */}
-        <UiEntity uiTransform={{ width: '100%', height: S(440), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(10)}px 0` }}>
+        <UiEntity uiTransform={{ width: '100%', height: S(teamsH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(10)}px 0` }}>
           {teamCol(match.team1, match.flag1, groupState.score1, inferred === 'team1',
             () => { groupState.score1--; groupState.dirty = true }, () => { groupState.score1++; groupState.dirty = true })}
-          <Label value="VS" fontSize={F(44)} color={Color4.create(0.55, 0.55, 0.55, 1)} uiTransform={{ width: S(110), height: S(440) }} />
+          <Label value="VS" fontSize={F(44)} color={Color4.create(0.55, 0.55, 0.55, 1)} uiTransform={{ width: S(110), height: S(teamsH) }} />
           {teamCol(match.team2, match.flag2, groupState.score2, inferred === 'team2',
             () => { groupState.score2--; groupState.dirty = true }, () => { groupState.score2++; groupState.dirty = true })}
         </UiEntity>
@@ -410,16 +413,16 @@ const GroupForm = () => {
         />
 
         {/* Actions — CLOSE · PREV (images) · SAVE & NEXT (text until its image) */}
-        <UiEntity uiTransform={{ width: '100%', height: S(mob ? 88 : 100), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <UiEntity uiTransform={{ width: '100%', height: S(actH + 6), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <ImgButton src="images/buttons/close.png"
-            width={S((mob ? 86 : 96) * 2.27)} height={S(mob ? 86 : 96)}
+            width={S(actH * 2.27)} height={S(actH)}
             onMouseDown={close} />
           <ImgButton src="images/buttons/prev.png"
-            width={S((mob ? 86 : 96) * 2.18)} height={S(mob ? 86 : 96)}
+            width={S(actH * 2.18)} height={S(actH)}
             tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
             onMouseDown={() => { if (canPrev) go(-1) }} />
-          <ImgButton src="images/buttons/saveandnext.png"
-            width={S((mob ? 86 : 96) * 3.148)} height={S(mob ? 86 : 96)}
+          <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/Save-primary.png'}
+            width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
             tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
             onMouseDown={saveNext} />
         </UiEntity>
@@ -644,10 +647,11 @@ const InfoForm = () => {
         <Label value="Predictions lock once the match result is loaded." fontSize={F(22)}
           color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 24px 0' }} />
 
-        <SfxButton value="Got it" variant="primary" fontSize={F(32)}
-          uiTransform={{ width: '100%', height: S(92), borderRadius: S(20) }}
-          color={TEAL}
-          onMouseDown={() => { infoState.visible = false }} />
+        <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <ImgButton src="images/buttons/GotIt-primary.png"
+            width={S(92 * 3.034)} height={S(92)}
+            onMouseDown={() => { infoState.visible = false }} />
+        </UiEntity>
       </UiEntity>
     </UiEntity>
   )
