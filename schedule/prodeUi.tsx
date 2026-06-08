@@ -258,7 +258,8 @@ const MatchChecklist = () => {
           flexDirection: 'column',
           alignItems: 'center',
           alignSelf: mob ? 'flex-start' : 'center',
-          borderRadius: S(16)
+          borderRadius: S(16),
+          pointerFilter: 'block'
         }}
         uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
       >
