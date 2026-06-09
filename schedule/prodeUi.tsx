@@ -581,6 +581,11 @@ const ScorePanel = () => {
 const WelcomeOverlay = () => {
   if (!welcomeState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
   const mob = isMobile()
+  const imgW = mob ? 1360 : 1000         // mobile: match the voting modal width
+  const imgH = imgW / 1.777              // welcomeUI.png is 16:9 (1365x768)
+  const btnW = mob ? 560 : 520           // join-the-challenge button
+  const btnH = btnW / 6.66
+  const BTN_BOTTOM = mob ? 90 : 50       // 👈 button distance from image bottom — mobile : desktop
   return (
     <UiEntity
       uiTransform={{
@@ -590,25 +595,19 @@ const WelcomeOverlay = () => {
       }}
       uiBackground={{ color: OVERLAY }}
     >
+      {/* Welcome panel — button overlaid near the bottom of the image */}
       <UiEntity
         uiTransform={{
-          width: S(mob ? 900 : 1040), height: S(560), padding: S(56), alignSelf: 'center',
-          flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
-          borderRadius: S(36)
+          width: S(imgW), height: S(imgH),
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end'
         }}
-        uiBackground={{ color: DARK }}
+        uiBackground={{ texture: { src: 'images/welcomeUI.png' }, textureMode: 'stretch' }}
       >
-        <Label value="Welcome to Decentraland Prode!" fontSize={F(44)} color={VIOLET}
-          uiTransform={{ width: '100%', height: S(64), margin: `0 0 ${S(8)}px 0` }} />
-        <Label
-          value="Walk through the field and click each group board to predict every match result."
-          fontSize={F(28)} color={Color4.White()} uiTransform={{ width: '100%', height: S(80) }} />
-        <Label
-          value="Complete the 12 groups, climb the leaderboard and win!"
-          fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(48) }} />
-        <ImgButton src="images/buttons/jointhechallenge.png"
-          width={S(560)} height={S(560 / 6.66)}
-          onMouseDown={() => { welcomeState.visible = false }} />
+        <UiEntity uiTransform={{ margin: `0 0 ${S(BTN_BOTTOM)}px 0` }}>
+          <ImgButton src="images/buttons/jointhechallenge.png"
+            width={S(btnW)} height={S(btnH)}
+            onMouseDown={() => { welcomeState.visible = false }} />
+        </UiEntity>
       </UiEntity>
     </UiEntity>
   )
