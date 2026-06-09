@@ -13,7 +13,6 @@ import { playClick } from '../client/sfx'
 // ── Colors ────────────────────────────────────────────────────────────────────
 const ACCENT       = Color4.fromHexString('#18A187ff')
 const WHITE        = Color4.White()
-const BLACK        = Color4.fromHexString('#000000ff')
 const GRAY         = Color4.fromHexString('#888888ff')
 const GREEN        = Color4.fromHexString('#22cc55ff')
 const RED          = Color4.fromHexString('#ff5555ff')
@@ -109,7 +108,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   Transform.createOrReplace(nameLbl, { position: Vector3.create(0, 0.92, FRONT_Z), parent: root })
   TextShape.createOrReplace(nameLbl, {
     text: g.name, fontSize: 1.1, textColor: WHITE,
-    outlineColor: WHITE, outlineWidth: 0.1, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
 
   // ══ STATE: INCOMPLETE ═══════════════════════════════════════════════════════
@@ -120,7 +119,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   Transform.createOrReplace(progLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
   TextShape.createOrReplace(progLbl, {
     text: '', fontSize: 0.90, textColor: WHITE,
-    outlineColor: BLACK, outlineWidth: 0.10, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
   VisibilityComponent.createOrReplace(progLbl, { visible: true })
 
@@ -176,7 +175,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   Transform.createOrReplace(tblHdrLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
   TextShape.createOrReplace(tblHdrLbl, {
     text: 'GROUP STAGE SUMMARY', fontSize: 0.90, textColor: WHITE,
-    outlineColor: BLACK, outlineWidth: 0.10, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
   mkHide(tblHdrLbl)
 
@@ -202,8 +201,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   })
   TextShape.createOrReplace(completeTick, {
     text: '✓', fontSize: 0.7, textColor: COMPLETE_BADGE_COLOR,
-    outlineColor: BLACK,
-    outlineWidth: 0.12, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
   mkHide(completeTick)
 
@@ -214,7 +212,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   })
   TextShape.createOrReplace(completeBadgeText, {
     text: 'ALL GROUP COMPLETED', fontSize: 0.56, textColor: COMPLETE_BADGE_COLOR,
-    outlineColor: BLACK, outlineWidth: 0.12, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
   mkHide(completeBadgeText)
 
@@ -254,7 +252,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     Transform.createOrReplace(abbr1, { position: Vector3.create(-0.72, ry, FRONT_Z), parent: root })
     TextShape.createOrReplace(abbr1, {
       text: abbr(m.team1), fontSize: 0.82, textColor: WHITE,
-      outlineColor: BLACK, outlineWidth: 0.14, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
     })
     mkHide(abbr1)
 
@@ -277,7 +275,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     Transform.createOrReplace(abbr2, { position: Vector3.create(0.04, ry, FRONT_Z), parent: root })
     TextShape.createOrReplace(abbr2, {
       text: abbr(m.team2), fontSize: 0.82, textColor: WHITE,
-      outlineColor: BLACK, outlineWidth: 0.14, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
     })
     mkHide(abbr2)
 
@@ -285,7 +283,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     Transform.createOrReplace(pred, { position: Vector3.create(0.52, ry, FRONT_Z), parent: root })
     TextShape.createOrReplace(pred, {
       text: '', fontSize: 0.88, textColor: VIOLET,
-      outlineColor: BLACK, outlineWidth: 0.16, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
     })
     mkHide(pred)
 
@@ -293,7 +291,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     Transform.createOrReplace(real, { position: Vector3.create(0.93, ry, FRONT_Z), parent: root })
     TextShape.createOrReplace(real, {
       text: '-', fontSize: 0.88, textColor: GRAY,
-      outlineColor: BLACK, outlineWidth: 0.16, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
     })
     mkHide(real)
 
