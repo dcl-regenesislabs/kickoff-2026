@@ -106,7 +106,7 @@
   ],
   "authoritativeMultiplayer": true,
   "worldConfiguration": {
-    "name": "mendoexit.dcl.eth"
+    "name": "kickoff.dcl.eth"
   },
   "logsPermissions": [
     "0xc502975b49398f9754afc4e9693cf0e1594f3275"
