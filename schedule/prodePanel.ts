@@ -142,14 +142,14 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
 
   const groupFlagEnts: Entity[] = []
   const flagXs = [-0.9, -0.3, 0.3, 0.9]
-  g.flags.forEach((src, i) => {
+  g.flags.forEach((flagRef, i) => {
     const flag = engine.addEntity()
     Transform.createOrReplace(flag, {
       position: Vector3.create(flagXs[i] ?? 0, -0.18, FRONT_Z),
       scale: Vector3.create(0.5, 0.33, 1), parent: root
     })
-    MeshRenderer.setPlane(flag)
-    Material.setBasicMaterial(flag, { texture: Material.Texture.Common({ src }) })
+    MeshRenderer.setPlane(flag, flagRef.uvs)
+    Material.setBasicMaterial(flag, { texture: Material.Texture.Common({ src: flagRef.src }) })
     VisibilityComponent.createOrReplace(flag, { visible: true })
     groupFlagEnts.push(flag)
   })
@@ -244,8 +244,8 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     Transform.createOrReplace(f1, {
       position: Vector3.create(-0.97, ry, FRONT_Z), scale: Vector3.create(0.16, 0.105, 1), parent: root
     })
-    MeshRenderer.setPlane(f1)
-    Material.setBasicMaterial(f1, { texture: Material.Texture.Common({ src: m.flag1 }) })
+    MeshRenderer.setPlane(f1, m.flag1.uvs)
+    Material.setBasicMaterial(f1, { texture: Material.Texture.Common({ src: m.flag1.src }) })
     mkHide(f1)
 
     const abbr1 = engine.addEntity()
@@ -267,8 +267,8 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     Transform.createOrReplace(f2, {
       position: Vector3.create(-0.21, ry, FRONT_Z), scale: Vector3.create(0.16, 0.105, 1), parent: root
     })
-    MeshRenderer.setPlane(f2)
-    Material.setBasicMaterial(f2, { texture: Material.Texture.Common({ src: m.flag2 }) })
+    MeshRenderer.setPlane(f2, m.flag2.uvs)
+    Material.setBasicMaterial(f2, { texture: Material.Texture.Common({ src: m.flag2.src }) })
     mkHide(f2)
 
     const abbr2 = engine.addEntity()

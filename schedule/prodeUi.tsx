@@ -3,7 +3,7 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/re
 import { getPlayer } from '@dcl/sdk/players'
 import {
   MATCHES, GROUPS, predictions, savePrediction, getCompletedCount, isGroupComplete,
-  getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome
+  getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard } from '../client/prodeClient'
 import { playClick, playComplete } from '../client/sfx'
@@ -358,7 +358,7 @@ const GroupForm = () => {
 
   // One team column: flag + name + score + +/- , highlighted when it's the winner.
   const teamCol = (
-    name: string, flag: string, score: number, win: boolean,
+    name: string, flag: FlagRef, score: number, win: boolean,
     dec: () => void, inc: () => void
   ) => (
     <UiEntity
@@ -370,7 +370,7 @@ const GroupForm = () => {
       uiBackground={{ color: win ? TEAL : DARK_BTN }}
     >
       <UiEntity uiTransform={{ width: S(240), height: S(160) }}
-        uiBackground={{ texture: { src: flag }, textureMode: 'stretch' }} />
+        uiBackground={{ texture: { src: flag.src }, textureMode: 'stretch', uvs: flag.uvs }} />
       <Label value={name} fontSize={F(32)} color={Color4.White()} uiTransform={{ width: '100%', height: S(56) }} />
       <Label value={String(score)} fontSize={F(92)} color={Color4.White()} uiTransform={{ width: '100%', height: S(110) }} />
       <UiEntity uiTransform={{ width: '100%', height: S(stepH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -451,7 +451,7 @@ const GroupForm = () => {
             width={S(actH * 2.18)} height={S(actH)}
             tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
             onMouseDown={() => { if (canPrev) go(-1) }} />
-          <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/Save-primary.png'}
+          <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
             width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
             tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
             onMouseDown={saveNext} />
@@ -627,7 +627,7 @@ const ClaimOverlay = () => {
           uiTransform={{ width: '100%', height: S(72) }} />
         {done && (
           <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <ImgButton src="images/buttons/GotIt-primary.png"
+            <ImgButton src="images/buttons/gotit-primary.png"
               width={S(92 * 3.034)} height={S(92)}
               onMouseDown={() => { hideClaim() }} />
           </UiEntity>
@@ -661,7 +661,7 @@ const WelcomeOverlay = () => {
           width: S(imgW), height: S(imgH),
           flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end'
         }}
-        uiBackground={{ texture: { src: 'images/welcomeUI.png' }, textureMode: 'stretch' }}
+        uiBackground={{ texture: { src: 'images/welcome-ui-v2.jpg' }, textureMode: 'stretch' }}
       >
         <UiEntity uiTransform={{ margin: `0 0 ${S(BTN_BOTTOM)}px 0` }}>
           <ImgButton src="images/buttons/jointhechallenge.png"
@@ -719,7 +719,7 @@ const InfoForm = () => {
           color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 24px 0' }} />
 
         <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-          <ImgButton src="images/buttons/GotIt-primary.png"
+          <ImgButton src="images/buttons/gotit-primary.png"
             width={S(92 * 3.034)} height={S(92)}
             onMouseDown={() => { infoState.visible = false }} />
         </UiEntity>
