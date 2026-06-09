@@ -107,8 +107,6 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
     text: title,
     fontSize: titleFont,
     textColor: Color4.White(),
-    outlineColor: Color4.fromHexString('#3c0068ff'),
-    outlineWidth: 0.18,
     textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
 
@@ -123,8 +121,6 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
     text: 'PLAYER',
     fontSize: headerFont,
     textColor: Color4.fromHexString('#ffcf73ff'),
-    outlineColor: Color4.fromHexString('#2b0047ff'),
-    outlineWidth: 0.12,
     textAlign: TextAlignMode.TAM_MIDDLE_LEFT
   })
 
@@ -139,8 +135,6 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
     text: valueHeader,
     fontSize: headerFont,
     textColor: Color4.fromHexString('#ffcf73ff'),
-    outlineColor: Color4.fromHexString('#2b0047ff'),
-    outlineWidth: 0.12,
     textAlign: TextAlignMode.TAM_MIDDLE_RIGHT
   })
 
@@ -173,8 +167,6 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
       text: `${i + 1}. ---`,
       fontSize: rowFont,
       textColor: Color4.White(),
-      outlineColor: Color4.fromHexString('#22003dff'),
-      outlineWidth: 0.12,
       textAlign: TextAlignMode.TAM_MIDDLE_LEFT
     })
 
@@ -189,8 +181,6 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
       text: '-',
       fontSize: rowFont,
       textColor: Color4.fromHexString('#ffcf73ff'),
-      outlineColor: Color4.fromHexString('#22003dff'),
-      outlineWidth: 0.12,
       textAlign: TextAlignMode.TAM_MIDDLE_RIGHT
     })
 
