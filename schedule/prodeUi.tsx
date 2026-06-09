@@ -661,7 +661,7 @@ const WelcomeOverlay = () => {
           width: S(imgW), height: S(imgH),
           flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end'
         }}
-        uiBackground={{ texture: { src: 'images/welcomeUI.png' }, textureMode: 'stretch' }}
+        uiBackground={{ texture: { src: 'images/welcome-ui-v2.jpg' }, textureMode: 'stretch' }}
       >
         <UiEntity uiTransform={{ margin: `0 0 ${S(BTN_BOTTOM)}px 0` }}>
           <ImgButton src="images/buttons/jointhechallenge.png"
