@@ -80,7 +80,7 @@ function applyBannerMaterial(entity: Entity, src: string) {
 function buildWorld() {
   for (let i = 0; i < GROUPS.length; i++) {
     const left = i % 2 === 0
-    const z = left ? 44 : 56
+    const z = left ? 56 : 44                 // even groups (A,C,E…) on the player's LEFT, read left→right
     const x = 56 + Math.floor(i / 2) * 6
     const yaw = 90
 
