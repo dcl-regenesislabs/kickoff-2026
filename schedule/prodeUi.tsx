@@ -50,6 +50,12 @@ export function openScorePanel() { scoreState.visible = true }
 // Welcome overlay shown on entry; dismissed with "Go!".
 const welcomeState = { visible: true }
 
+// Wearable claim status overlay ("on the way" → "received!").
+const claimState = { visible: false, done: false }
+export function showClaimPending() { claimState.visible = true; claimState.done = false }
+export function showClaimDone() { claimState.visible = true; claimState.done = true }
+export function hideClaim() { claimState.visible = false }
+
 // All-predictions-complete celebration (fires once when the 72nd is saved).
 const celebrateState = { visible: false }
 let celebrated = false
@@ -199,6 +205,9 @@ const ProdeUi = () => {
 
       {/* ── Welcome overlay (on entry) ───────────────────────────────────────── */}
       <WelcomeOverlay />
+
+      {/* ── Wearable claim status overlay ────────────────────────────────────── */}
+      <ClaimOverlay />
 
     </UiEntity>
   )
@@ -572,6 +581,48 @@ const ScorePanel = () => {
             width={S(88 * 2.27)} height={S(88)}
             onMouseDown={() => { scoreState.visible = false }} />
         </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Wearable claim status — "on the way" while requesting, "received!" on success
+const ClaimOverlay = () => {
+  if (!claimState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+  const done = claimState.done
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(mob ? 900 : 880), height: S(done ? 480 : 340), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+          borderRadius: S(36)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        <Label value={done ? 'Received!' : 'New item on the way'} fontSize={F(46)}
+          color={done ? TEAL : VIOLET} uiTransform={{ width: '100%', height: S(70), margin: `0 0 ${S(8)}px 0` }} />
+        <Label
+          value={done
+            ? 'The wearable is on its way to your wallet — check your backpack.'
+            : 'Claiming your wearable...'}
+          fontSize={F(26)} color={Color4.create(0.75, 0.75, 0.75, 1)}
+          uiTransform={{ width: '100%', height: S(72) }} />
+        {done && (
+          <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <ImgButton src="images/buttons/GotIt-primary.png"
+              width={S(92 * 3.034)} height={S(92)}
+              onMouseDown={() => { hideClaim() }} />
+          </UiEntity>
+        )}
       </UiEntity>
     </UiEntity>
   )

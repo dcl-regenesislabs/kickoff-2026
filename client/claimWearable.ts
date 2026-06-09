@@ -1,6 +1,7 @@
 import { signedFetch } from '~system/SignedFetch'
 import { getPlayer } from '@dcl/sdk/players'
 import { WEARABLE_CONFIG } from '../src/wearableConfig'
+import { showClaimPending, showClaimDone, hideClaim } from '../schedule/prodeUi'
 
 // Reusable free-wearable claim. Call it from wherever you want to dispense the
 // reward (here: clicking the trophy). Guards against double-claims per session.
@@ -8,13 +9,15 @@ let claiming = false
 let claimed  = false
 
 export function claimWearable() {
-  if (claiming || claimed) return
+  if (claiming) return
+  if (claimed) { showClaimDone(); return }   // already got it → just show "Received!"
   const localAddress = getPlayer()?.userId
   if (!localAddress) {
     console.log('[Wearable] no wallet address yet — cannot claim')
     return
   }
   claiming = true
+  showClaimPending()
   void (async () => {
     try {
       const url = `${WEARABLE_CONFIG.rewardsApi}/${WEARABLE_CONFIG.campaignId}/rewards`
@@ -38,12 +41,15 @@ export function claimWearable() {
 
       if (data.ok && data.data?.[0]) {
         claimed = true
-        console.log(`[Wearable] ✓ Claimed! token: ${data.data[0].token ?? 'claimed'}`)
+        console.log(`[Wearable] ✓ New item received! token: ${data.data[0].token ?? 'claimed'}`)
+        showClaimDone()
       } else {
         console.error(`[Wearable] ✗ Claim failed: ${data.error ?? response.body}`)
+        hideClaim()
       }
     } catch (err) {
       console.error('[Wearable] ✗ Claim error:', err)
+      hideClaim()
     } finally {
       claiming = false
     }
