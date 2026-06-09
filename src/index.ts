@@ -60,11 +60,11 @@ function setupScenePlanes() {
   }
 
   if (bannerLeftPrize) {
-    applyBannerMaterial(bannerLeftPrize, 'images/KickoffChallenge-Banner-Prizes.png')
+    applyBannerMaterial(bannerLeftPrize, 'images/kickoffchallenge-banner-prizes.png')
   }
 
   if (bannerRightPrize) {
-    applyBannerMaterial(bannerRightPrize, 'images/KickoffChallenge-Banner-Prizes.png')
+    applyBannerMaterial(bannerRightPrize, 'images/kickoffchallenge-banner-prizes.png')
   }
 
   if (leaderboard) {

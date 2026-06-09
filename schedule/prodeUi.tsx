@@ -451,7 +451,7 @@ const GroupForm = () => {
             width={S(actH * 2.18)} height={S(actH)}
             tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
             onMouseDown={() => { if (canPrev) go(-1) }} />
-          <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/Save-primary.png'}
+          <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
             width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
             tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
             onMouseDown={saveNext} />
@@ -627,7 +627,7 @@ const ClaimOverlay = () => {
           uiTransform={{ width: '100%', height: S(72) }} />
         {done && (
           <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <ImgButton src="images/buttons/GotIt-primary.png"
+            <ImgButton src="images/buttons/gotit-primary.png"
               width={S(92 * 3.034)} height={S(92)}
               onMouseDown={() => { hideClaim() }} />
           </UiEntity>
@@ -719,7 +719,7 @@ const InfoForm = () => {
           color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 24px 0' }} />
 
         <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-          <ImgButton src="images/buttons/GotIt-primary.png"
+          <ImgButton src="images/buttons/gotit-primary.png"
             width={S(92 * 3.034)} height={S(92)}
             onMouseDown={() => { infoState.visible = false }} />
         </UiEntity>
