@@ -3,7 +3,7 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/re
 import { getPlayer } from '@dcl/sdk/players'
 import {
   MATCHES, GROUPS, predictions, savePrediction, getCompletedCount, isGroupComplete,
-  getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome
+  getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard } from '../client/prodeClient'
 import { playClick, playComplete } from '../client/sfx'
@@ -358,7 +358,7 @@ const GroupForm = () => {
 
   // One team column: flag + name + score + +/- , highlighted when it's the winner.
   const teamCol = (
-    name: string, flag: string, score: number, win: boolean,
+    name: string, flag: FlagRef, score: number, win: boolean,
     dec: () => void, inc: () => void
   ) => (
     <UiEntity
@@ -370,7 +370,7 @@ const GroupForm = () => {
       uiBackground={{ color: win ? TEAL : DARK_BTN }}
     >
       <UiEntity uiTransform={{ width: S(240), height: S(160) }}
-        uiBackground={{ texture: { src: flag }, textureMode: 'stretch' }} />
+        uiBackground={{ texture: { src: flag.src }, textureMode: 'stretch', uvs: flag.uvs }} />
       <Label value={name} fontSize={F(32)} color={Color4.White()} uiTransform={{ width: '100%', height: S(56) }} />
       <Label value={String(score)} fontSize={F(92)} color={Color4.White()} uiTransform={{ width: '100%', height: S(110) }} />
       <UiEntity uiTransform={{ width: '100%', height: S(stepH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

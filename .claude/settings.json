@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python -c \"from PIL import Image; img = Image.open\\('images/flags/mx.png'\\); print\\(img.size, img.mode\\)\")"
+    ]
+  }
+}

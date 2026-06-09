@@ -2,20 +2,22 @@ import { PTS_WINNER, PTS_SCORE } from './prodeConfig'
 
 export type Outcome = 'team1' | 'draw' | 'team2'
 
+export type FlagRef = { src: string; uvs: number[] }
+
 export type Match = {
   id: number
   group: string
   time: string
   team1: string
   team2: string
-  flag1: string
-  flag2: string
+  flag1: FlagRef
+  flag2: FlagRef
 }
 
 export type Group = {
   name: string
   teams: string[]
-  flags: string[]
+  flags: FlagRef[]
   matches: Match[]
 }
 
@@ -38,74 +40,62 @@ export function abbr(team: string): string {
   return TEAM_ABBR[team] ?? team.slice(0, 3).toUpperCase()
 }
 
-// ── Flag map — team name → ISO flag in images/flags/ ──────────────────────────
-const PH = 'images/scene-thumbnail.png'
-const FLAG_DIR = 'images/flags/'
-const FLAG_CODE: Record<string, string> = {
-  // Group A
-  'Mexico':              'mx',
-  'South Africa':        'za',
-  'South Korea':         'kr',
-  'Czechia':             'cz',
-  'Canada':              'ca',
-  'Bosnia & Herzegovina':'ba',
-  // Group B
-  'Qatar':               'qa',
-  'Switzerland':         'ch',
-  // Group C
-  'Brazil':              'br',
-  'Morocco':             'ma',
-  'Haiti':               'ht',
-  'Scotland':            'gb-sct',
-  // Group D
-  'USA':                 'us',
-  'Paraguay':            'py',
-  'Australia':           'au',
-  'Turkey':              'tr',
-  // Group E
-  'Germany':             'de',
-  'Curaçao':             'cw',
-  'Ivory Coast':         'ci',
-  'Ecuador':             'ec',
-  // Group F
-  'Netherlands':         'nl',
-  'Japan':               'jp',
-  'Sweden':              'se',
-  'Tunisia':             'tn',
-  // Group G
-  'Belgium':             'be',
-  'Egypt':               'eg',
-  'Iran':                'ir',
-  'New Zealand':         'nz',
-  // Group H
-  'Spain':               'es',
-  'Cape Verde':          'cv',
-  'Saudi Arabia':        'sa',
-  'Uruguay':             'uy',
-  // Group I
-  'France':              'fr',
-  'Senegal':             'sn',
-  'Iraq':                'iq',
-  'Norway':              'no',
-  // Group J
-  'Argentina':           'ar',
-  'Algeria':             'dz',
-  'Austria':             'at',
-  'Jordan':              'jo',
-  // Group K
-  'Portugal':            'pt',
-  'DR Congo':            'cd',
-  'Uzbekistan':          'uz',
-  'Colombia':            'co',
-  // Group L
-  'England':             'gb-eng',
-  'Croatia':             'hr',
-  'Ghana':               'gh',
-  'Panama':              'pa',
+// ── Flag atlas UV map (2×2 grid) ──────────────────────────────────────────────
+// Each atlas is 1024×1024 with 4 flags in a 2×2 grid.
+// DCL plane vertex order: [BR, TR, TL, BL] + horizontal u-flip within each cell
+const CELL_UVS: number[][] = [
+  [0,   0.5, 0,   1.0, 0.5, 1.0, 0.5, 0.5], // pos 0: top-left image quadrant
+  [0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 0.5], // pos 1: top-right image quadrant
+  [0,   0,   0,   0.5, 0.5, 0.5, 0.5, 0  ], // pos 2: bottom-left image quadrant
+  [0.5, 0,   0.5, 0.5, 1.0, 0.5, 1.0, 0  ], // pos 3: bottom-right image quadrant
+]
+
+const FLAG_ATLAS: Record<string, [string, number]> = {
+  // Group A  → atlas_a.png
+  'Mexico':              ['a', 0], 'South Africa':        ['a', 1],
+  'South Korea':         ['a', 2], 'Czechia':             ['a', 3],
+  // Group B  → atlas_b.png
+  'Canada':              ['b', 0], 'Bosnia & Herzegovina':['b', 1],
+  'Qatar':               ['b', 2], 'Switzerland':         ['b', 3],
+  // Group C  → atlas_c.png
+  'Brazil':              ['c', 0], 'Morocco':             ['c', 1],
+  'Haiti':               ['c', 2], 'Scotland':            ['c', 3],
+  // Group D  → atlas_d.png
+  'USA':                 ['d', 0], 'Paraguay':            ['d', 1],
+  'Australia':           ['d', 2], 'Turkey':              ['d', 3],
+  // Group E  → atlas_e.png
+  'Germany':             ['e', 0], 'Curaçao':             ['e', 1],
+  'Ivory Coast':         ['e', 2], 'Ecuador':             ['e', 3],
+  // Group F  → atlas_f.png
+  'Netherlands':         ['f', 0], 'Japan':               ['f', 1],
+  'Sweden':              ['f', 2], 'Tunisia':             ['f', 3],
+  // Group G  → atlas_g.png
+  'Belgium':             ['g', 0], 'Egypt':               ['g', 1],
+  'Iran':                ['g', 2], 'New Zealand':         ['g', 3],
+  // Group H  → atlas_h.png
+  'Spain':               ['h', 0], 'Cape Verde':          ['h', 1],
+  'Saudi Arabia':        ['h', 2], 'Uruguay':             ['h', 3],
+  // Group I  → atlas_i.png
+  'France':              ['i', 0], 'Senegal':             ['i', 1],
+  'Iraq':                ['i', 2], 'Norway':              ['i', 3],
+  // Group J  → atlas_j.png
+  'Argentina':           ['j', 0], 'Algeria':             ['j', 1],
+  'Austria':             ['j', 2], 'Jordan':              ['j', 3],
+  // Group K  → atlas_k.png
+  'Portugal':            ['k', 0], 'DR Congo':            ['k', 1],
+  'Uzbekistan':          ['k', 2], 'Colombia':            ['k', 3],
+  // Group L  → atlas_l.png
+  'England':             ['l', 0], 'Croatia':             ['l', 1],
+  'Ghana':               ['l', 2], 'Panama':              ['l', 3],
 }
-function f(team: string): string {
-  const code = FLAG_CODE[team]
-  return code ? `${FLAG_DIR}${code}.png` : PH
+
+const PH: FlagRef = { src: 'images/scene-thumbnail.png', uvs: [0, 0, 1, 0, 1, 1, 0, 1] }
+
+function f(team: string): FlagRef {
+  const entry = FLAG_ATLAS[team]
+  if (!entry) return PH
+  const [letter, pos] = entry
+  return { src: `images/flags/atlas_${letter}.png`, uvs: CELL_UVS[pos] }
 }
 
 // ── Match builder ────────────────────────────────────
