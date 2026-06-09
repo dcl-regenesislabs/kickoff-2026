@@ -127,7 +127,9 @@ const DARK_BTN  = Color4.create(0.15, 0.15, 0.32, 1)
 const OVERLAY   = Color4.create(0, 0, 0, 0.7)
 const RED       = Color4.fromHexString('#FF6B6Bff')
 const GOLD      = Color4.fromHexString('#F2C14Eff')
-const VIOLET    = Color4.fromHexString('#9f78e7ff')      // completed checklist cell
+const VIOLET    = Color4.fromHexString('#9f78e7ff')
+const CHECKLIST_PARTIAL = Color4.fromHexString('#7a1f31ff')
+const CHECKLIST_COMPLETE = Color4.fromHexString('#39ff78ff')
 const CELL_EMPTY = Color4.create(0.42, 0.42, 0.52, 1)    // pending checklist cell
 const BTN_DISABLED = Color4.create(0.24, 0.24, 0.30, 1)  // greyed/disabled button
 
@@ -215,25 +217,32 @@ const MatchChecklist = () => {
     groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
     (mob && getCompletedCount() === MATCHES.length)
 
-  const cluster = (g: (typeof GROUPS)[number]) => (
-    <UiEntity key={g.name} uiTransform={{
-      flexDirection: 'column', alignItems: 'center',
-      margin: mob ? `${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px` : `0px ${S(5)}px 0px ${S(5)}px`
-    }}>
-      <UiEntity uiTransform={{ flexDirection: 'row' }}>
-        {g.matches.map((m, mi) => {
-          const sub = predictions.find(p => p.matchId === m.id)?.submitted ?? false
-          return (
-            <UiEntity key={mi}
-              uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3 * k) }}
-              uiBackground={{ color: sub ? VIOLET : CELL_EMPTY }} />
-          )
-        })}
+  const cluster = (g: (typeof GROUPS)[number]) => {
+    const done = g.matches.filter((m) => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
+    const complete = done === g.matches.length
+    const activeColor = complete ? CHECKLIST_COMPLETE : done > 0 ? CHECKLIST_PARTIAL : VIOLET
+
+    return (
+      <UiEntity key={g.name} uiTransform={{
+        flexDirection: 'column', alignItems: 'center',
+        margin: mob ? `${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px` : `0px ${S(5)}px 0px ${S(5)}px`
+      }}>
+        <UiEntity uiTransform={{ flexDirection: 'row' }}>
+          {g.matches.map((m, mi) => {
+            const sub = predictions.find(p => p.matchId === m.id)?.submitted ?? false
+            return (
+              <UiEntity key={mi}
+                uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3 * k) }}
+                uiBackground={{ color: sub ? activeColor : CELL_EMPTY }} />
+            )
+          })}
+        </UiEntity>
+        <Label value={g.name.replace('Group ', '')} fontSize={F(13 * k)}
+          color={complete ? CHECKLIST_COMPLETE : Color4.create(0.6, 0.6, 0.7, 1)}
+          uiTransform={{ height: S(16 * k) }} />
       </UiEntity>
-      <Label value={g.name.replace('Group ', '')} fontSize={F(13 * k)}
-        color={Color4.create(0.6, 0.6, 0.7, 1)} uiTransform={{ height: S(16 * k) }} />
-    </UiEntity>
-  )
+    )
+  }
 
   // Desktop: 2 rows × 6 groups centered. Mobile: 6 rows × 2 groups (vertical sidebar).
   const rows = mob
@@ -267,7 +276,7 @@ const MatchChecklist = () => {
           value={mob
             ? `${getCompletedCount()}/${MATCHES.length}  •  ${myPoints()} pts`
             : `Predictions  ${getCompletedCount()} / ${MATCHES.length}      ${myPoints()} pts`}
-          fontSize={F(mob ? 14 * k : 18)} color={VIOLET}
+          fontSize={F(mob ? 14 * k : 18)} color={Color4.White()}
           uiTransform={{ height: S(mob ? 18 * k : 24), margin: '0 0 6px 0' }}
         />
         <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
