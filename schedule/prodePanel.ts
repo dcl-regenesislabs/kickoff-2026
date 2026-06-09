@@ -20,10 +20,12 @@ const RED          = Color4.fromHexString('#ff5555ff')
 const VIOLET       = Color4.fromHexString('#9f78e7ff')
 const VIOLET_TRACK = Color4.fromHexString('#3a2d5cff')
 const MUTED        = Color4.create(0.60, 0.60, 0.75, 1)
-const TBL_HEADER   = Color4.fromHexString('#5b3fcaff')
+const TBL_HEADER   = Color4.fromHexString('#169b62ff')
+const PROG_HEADER  = Color4.fromHexString('#7a1f31ff')
 const TBL_COL_HDR  = Color4.create(0.13, 0.10, 0.28, 1)
 const TBL_ROW_EVEN = Color4.create(0.10, 0.07, 0.22, 0.92)
 const TBL_ROW_ODD  = Color4.create(0.07, 0.05, 0.16, 0.92)
+const COMPLETE_BADGE_COLOR = Color4.fromHexString('#39ff78ff')
 
 // ── Panel model ───────────────────────────────────────────────────────────────
 const PANEL_MODEL  = 'assets/scene/Models/StadiumPanel/StadiumPanel.glb'
@@ -112,10 +114,13 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
 
   // ══ STATE: INCOMPLETE ═══════════════════════════════════════════════════════
 
+  const progHdrBg = mkBg(0.44, 0.16, PROG_HEADER, root)
+
   const progLbl = engine.addEntity()
-  Transform.createOrReplace(progLbl, { position: Vector3.create(0, 0.42, FRONT_Z), parent: root })
+  Transform.createOrReplace(progLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
   TextShape.createOrReplace(progLbl, {
-    text: '', fontSize: 0.62, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    text: '', fontSize: 0.90, textColor: WHITE,
+    outlineColor: BLACK, outlineWidth: 0.10, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
   VisibilityComponent.createOrReplace(progLbl, { visible: true })
 
@@ -190,7 +195,39 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   const colPredHdr  = mkColHdr( 0.52, 'PRED')
   const colRealHdr  = mkColHdr( 0.93, 'RESULT')
 
-  const completeHeaderEnts: Entity[] = [tblHdrBg, tblHdrLbl, colHdrBg, colMatchHdr, colPredHdr, colRealHdr]
+  const completeTick = engine.addEntity()
+  Transform.createOrReplace(completeTick, {
+    position: Vector3.create(0.52, -1.01, FRONT_Z),
+    parent: root
+  })
+  TextShape.createOrReplace(completeTick, {
+    text: '✓', fontSize: 0.7, textColor: COMPLETE_BADGE_COLOR,
+    outlineColor: BLACK,
+    outlineWidth: 0.12, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
+  mkHide(completeTick)
+
+  const completeBadgeText = engine.addEntity()
+  Transform.createOrReplace(completeBadgeText, {
+    position: Vector3.create(0, -1.01, FRONT_Z),
+    parent: root
+  })
+  TextShape.createOrReplace(completeBadgeText, {
+    text: 'ALL GROUP COMPLETED', fontSize: 0.56, textColor: COMPLETE_BADGE_COLOR,
+    outlineColor: BLACK, outlineWidth: 0.12, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
+  mkHide(completeBadgeText)
+
+  const completeHeaderEnts: Entity[] = [
+    tblHdrBg,
+    tblHdrLbl,
+    colHdrBg,
+    colMatchHdr,
+    colPredHdr,
+    colRealHdr,
+    completeTick,
+    completeBadgeText
+  ]
 
   // Data rows
   type SummaryRow = {
@@ -270,6 +307,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     const complete = isGroupComplete(groupIndex)
 
     // Incomplete state
+    VisibilityComponent.getMutable(progHdrBg).visible = !complete
     VisibilityComponent.getMutable(progLbl).visible   = !complete
     VisibilityComponent.getMutable(progTrack).visible = !complete
     VisibilityComponent.getMutable(hint).visible      = !complete
