@@ -646,16 +646,16 @@ const InfoForm = () => {
       >
         <Label value="How scoring works" fontSize={F(44)} color={TEAL}
           uiTransform={{ width: '100%', height: S(64), margin: '0 0 8px 0' }} />
-        <Label value="For every match, predict the winner and the exact score." fontSize={F(24)}
+        <Label value="Predict the result and the exact score of every match." fontSize={F(24)}
           color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 28px 0' }} />
 
-        {row('Exact score', `${PTS_WINNER + PTS_SCORE} pts`, 'You nailed the exact result — winner and score.')}
-        {row('Right winner', `${PTS_WINNER} pts`, 'You got who wins (or a draw), but not the exact score.')}
-        {row('Missed', '0 pts', "Your pick didn't match the result.")}
+        {row('Correct result', `${PTS_WINNER} pts`, 'You called the winner — or correctly picked a draw — but not the exact score.')}
+        {row('Exact score', `${PTS_WINNER + PTS_SCORE} pts`, `You nailed the scoreline. That's the ${PTS_WINNER} for the result, plus a ${PTS_SCORE}-point bonus.`)}
+        {row('Missed it', '0 pts', "The match didn't go the way you predicted.")}
 
-        <Label value="Tip: a draw must have the same score on both sides (e.g. 1-1)." fontSize={F(22)}
+        <Label value="Predicting a draw? Enter the same score for both teams (e.g. 1-1)." fontSize={F(22)}
           color={RED} uiTransform={{ width: '100%', height: S(36), margin: '0 0 6px 0' }} />
-        <Label value="Predictions lock once the match has been played." fontSize={F(22)}
+        <Label value="Predictions lock at match kickoff — once a match starts, your pick is final." fontSize={F(22)}
           color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 24px 0' }} />
 
         <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>

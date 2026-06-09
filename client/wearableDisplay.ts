@@ -1,34 +1,48 @@
 import {
-  Animator, EasingFunction, Entity, Name, Tween, TweenLoop, TweenSequence, engine
+  Animator, ColliderLayer, EasingFunction, Entity, InputAction, MeshCollider,
+  Name, Transform, Tween, TweenLoop, TweenSequence, engine, pointerEventsSystem
 } from '@dcl/sdk/ecs'
-import { Quaternion } from '@dcl/sdk/math'
-import { EntityNames } from '../assets/scene/entity-names'
+import { Quaternion, Vector3 } from '@dcl/sdk/math'
+import { claimWearable } from './claimWearable'
+import { playClick } from './sfx'
 
-// The dispenser bases and the wearable jerseys are placed from the Creator Hub
-// (they live in the scene composite). Here we find them by their editor names and
-// spin the jerseys + play the dispenser animation (not set up in the editor).
-const WEARABLE_NAMES: string[] = [
-  EntityNames.trikot_final_male__glb,
-  EntityNames.trikot_final_female_fix1__glb
-]
-const DISPENSER_NAMES: string[] = [
-  EntityNames.dispenser_1_glb,
-  EntityNames.dispenser_1_glb_2
-]
+// The wearable prizes and the dispenser bases are placed from the Creator Hub.
+// Matched by NAME PREFIX (robust to renames): any "trikot…" is a claimable prize,
+// any "dispenser_1…" is an animated base.
 const DISPENSER_CLIPS = ['Cylinder.135Action', 'Cylinder.138Action.001', 'Dispenser_gownAction']
 
 export function setupWearableSpin() {
-  const done = new Set<string>()
-  const total = WEARABLE_NAMES.length + DISPENSER_NAMES.length
-  engine.addSystem(() => {
-    if (done.size >= total) return
-    // The composite entities may not exist on the first frame — poll until found.
+  const done = new Set<Entity>()
+  let elapsed = 0
+  engine.addSystem((dt: number) => {
+    // Composite entities load a frame or two after start — poll briefly, then stop.
+    elapsed += dt
+    if (elapsed > 8) return
     for (const [entity, name] of engine.getEntitiesWith(Name)) {
-      if (done.has(name.value)) continue
-      if (WEARABLE_NAMES.includes(name.value)) { spin(entity); done.add(name.value) }
-      else if (DISPENSER_NAMES.includes(name.value)) { animateDispenser(entity); done.add(name.value) }
+      if (done.has(entity)) continue
+      const n = name.value.toLowerCase()
+      if (n.startsWith('trikot')) { spin(entity); makeClaimable(entity); done.add(entity) }
+      else if (n.startsWith('dispenser_1')) { animateDispenser(entity); done.add(entity) }
     }
   })
+}
+
+// Make a prize claimable — same approach as the "how it works" banner: a separate
+// invisible primitive collider (a box, so it's clickable from any angle) placed at
+// the wearable's spot, with the pointer event on it.
+function makeClaimable(entity: Entity) {
+  const t = Transform.getOrNull(entity)
+  if (!t) return
+  const clicker = engine.addEntity()
+  Transform.create(clicker, {
+    position: Vector3.create(t.position.x, t.position.y + 1.2, t.position.z),  // center on the model
+    scale: Vector3.create(2.2, 3, 2.2)                                          // generous hit box (tweak)
+  })
+  MeshCollider.setBox(clicker, ColliderLayer.CL_POINTER)
+  pointerEventsSystem.onPointerDown(
+    { entity: clicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Claim your free wearable', maxDistance: 32 } },
+    () => { playClick(); claimWearable() }
+  )
 }
 
 // Play all of the dispenser's clips on a loop.
