@@ -8,6 +8,7 @@ import { EntityNames } from '../assets/scene/entity-names'
 
 const UPDATE_INTERVAL = 1.0
 const REQUEST_INTERVAL = 10.0
+const LEADERBOARD_PLANES = [EntityNames.leaderboard, EntityNames.leaderboard_2] as const
 
 function formatLeaderboardName(name: string, address: string): string {
   const cleanName = (name || 'player').trim() || 'player'
@@ -16,18 +17,14 @@ function formatLeaderboardName(name: string, address: string): string {
   return `${visibleName}#${suffix}`
 }
 
-function getSceneLeaderboardTransform(fallback?: {
+function getSceneLeaderboardTransform(entityName: EntityNames, fallback?: {
   position: Vector3
   rotation?: Quaternion
   size?: Vector3
 }) {
-  const scenePlane = engine.getEntityOrNullByName<EntityNames>(EntityNames.leaderboard)
+  const scenePlane = engine.getEntityOrNullByName<EntityNames>(entityName)
   if (!scenePlane) {
-    return {
-      position: fallback?.position ?? Vector3.create(32, 6, 62),
-      rotation: fallback?.rotation ?? Quaternion.fromEulerDegrees(0, 180, 0),
-      size: fallback?.size ?? Vector3.create(5, 7, 1)
-    }
+    return null
   }
 
   const transform = Transform.get(scenePlane)
@@ -44,24 +41,45 @@ function getSceneLeaderboardTransform(fallback?: {
   }
 }
 
+function getSceneLeaderboardTransforms(fallback?: {
+  position: Vector3
+  rotation?: Quaternion
+  size?: Vector3
+}) {
+  const transforms = LEADERBOARD_PLANES
+    .map((entityName) => getSceneLeaderboardTransform(entityName))
+    .filter((value): value is NonNullable<ReturnType<typeof getSceneLeaderboardTransform>> => value !== null)
+
+  if (transforms.length > 0) {
+    return transforms
+  }
+
+  return [{
+    position: fallback?.position ?? Vector3.create(32, 6, 62),
+    rotation: fallback?.rotation ?? Quaternion.fromEulerDegrees(0, 180, 0),
+    size: fallback?.size ?? Vector3.create(5, 7, 1)
+  }]
+}
+
 export function initProdeLeaderboard(transform?: {
   position: Vector3
   rotation?: Quaternion
   size?: Vector3
 }) {
-  const sceneTransform = getSceneLeaderboardTransform(transform)
-  const panel = createLeaderboardPanel({
-    transform: {
-      position: sceneTransform.position,
-      rotation: sceneTransform.rotation
-    },
-    size: sceneTransform.size,
-    tabs: ['LEADERBOARD'],
-    tabColumnHeaders: ['PTS'],
-    tabData: [[]],
-    skipBackground: true,
-    hideTabNav: true
-  })
+  const panels = getSceneLeaderboardTransforms(transform).map((sceneTransform) =>
+    createLeaderboardPanel({
+      transform: {
+        position: sceneTransform.position,
+        rotation: sceneTransform.rotation
+      },
+      size: sceneTransform.size,
+      tabs: ['LEADERBOARD'],
+      tabColumnHeaders: ['PTS'],
+      tabData: [[]],
+      skipBackground: true,
+      hideTabNav: true
+    })
+  )
 
   let lastKey = ''
   let acc = 0
@@ -85,6 +103,8 @@ export function initProdeLeaderboard(transform?: {
     const key = rows.map((r) => `${r.name}:${r.value}`).join('|')
     if (key === lastKey) return
     lastKey = key
-    setTabData(panel, 0, rows)
+    for (const panel of panels) {
+      setTabData(panel, 0, rows)
+    }
   })
 }

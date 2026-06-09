@@ -10,7 +10,7 @@ import { setupReflectors } from '../client/reflectors'
 import { Vector3, Quaternion, Color3, Color4 } from '@dcl/sdk/math'
 import {
   engine, Entity, MeshRenderer, MeshCollider, Material,
-  ColliderLayer, pointerEventsSystem, InputAction
+  ColliderLayer, pointerEventsSystem, InputAction, MaterialTransparencyMode
 } from '@dcl/sdk/ecs'
 import { isServer } from '@dcl/sdk/network'
 import { EntityNames } from '../assets/scene/entity-names'
@@ -40,8 +40,11 @@ export async function main() {
 
 function setupScenePlanes() {
   const bannerLeft = engine.getEntityOrNullByName<EntityNames>(EntityNames.banner_left)
+  const bannerLeftPrize = engine.getEntityOrNullByName<EntityNames>(EntityNames.banner_left_prize)
   const bannerRight = engine.getEntityOrNullByName<EntityNames>(EntityNames.banner_right)
+  const bannerRightPrize = engine.getEntityOrNullByName<EntityNames>(EntityNames.banner_right_prize)
   const leaderboard = engine.getEntityOrNullByName<EntityNames>(EntityNames.leaderboard)
+  const leaderboard2 = engine.getEntityOrNullByName<EntityNames>(EntityNames.leaderboard_2)
 
   if (bannerRight) {
     applyBannerMaterial(bannerRight, 'images/banner.png')
@@ -56,11 +59,20 @@ function setupScenePlanes() {
     )
   }
 
+  if (bannerLeftPrize) {
+    applyBannerMaterial(bannerLeftPrize, 'images/banner-prizes.png')
+  }
+
+  if (bannerRightPrize) {
+    applyBannerMaterial(bannerRightPrize, 'images/banner-prizes.png')
+  }
+
   if (leaderboard) {
-    MeshRenderer.setPlane(leaderboard)
-    Material.setBasicMaterial(leaderboard, {
-      diffuseColor: Color4.fromHexString('#08111cff')
-    })
+    applyLeaderboardMaterial(leaderboard)
+  }
+
+  if (leaderboard2) {
+    applyLeaderboardMaterial(leaderboard2)
   }
 }
 
@@ -68,12 +80,21 @@ function applyBannerMaterial(entity: Entity, src: string) {
   MeshRenderer.setPlane(entity)
   Material.setPbrMaterial(entity, {
     texture: Material.Texture.Common({ src }),
+    alphaTexture: Material.Texture.Common({ src }),
     emissiveTexture: Material.Texture.Common({ src }),
     emissiveColor: Color3.White(),
     emissiveIntensity: 1.6,
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND,
     roughness: 1,
     metallic: 0,
     specularIntensity: 0
+  })
+}
+
+function applyLeaderboardMaterial(entity: Entity) {
+  MeshRenderer.setPlane(entity)
+  Material.setBasicMaterial(entity, {
+    diffuseColor: Color4.fromHexString('#08111cff')
   })
 }
 
