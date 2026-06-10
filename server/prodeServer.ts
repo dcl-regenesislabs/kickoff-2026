@@ -39,7 +39,7 @@ export function startProdeServer() {
     const locked  = results.some(r => r.matchId === data.matchId) ||
       (match ? isMatchLocked(match.team1, match.team2) : false)
     if (!isValidPrediction(data) || locked) {
-      room.send('predictionSaved', { matchId: data.matchId, ok: false }, { to: [addr] })
+      room.send('predictionSaved', { matchId: data.matchId, ok: false, reason: 'locked' }, { to: [addr] })
       return
     }
 
@@ -56,11 +56,11 @@ export function startProdeServer() {
       await mirrorPlayer(addr, { predictions: arr })
       console.log(`[Server] saved prediction match ${data.matchId} for ${addr}`)
 
-      room.send('predictionSaved', { matchId: data.matchId, ok: true }, { to: [addr] })
+      room.send('predictionSaved', { matchId: data.matchId, ok: true, reason: '' }, { to: [addr] })
       room.send('predictionsSnapshot', { json: JSON.stringify(arr) }, { to: [addr] })
     } catch (e) {
       console.log('[Server] Storage.set FAILED:', e)
-      room.send('predictionSaved', { matchId: data.matchId, ok: false }, { to: [addr] })
+      room.send('predictionSaved', { matchId: data.matchId, ok: false, reason: 'error' }, { to: [addr] })
     }
   })
 

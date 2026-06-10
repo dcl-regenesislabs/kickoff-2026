@@ -12,20 +12,36 @@ export type LeaderboardRow = { name: string; address: string; value: number }
 let leaderboard: LeaderboardRow[] = []
 export function getLeaderboard(): LeaderboardRow[] { return leaderboard }
 
-let onPredictionRejected: (() => void) | null = null
-export function setOnPredictionRejected(cb: () => void) { onPredictionRejected = cb }
+type AckReason = 'locked' | 'error' | 'disconnected'
+let onPredictionAck: ((matchId: number, ok: boolean, reason: AckReason | '') => void) | null = null
+export function setOnPredictionAck(cb: (matchId: number, ok: boolean, reason: AckReason | '') => void) { onPredictionAck = cb }
+
+const SEND_TIMEOUT_MS = 8000  // safety net only — disconnected case is handled instantly
+const pendingAcks = new Map<number, ReturnType<typeof setTimeout>>()
+let serverReady = false
+export function isServerReady(): boolean { return serverReady }
 
 // ── Client networking ─────────────────────────────────────────────────────────
 // `onSnapshot` re-tints the 3D panels / refreshes UI after server state changes.
 export function startProdeClient(onSnapshot: () => void) {
   // 1. Local prediction saves are forwarded to the server.
   setPredictionSync((p) => {
+    if (!serverReady) {
+      onPredictionAck?.(p.matchId, false, 'disconnected')
+      return
+    }
     room.send('submitPrediction', {
       matchId: p.matchId,
       winner:  p.winner ?? 'draw',
       score1:  p.score1,
       score2:  p.score2
     })
+    const existing = pendingAcks.get(p.matchId)
+    if (existing) clearTimeout(existing)
+    pendingAcks.set(p.matchId, setTimeout(() => {
+      pendingAcks.delete(p.matchId)
+      onPredictionAck?.(p.matchId, false, 'disconnected')
+    }, SEND_TIMEOUT_MS))
   })
 
   // 1b. Admin: local official-result saves are forwarded to the server.
@@ -60,10 +76,10 @@ export function startProdeClient(onSnapshot: () => void) {
   })
 
   room.onMessage('predictionSaved', (data) => {
-    if (!data.ok) {
-      console.log('[Client] server rejected prediction', data.matchId)
-      onPredictionRejected?.()
-    }
+    const t = pendingAcks.get(data.matchId)
+    if (t) { clearTimeout(t); pendingAcks.delete(data.matchId) }
+    if (!data.ok) console.log('[Client] server rejected prediction', data.matchId, data.reason)
+    onPredictionAck?.(data.matchId, data.ok, (data.reason as AckReason) || '')
   })
   room.onMessage('resultSaved', (data) => {
     if (!data.ok) console.log('[Client] server rejected result', data.matchId)
@@ -71,7 +87,7 @@ export function startProdeClient(onSnapshot: () => void) {
 
   // 3. Initial sync. Room auto-queues until ready; re-send on (re)connect.
   syncOnConnect()
-  room.onReady((ready) => { if (ready) syncOnConnect() })
+  room.onReady((ready) => { serverReady = ready; if (ready) syncOnConnect() })
 }
 
 function syncOnConnect() {

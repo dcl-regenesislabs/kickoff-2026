@@ -20,7 +20,8 @@ export const ProdeMessages = {
   // Server → Client: ack of a single save
   predictionSaved: Schemas.Map({
     matchId: Schemas.Int,
-    ok:      Schemas.Boolean
+    ok:      Schemas.Boolean,
+    reason:  Schemas.String    // 'locked' | 'error' | ''
   }),
 
   // Client → Server: announce my display name (for the leaderboard)
