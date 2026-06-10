@@ -470,6 +470,12 @@ const GroupForm = () => {
 // ── Celebration: all 72 predictions complete ──────────────────────────────────
 const CompletionOverlay = () => {
   if (!celebrateState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+  const imgW = mob ? 1360 : 1000          // match the welcome / voting panel width
+  const imgH = imgW / 1.647               // allComplete.png is 850x516
+  const BTN_BOTTOM = mob ? 90 : 50        // LetsGo distance from image bottom
+  const btnH = mob ? 96 : 80
+  const btnW = btnH * 3.034               // LetsGo-primary.png ratio
   return (
     <UiEntity
       uiTransform={{
@@ -479,26 +485,19 @@ const CompletionOverlay = () => {
       }}
       uiBackground={{ color: OVERLAY }}
     >
+      {/* Completion panel (text baked into the image) — LetsGo button overlaid */}
       <UiEntity
         uiTransform={{
-          width: S(900), height: S(520), padding: S(56), alignSelf: 'center',
-          flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
-          borderRadius: S(36)
+          width: S(imgW), height: S(imgH),
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end'
         }}
-        uiBackground={{ color: DARK }}
+        uiBackground={{ texture: { src: 'images/buttons/allComplete.png' }, textureMode: 'stretch' }}
       >
-        <Label value="ALL PREDICTIONS COMPLETE!" fontSize={F(48)} color={VIOLET}
-          uiTransform={{ width: '100%', height: S(70), margin: '0 0 8px 0' }} />
-        <Label value={`You predicted all ${MATCHES.length} matches across the 12 groups.`}
-          fontSize={F(28)} color={Color4.White()} uiTransform={{ width: '100%', height: S(44) }} />
-        <Label value="Now sit back and watch the leaderboard - good luck!"
-          fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(40) }} />
-        <Label value={`${myPoints()} pts so far`} fontSize={F(30)} color={GOLD}
-          uiTransform={{ width: '100%', height: S(44) }} />
-        <SfxButton value="Let's go!" variant="primary" fontSize={F(32)}
-          uiTransform={{ width: '100%', height: S(92), borderRadius: S(20) }}
-          color={VIOLET}
-          onMouseDown={() => { celebrateState.visible = false }} />
+        <UiEntity uiTransform={{ margin: `0 0 ${S(BTN_BOTTOM)}px 0` }}>
+          <ImgButton src="images/buttons/LetsGo-primary.png"
+            width={S(btnW)} height={S(btnH)}
+            onMouseDown={() => { celebrateState.visible = false }} />
+        </UiEntity>
       </UiEntity>
     </UiEntity>
   )
