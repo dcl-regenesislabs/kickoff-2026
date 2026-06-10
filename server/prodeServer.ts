@@ -4,6 +4,7 @@ import {
   Prediction, OfficialResult, MATCHES, makeDefaultPredictions,
   loadResults as loadResultsCache, totalPoints
 } from '../schedule/prodeData'
+import { isMatchLocked } from '../schedule/matchDates'
 import { isAdmin, LEADERBOARD_SIZE } from '../schedule/prodeConfig'
 
 // ── Authoritative server ──────────────────────────────────────────────────────
@@ -31,9 +32,12 @@ export function startProdeServer() {
     if (!ctx) return
     const addr = ctx.from
 
-    // Reject illegal data, or edits to a match that already has an official result.
+    // Reject illegal data, edits to a finished match, or once voting has closed
+    // (within 10 min of kickoff).
     const results = await loadResults()
-    const locked  = results.some(r => r.matchId === data.matchId)
+    const match   = MATCHES.find(m => m.id === data.matchId)
+    const locked  = results.some(r => r.matchId === data.matchId) ||
+      (match ? isMatchLocked(match.team1, match.team2) : false)
     if (!isValidPrediction(data) || locked) {
       room.send('predictionSaved', { matchId: data.matchId, ok: false }, { to: [addr] })
       return

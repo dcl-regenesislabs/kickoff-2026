@@ -6,6 +6,7 @@ import {
   getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard } from '../client/prodeClient'
+import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
 import { isAdmin, PTS_WINNER, PTS_SCORE } from './prodeConfig'
@@ -310,7 +311,9 @@ const GroupForm = () => {
   if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
 
   const total  = g.matches.length
-  const locked = hasResult(match.id)
+  const finished   = hasResult(match.id)
+  const timeLocked = isMatchLocked(match.team1, match.team2)
+  const locked = finished || timeLocked     // can't edit a finished or about-to-start match
   const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
   const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
   const complete = total > 0 && done === total
@@ -438,7 +441,9 @@ const GroupForm = () => {
 
         {/* Inferred result / lock status */}
         <Label
-          value={locked ? 'Match finished - predictions are locked' : resultText}
+          value={finished ? 'Match finished - predictions are locked'
+            : timeLocked ? 'Voting closed - kickoff is near'
+            : resultText}
           fontSize={F(36)} color={locked ? RED : GOLD}
           uiTransform={{ width: '100%', height: S(52), margin: `0 0 ${S(mob ? 26 : 18)}px 0` }}
         />
