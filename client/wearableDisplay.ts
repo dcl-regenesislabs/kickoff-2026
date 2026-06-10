@@ -21,22 +21,32 @@ export function setupWearableSpin() {
     for (const [entity, name] of engine.getEntitiesWith(Name)) {
       if (done.has(entity)) continue
       const n = name.value.toLowerCase()
-      if (n.startsWith('trikot')) { spin(entity); makeClaimable(entity); done.add(entity) }
+      if (n.startsWith('trikot')) {
+        spin(entity)
+        // Only add standalone clicker if not already inside a CH collider entity
+        const t = Transform.getOrNull(entity)
+        if (!t?.parent || t.parent === engine.RootEntity) makeClaimable(entity)
+        done.add(entity)
+      }
       else if (n.startsWith('dispenser_1')) { animateDispenser(entity); done.add(entity) }
+      else if (n.startsWith('collider_')) {
+        pointerEventsSystem.onPointerDown(
+          { entity, opts: { button: InputAction.IA_POINTER, hoverText: 'Claim your free wearable', maxDistance: 32, showHighlight: true } },
+          () => { playClick(); claimWearable() }
+        )
+        done.add(entity)
+      }
     }
   })
 }
 
-// Make a prize claimable — same approach as the "how it works" banner: a separate
-// invisible primitive collider (a box, so it's clickable from any angle) placed at
-// the wearable's spot, with the pointer event on it.
 function makeClaimable(entity: Entity) {
   const t = Transform.getOrNull(entity)
   if (!t) return
   const clicker = engine.addEntity()
   Transform.create(clicker, {
-    position: Vector3.create(t.position.x, t.position.y + 1.2, t.position.z),  // center on the model
-    scale: Vector3.create(2.2, 3, 2.2)                                          // generous hit box (tweak)
+    position: Vector3.create(t.position.x, t.position.y + 1.2, t.position.z),
+    scale: Vector3.create(2.2, 3, 2.2)
   })
   MeshCollider.setBox(clicker, ColliderLayer.CL_POINTER)
   pointerEventsSystem.onPointerDown(

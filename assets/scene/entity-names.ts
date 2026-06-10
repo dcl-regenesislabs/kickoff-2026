@@ -72,6 +72,8 @@ export enum EntityNames {
   banner_left_prize = "banner_left_prize",
   banner_right = "banner_right",
   banner_right_prize = "banner_right_prize",
+  collider_left = "collider_left",
+  collider_right = "collider_right",
   dispenser_1_glb = "dispenser_1.glb",
   dispenser_1_glb_2 = "dispenser_1.glb_2",
   leaderboard = "leaderboard",
