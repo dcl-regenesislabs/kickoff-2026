@@ -13,6 +13,7 @@ import {
   ColliderLayer, pointerEventsSystem, InputAction
 } from '@dcl/sdk/ecs'
 import { isServer } from '@dcl/sdk/network'
+import { openExternalUrl } from '~system/RestrictedActions'
 import { EntityNames } from '../assets/scene/entity-names'
 
 export async function main() {
@@ -54,17 +55,32 @@ function setupScenePlanes() {
     applyBannerMaterial(bannerLeft, 'images/banner-rules-v2.jpg')
     MeshCollider.setPlane(bannerLeft, ColliderLayer.CL_POINTER)
     pointerEventsSystem.onPointerDown(
-      { entity: bannerLeft, opts: { button: InputAction.IA_POINTER, hoverText: 'How scoring works' } },
-      () => { playClick(); openProdeInfo() }
+      { entity: bannerLeft, opts: { button: InputAction.IA_POINTER, hoverText: 'Terms & Conditions' } },
+      () => {
+        playClick()
+        void openExternalUrl({
+          url: 'https://confirmed-copper-f3a.notion.site/DCL-Kickoff-Challenge-Terms-Conditions-3755f96e0b70801f8c6ff1ddf0139d7b'
+        })
+      }
     )
   }
 
   if (bannerLeftPrize) {
     applyBannerMaterial(bannerLeftPrize, 'images/kickoffchallenge-banner-prizes.png')
+    MeshCollider.setPlane(bannerLeftPrize, ColliderLayer.CL_POINTER)
+    pointerEventsSystem.onPointerDown(
+      { entity: bannerLeftPrize, opts: { button: InputAction.IA_POINTER, hoverText: 'How scoring works' } },
+      () => { playClick(); openProdeInfo() }
+    )
   }
 
   if (bannerRightPrize) {
     applyBannerMaterial(bannerRightPrize, 'images/kickoffchallenge-banner-prizes.png')
+    MeshCollider.setPlane(bannerRightPrize, ColliderLayer.CL_POINTER)
+    pointerEventsSystem.onPointerDown(
+      { entity: bannerRightPrize, opts: { button: InputAction.IA_POINTER, hoverText: 'How scoring works' } },
+      () => { playClick(); openProdeInfo() }
+    )
   }
 
   if (leaderboard) {
