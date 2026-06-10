@@ -48,8 +48,8 @@ export function openProdeInfo() { infoState.visible = true }
 const scoreState = { visible: false }
 export function openScorePanel() { scoreState.visible = true }
 
-// Welcome overlay shown on entry; dismissed with "Go!".
-const welcomeState = { visible: true }
+// Welcome overlay shown on entry; 3 steps, dismissed with "Join the Challenge".
+const welcomeState = { visible: true, step: 0 }
 
 // Wearable claim status overlay ("on the way" → "received!").
 const claimState = { visible: false, done: false }
@@ -648,10 +648,19 @@ const WelcomeOverlay = () => {
   if (!welcomeState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
   const mob = isMobile()
   const imgW = mob ? 1360 : 1000         // mobile: match the voting modal width
-  const imgH = imgW / 1.777              // welcomeUI.png is 16:9 (1365x768)
-  const btnW = mob ? 560 : 520           // join-the-challenge button
-  const btnH = btnW / 6.66
-  const BTN_BOTTOM = mob ? 90 : 50       // 👈 button distance from image bottom — mobile : desktop
+  const imgH = imgW / 1.647              // welcome_1/2/3.png are 850x516
+  const BTN_BOTTOM = mob ? 90 : 50       // button distance from image bottom — mobile : desktop
+
+  const last = welcomeState.step >= 2
+  const btnSrc   = last ? 'images/buttons/jointhechallenge.png' : 'images/buttons/Next-primary.png'
+  const btnRatio = last ? 6.66 : 2.356
+  const btnH = mob ? 96 : 80
+  const btnW = btnH * btnRatio
+  const advance = () => {
+    if (last) welcomeState.visible = false
+    else welcomeState.step += 1
+  }
+
   return (
     <UiEntity
       uiTransform={{
@@ -661,18 +670,16 @@ const WelcomeOverlay = () => {
       }}
       uiBackground={{ color: OVERLAY }}
     >
-      {/* Welcome panel — button overlaid near the bottom of the image */}
+      {/* Welcome panel (3 steps) — button overlaid near the bottom of the image */}
       <UiEntity
         uiTransform={{
           width: S(imgW), height: S(imgH),
           flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end'
         }}
-        uiBackground={{ texture: { src: 'images/welcome-ui-v2.jpg' }, textureMode: 'stretch' }}
+        uiBackground={{ texture: { src: `images/welcome_${welcomeState.step + 1}.png` }, textureMode: 'stretch' }}
       >
         <UiEntity uiTransform={{ margin: `0 0 ${S(BTN_BOTTOM)}px 0` }}>
-          <ImgButton src="images/buttons/jointhechallenge.png"
-            width={S(btnW)} height={S(btnH)}
-            onMouseDown={() => { welcomeState.visible = false }} />
+          <ImgButton src={btnSrc} width={S(btnW)} height={S(btnH)} onMouseDown={advance} />
         </UiEntity>
       </UiEntity>
     </UiEntity>
