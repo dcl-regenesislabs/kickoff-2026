@@ -93,14 +93,9 @@
         "512": {
           "json": {
             "position": {
-              "x": -0.07083256542682648,
-              "y": 0,
-              "z": 0.029166538268327713
-            },
-            "scale": {
-              "x": 0.625,
-              "y": 0.625,
-              "z": 0.625
+              "x": -0.07000000029802322,
+              "y": -0.41999998688697815,
+              "z": 0.029999999329447746
             },
             "rotation": {
               "x": 0,
@@ -108,26 +103,31 @@
               "z": 0,
               "w": 1
             },
+            "scale": {
+              "x": 0.6299999952316284,
+              "y": 0.6299999952316284,
+              "z": 0.6299999952316284
+            },
             "parent": 586
           }
         },
         "513": {
           "json": {
             "position": {
-              "x": 0.7554212808609009,
-              "y": 0,
-              "z": -9.503661155700684
-            },
-            "scale": {
-              "x": 0.4166666567325592,
-              "y": 0.4166666567325592,
-              "z": 0.4166666567325592
+              "x": 0.7599999904632568,
+              "y": -0.41999998688697815,
+              "z": -9.5
             },
             "rotation": {
               "x": 0,
               "y": 0.13052618503570557,
               "z": 0,
               "w": 0.9914448857307434
+            },
+            "scale": {
+              "x": 0.41999998688697815,
+              "y": 0.41999998688697815,
+              "z": 0.41999998688697815
             },
             "parent": 586
           }
@@ -219,14 +219,9 @@
         "518": {
           "json": {
             "position": {
-              "x": 0.7554213404655457,
-              "y": 0,
+              "x": 0.75542151927948,
+              "y": -0.4166666567325592,
               "z": -9.503662109375
-            },
-            "scale": {
-              "x": 0.4166666567325592,
-              "y": 0.4166666567325592,
-              "z": 0.4166666567325592
             },
             "rotation": {
               "x": 0,
@@ -234,26 +229,31 @@
               "z": 0,
               "w": 0.9914448857307434
             },
+            "scale": {
+              "x": 0.4166666567325592,
+              "y": 0.4166666567325592,
+              "z": 0.4166666567325592
+            },
             "parent": 585
           }
         },
         "519": {
           "json": {
             "position": {
-              "x": 0.041667621582746506,
-              "y": 0,
-              "z": 0
-            },
-            "scale": {
-              "x": 0.625,
-              "y": 0.625,
-              "z": 0.625
+              "x": 0.04000052437186241,
+              "y": -0.4166666567325592,
+              "z": -7.351239332820114e-7
             },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
+            },
+            "scale": {
+              "x": 0.6299999952316284,
+              "y": 0.6299999952316284,
+              "z": 0.6299999952316284
             },
             "parent": 585
           }
@@ -1627,19 +1627,19 @@
           "json": {
             "position": {
               "x": 39.25,
-              "y": 0,
+              "y": 1.25,
               "z": 58
-            },
-            "scale": {
-              "x": 2.4000000953674316,
-              "y": 2.4000000953674316,
-              "z": 2.4000000953674316
             },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
+            },
+            "scale": {
+              "x": 2.4000000953674316,
+              "y": 2.4000000953674316,
+              "z": 2.4000000953674316
             },
             "parent": 0
           }
@@ -1648,19 +1648,19 @@
           "json": {
             "position": {
               "x": 39.25,
-              "y": 0,
+              "y": 1.25,
               "z": 36.25
-            },
-            "scale": {
-              "x": 2.4000000953674316,
-              "y": 2.4000000953674316,
-              "z": 2.4000000953674316
             },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
+            },
+            "scale": {
+              "x": 2.4000000953674316,
+              "y": 2.4000000953674316,
+              "z": 2.4000000953674316
             },
             "parent": 0
           }
@@ -1809,14 +1809,14 @@
         "518": {
           "json": {
             "src": "assets/scene/Models/dispenser_1/dispenser_1.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 1,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "519": {
           "json": {
             "src": "assets/scene/Models/trikot_final_male#/trikot_final_male#.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 1,
             "invisibleMeshesCollisionMask": 3
           }
         },
@@ -2239,20 +2239,6 @@
             "visibleMeshesCollisionMask": 1,
             "invisibleMeshesCollisionMask": 2
           }
-        },
-        "585": {
-          "json": {
-            "src": "assets/asset-packs/invisible_cylinder/invisible_cylinder.glb",
-            "visibleMeshesCollisionMask": 1,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "586": {
-          "json": {
-            "src": "assets/asset-packs/invisible_cylinder/invisible_cylinder.glb",
-            "visibleMeshesCollisionMask": 1,
-            "invisibleMeshesCollisionMask": 3
-          }
         }
       }
     },
@@ -2303,6 +2289,18 @@
             }
           }
         },
+        "519": {
+          "json": {
+            "collisionMask": 1,
+            "mesh": {
+              "$case": "cylinder",
+              "cylinder": {
+                "radiusTop": 0.5,
+                "radiusBottom": 0.5
+              }
+            }
+          }
+        },
         "580": {
           "json": {
             "collisionMask": 3,
@@ -2350,7 +2348,7 @@
         },
         "585": {
           "json": {
-            "collisionMask": 2,
+            "collisionMask": 3,
             "mesh": {
               "$case": "cylinder",
               "cylinder": {
@@ -2362,7 +2360,7 @@
         },
         "586": {
           "json": {
-            "collisionMask": 2,
+            "collisionMask": 3,
             "mesh": {
               "$case": "cylinder",
               "cylinder": {
@@ -2855,7 +2853,6 @@
         "585": {
           "json": {
             "componentIds": [
-              1041,
               1019
             ]
           }
@@ -2863,30 +2860,8 @@
         "586": {
           "json": {
             "componentIds": [
-              1041,
               1019
             ]
-          }
-        }
-      }
-    },
-    {
-      "name": "core::VisibilityComponent",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {},
-        "serializationType": "protocol-buffer",
-        "protocolBuffer": "PBVisibilityComponent"
-      },
-      "data": {
-        "585": {
-          "json": {
-            "visible": false
-          }
-        },
-        "586": {
-          "json": {
-            "visible": false
           }
         }
       }
@@ -3370,6 +3345,7 @@
               },
               {
                 "entity": 586,
+                "open": true,
                 "children": [
                   512,
                   513
