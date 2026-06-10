@@ -49,6 +49,8 @@ export function openScorePanel() { scoreState.visible = true }
 
 // Welcome overlay shown on entry; dismissed with "Go!".
 const welcomeState = { visible: true }
+// Preview-only: lets the local ui-preview tool toggle the welcome overlay. No-op in-world.
+export function __previewSetWelcome(v: boolean) { welcomeState.visible = v }
 
 // Wearable claim status overlay ("on the way" → "received!").
 const claimState = { visible: false, done: false }
