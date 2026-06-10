@@ -2,7 +2,7 @@ import { Storage } from '@dcl/sdk/server'
 import { room, STORAGE_KEY, RESULTS_KEY, PLAYER_PREFIX } from '../schedule/prodeNet'
 import {
   Prediction, OfficialResult, MATCHES, makeDefaultPredictions,
-  loadResults as loadResultsCache, totalPoints
+  loadResults as loadResultsCache, totalPoints, exactScoreCount
 } from '../schedule/prodeData'
 import { isMatchLocked } from '../schedule/matchDates'
 import { isAdmin, LEADERBOARD_SIZE } from '../schedule/prodeConfig'
@@ -150,7 +150,7 @@ async function mirrorPlayer(addr: string, patch: Partial<PlayerMirror>) {
   }
 }
 
-type LeaderboardRow = { name: string; address: string; value: number }
+type LeaderboardRow = { name: string; address: string; value: number; exact: number }
 
 async function buildLeaderboard(): Promise<LeaderboardRow[]> {
   const results = await loadResults()
@@ -174,14 +174,15 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
       rows.push({
         name:    entry.name || address.slice(0, 8),
         address,
-        value:   totalPoints(entry.predictions)
+        value:   totalPoints(entry.predictions),
+        exact:   exactScoreCount(entry.predictions)
       })
     }
     offset += page.data.length
     if (page.data.length === 0 || offset >= page.pagination.total) break
   }
 
-  rows.sort((a, b) => b.value - a.value)
+  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
   return rows.slice(0, LEADERBOARD_SIZE)
 }
 

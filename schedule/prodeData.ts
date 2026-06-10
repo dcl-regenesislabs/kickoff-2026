@@ -250,6 +250,16 @@ export function totalPoints(preds: Prediction[]): number {
   return total
 }
 
+// Count exact-score hits (tiebreaker).
+export function exactScoreCount(preds: Prediction[]): number {
+  let count = 0
+  for (const p of preds) {
+    const r = officialResults.get(p.matchId)
+    if (r && p.submitted && p.score1 === r.score1 && p.score2 === r.score2) count++
+  }
+  return count
+}
+
 // The local player's running total (uses the in-memory caches).
 export function myPoints(): number {
   return totalPoints(predictions)
