@@ -93,14 +93,14 @@
         "512": {
           "json": {
             "position": {
-              "x": 39.08000183105469,
+              "x": -0.07083256542682648,
               "y": 0,
-              "z": 36.31999969482422
+              "z": 0.029166538268327713
             },
             "scale": {
-              "x": 1.5,
-              "y": 1.5,
-              "z": 1.5
+              "x": 0.625,
+              "y": 0.625,
+              "z": 0.625
             },
             "rotation": {
               "x": 0,
@@ -108,20 +108,20 @@
               "z": 0,
               "w": 1
             },
-            "parent": 0
+            "parent": 586
           }
         },
         "513": {
           "json": {
             "position": {
-              "x": 41.063011169433594,
+              "x": 0.7554212808609009,
               "y": 0,
-              "z": 13.441211700439453
+              "z": -9.503661155700684
             },
             "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
+              "x": 0.4166666567325592,
+              "y": 0.4166666567325592,
+              "z": 0.4166666567325592
             },
             "rotation": {
               "x": 0,
@@ -129,7 +129,7 @@
               "z": 0,
               "w": 0.9914448857307434
             },
-            "parent": 0
+            "parent": 586
           }
         },
         "514": {
@@ -219,14 +219,14 @@
         "518": {
           "json": {
             "position": {
-              "x": 41.063011169433594,
+              "x": 0.7554213404655457,
               "y": 0,
-              "z": 35.19121170043945
+              "z": -9.503662109375
             },
             "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
+              "x": 0.4166666567325592,
+              "y": 0.4166666567325592,
+              "z": 0.4166666567325592
             },
             "rotation": {
               "x": 0,
@@ -234,20 +234,20 @@
               "z": 0,
               "w": 0.9914448857307434
             },
-            "parent": 0
+            "parent": 585
           }
         },
         "519": {
           "json": {
             "position": {
-              "x": 39.35000228881836,
+              "x": 0.041667621582746506,
               "y": 0,
-              "z": 58
+              "z": 0
             },
             "scale": {
-              "x": 1.5,
-              "y": 1.5,
-              "z": 1.5
+              "x": 0.625,
+              "y": 0.625,
+              "z": 0.625
             },
             "rotation": {
               "x": 0,
@@ -255,7 +255,7 @@
               "z": 0,
               "w": 1
             },
-            "parent": 0
+            "parent": 585
           }
         },
         "520": {
@@ -1622,6 +1622,79 @@
             },
             "parent": 0
           }
+        },
+        "585": {
+          "json": {
+            "position": {
+              "x": 39.25,
+              "y": 0,
+              "z": 58
+            },
+            "scale": {
+              "x": 2.4000000953674316,
+              "y": 2.4000000953674316,
+              "z": 2.4000000953674316
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
+        "586": {
+          "json": {
+            "position": {
+              "x": 39.25,
+              "y": 0,
+              "z": 36.25
+            },
+            "scale": {
+              "x": 2.4000000953674316,
+              "y": 2.4000000953674316,
+              "z": 2.4000000953674316
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "core-schema::Network-Entity",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "networkId": {
+            "type": "integer",
+            "serializationType": "int64"
+          },
+          "entityId": {
+            "type": "integer",
+            "serializationType": "entity"
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "585": {
+          "json": {
+            "networkId": 0,
+            "entityId": 8002
+          }
+        },
+        "586": {
+          "json": {
+            "networkId": 0,
+            "entityId": 8003
+          }
         }
       }
     },
@@ -1743,7 +1816,7 @@
         "519": {
           "json": {
             "src": "assets/scene/Models/trikot_final_male#/trikot_final_male#.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
@@ -2166,6 +2239,20 @@
             "visibleMeshesCollisionMask": 1,
             "invisibleMeshesCollisionMask": 2
           }
+        },
+        "585": {
+          "json": {
+            "src": "assets/asset-packs/invisible_cylinder/invisible_cylinder.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "586": {
+          "json": {
+            "src": "assets/asset-packs/invisible_cylinder/invisible_cylinder.glb",
+            "visibleMeshesCollisionMask": 1,
+            "invisibleMeshesCollisionMask": 3
+          }
         }
       }
     },
@@ -2258,6 +2345,30 @@
             "mesh": {
               "$case": "plane",
               "plane": {}
+            }
+          }
+        },
+        "585": {
+          "json": {
+            "collisionMask": 2,
+            "mesh": {
+              "$case": "cylinder",
+              "cylinder": {
+                "radiusTop": 0.5,
+                "radiusBottom": 0.5
+              }
+            }
+          }
+        },
+        "586": {
+          "json": {
+            "collisionMask": 3,
+            "mesh": {
+              "$case": "cylinder",
+              "cylinder": {
+                "radiusTop": 0.5,
+                "radiusBottom": 0.5
+              }
             }
           }
         }
@@ -2711,6 +2822,72 @@
           "json": {
             "value": "leaderboard_2"
           }
+        },
+        "585": {
+          "json": {
+            "value": "collider_left"
+          }
+        },
+        "586": {
+          "json": {
+            "value": "collider_right"
+          }
+        }
+      }
+    },
+    {
+      "name": "core-schema::Sync-Components",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "componentIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "serializationType": "int64"
+            },
+            "serializationType": "array"
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "585": {
+          "json": {
+            "componentIds": [
+              1041,
+              1019
+            ]
+          }
+        },
+        "586": {
+          "json": {
+            "componentIds": [
+              1041,
+              1019
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "core::VisibilityComponent",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {},
+        "serializationType": "protocol-buffer",
+        "protocolBuffer": "PBVisibilityComponent"
+      },
+      "data": {
+        "585": {
+          "json": {
+            "visible": false
+          }
+        },
+        "586": {
+          "json": {
+            "visible": false
+          }
         }
       }
     },
@@ -2756,9 +2933,9 @@
         "serializationType": "map"
       },
       "data": {
-        "0": {
+        "586": {
           "json": {
-            "gizmo": 0
+            "gizmo": 1
           }
         }
       }
@@ -2809,19 +2986,17 @@
                 "entity": 0,
                 "open": true,
                 "children": [
-                  513,
-                  518,
+                  585,
                   515,
                   517,
-                  512,
-                  519,
                   514,
                   516,
                   581,
                   580,
                   583,
                   582,
-                  584
+                  584,
+                  586
                 ]
               },
               {
@@ -3184,6 +3359,21 @@
               {
                 "entity": 584,
                 "children": []
+              },
+              {
+                "entity": 585,
+                "open": true,
+                "children": [
+                  518,
+                  519
+                ]
+              },
+              {
+                "entity": 586,
+                "children": [
+                  512,
+                  513
+                ]
               }
             ]
           }
@@ -3241,6 +3431,12 @@
           "json": {}
         },
         "584": {
+          "json": {}
+        },
+        "585": {
+          "json": {}
+        },
+        "586": {
           "json": {}
         }
       }
