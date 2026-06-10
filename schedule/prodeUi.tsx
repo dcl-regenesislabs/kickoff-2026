@@ -5,7 +5,7 @@ import {
   MATCHES, GROUPS, predictions, savePrediction, getCompletedCount, isGroupComplete,
   getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
-import { getLeaderboard } from '../client/prodeClient'
+import { getLeaderboard, setOnPredictionRejected } from '../client/prodeClient'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -56,6 +56,13 @@ const claimState = { visible: false, done: false }
 export function showClaimPending() { claimState.visible = true; claimState.done = false }
 export function showClaimDone() { claimState.visible = true; claimState.done = true }
 export function hideClaim() { claimState.visible = false }
+
+// Rejection toast — shown briefly when the server rejects a prediction.
+const toastState = { visible: false }
+function showRejectionToast() {
+  toastState.visible = true
+  setTimeout(() => { toastState.visible = false }, 3000)
+}
 
 // All-predictions-complete celebration (fires once when the 72nd is saved).
 const celebrateState = { visible: false }
@@ -119,6 +126,7 @@ function loadAdminMatch(index: number) {
 
 export function setupProdeUi() {
   setupConfettiSystem()
+  setOnPredictionRejected(showRejectionToast)
   ReactEcsRenderer.setUiRenderer(ProdeUi)
 }
 
@@ -212,6 +220,9 @@ const ProdeUi = () => {
 
       {/* ── Wearable claim status overlay ────────────────────────────────────── */}
       <ClaimOverlay />
+
+      {/* ── Prediction rejected toast ─────────────────────────────────────────── */}
+      <RejectionToast />
 
     </UiEntity>
   )
@@ -595,6 +606,39 @@ const ScorePanel = () => {
             width={S(88 * 2.27)} height={S(88)}
             onMouseDown={() => { scoreState.visible = false }} />
         </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Prediction rejected toast — non-blocking banner, auto-dismisses after 3s ──
+const RejectionToast = () => {
+  if (!toastState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: S(mob ? 260 : 200), left: 0 },
+        width: '100%', height: S(mob ? 80 : 64),
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'none'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          padding: `${S(12)}px ${S(32)}px`,
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+          borderRadius: S(16)
+        }}
+        uiBackground={{ color: Color4.fromHexString('#B03030ee') }}
+      >
+        <Label
+          value="Match is locked — prediction not saved"
+          fontSize={F(mob ? 22 : 18)}
+          color={Color4.White()}
+          uiTransform={{ height: S(mob ? 32 : 26) }}
+        />
       </UiEntity>
     </UiEntity>
   )

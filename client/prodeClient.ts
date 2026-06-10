@@ -12,6 +12,9 @@ export type LeaderboardRow = { name: string; address: string; value: number }
 let leaderboard: LeaderboardRow[] = []
 export function getLeaderboard(): LeaderboardRow[] { return leaderboard }
 
+let onPredictionRejected: (() => void) | null = null
+export function setOnPredictionRejected(cb: () => void) { onPredictionRejected = cb }
+
 // ── Client networking ─────────────────────────────────────────────────────────
 // `onSnapshot` re-tints the 3D panels / refreshes UI after server state changes.
 export function startProdeClient(onSnapshot: () => void) {
@@ -57,7 +60,10 @@ export function startProdeClient(onSnapshot: () => void) {
   })
 
   room.onMessage('predictionSaved', (data) => {
-    if (!data.ok) console.log('[Client] server rejected prediction', data.matchId)
+    if (!data.ok) {
+      console.log('[Client] server rejected prediction', data.matchId)
+      onPredictionRejected?.()
+    }
   })
   room.onMessage('resultSaved', (data) => {
     if (!data.ok) console.log('[Client] server rejected result', data.matchId)
