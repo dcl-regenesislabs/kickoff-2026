@@ -147,6 +147,7 @@ function impliedWinner(s1: number, s2: number): Outcome {
 // ── Component ─────────────────────────────────────────────────────────────────
 const ProdeUi = () => {
   const allComplete = getCompletedCount() === MATCHES.length
+  const mob = isMobile()
   return (
     // Single root wrapper
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}>
@@ -162,13 +163,13 @@ const ProdeUi = () => {
         <UiEntity
           uiTransform={{
             positionType: 'absolute',
-            position: { bottom: S(24), left: 0 },
-            width: '100%', height: S(64),
+            position: { bottom: S(mob ? 150 : 100), left: 0 },
+            width: '100%', height: S(mob ? 150 : 130),
             flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
           }}
         >
           <ImgButton src="images/buttons/myscore.png"
-            width={S(72 * 2.716)} height={S(72)}
+            width={S((mob ? 150 : 130) * 2.716)} height={S(mob ? 150 : 130)}
             onMouseDown={() => openScorePanel()} />
         </UiEntity>
       )}
