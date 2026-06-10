@@ -1816,7 +1816,7 @@
         "519": {
           "json": {
             "src": "assets/scene/Models/trikot_final_male#/trikot_final_male#.glb",
-            "visibleMeshesCollisionMask": 3,
+            "visibleMeshesCollisionMask": 0,
             "invisibleMeshesCollisionMask": 3
           }
         },
@@ -2362,7 +2362,7 @@
         },
         "586": {
           "json": {
-            "collisionMask": 3,
+            "collisionMask": 2,
             "mesh": {
               "$case": "cylinder",
               "cylinder": {
