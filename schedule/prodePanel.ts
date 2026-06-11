@@ -6,7 +6,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import { GROUPS, predictions, isGroupComplete, abbr, getResult } from './prodeData'
-import { getMatchDate, fmtDate } from './matchDates'
+import { getMatchDate, fmtDate, isMatchLocked } from './matchDates'
 import { openGroupForm } from './prodeUi'
 import { playClick } from '../client/sfx'
 
@@ -22,8 +22,9 @@ const MUTED        = Color4.create(0.60, 0.60, 0.75, 1)
 const TBL_HEADER   = Color4.fromHexString('#169b62ff')
 const PROG_HEADER  = Color4.fromHexString('#7a1f31ff')
 const TBL_COL_HDR  = Color4.create(0.13, 0.10, 0.28, 1)
-const TBL_ROW_EVEN = Color4.create(0.10, 0.07, 0.22, 0.92)
-const TBL_ROW_ODD  = Color4.create(0.07, 0.05, 0.16, 0.92)
+const TBL_ROW_EVEN   = Color4.create(0.10, 0.07, 0.22, 0.92)
+const TBL_ROW_ODD    = Color4.create(0.07, 0.05, 0.16, 0.92)
+const TBL_ROW_LOCKED = Color4.create(0.28, 0.25, 0.38, 0.92)  // lighter slate for finished/locked matches
 const COMPLETE_BADGE_COLOR = Color4.fromHexString('#39ff78ff')
 
 // ── Panel model ───────────────────────────────────────────────────────────────
@@ -332,6 +333,10 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
       for (const e of ents) VisibilityComponent.getMutable(e).visible = complete
 
       if (!complete || !m) continue
+
+      const locked = getResult(m.id) !== undefined || isMatchLocked(m.team1, m.team2)
+      const rowColor = locked ? TBL_ROW_LOCKED : (i % 2 === 0 ? TBL_ROW_EVEN : TBL_ROW_ODD)
+      Material.setBasicMaterial(row.bg, { diffuseColor: rowColor })
 
       const p = predictions.find(px => px.matchId === m.id)
       const r = getResult(m.id)
