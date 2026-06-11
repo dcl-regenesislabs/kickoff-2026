@@ -3,7 +3,6 @@ import { Quaternion, Vector3 } from '@dcl/sdk/math'
 import { createLeaderboardPanel, LeaderboardPanelEntry } from '../src/LeaderboardPanel'
 import { getLeaderboard, refreshLeaderboard } from './prodeClient'
 import { EntityNames } from '../assets/scene/entity-names'
-import { createMatchSlide, updateMatchSlide, MatchSlideEntities } from './matchSlide'
 
 const UPDATE_INTERVAL = 1.0
 const REQUEST_INTERVAL = 10.0
@@ -12,28 +11,15 @@ const LEADERBOARD_PLANES = [EntityNames.leaderboard, EntityNames.leaderboard_2] 
 const TRANSITION_DURATION = 0.35
 const LEADERBOARD_SHOW_DURATION = 12
 const IMAGE_SHOW_DURATION = 8
-const PAGE_DURATION = 6   // seconds per match page
 const CHAR_DELAY = 0.04
 
-type TVSlide = 'leaderboard' | 'match' | 'image'
+type TVSlide = 'leaderboard' | 'image'
 type TVPhase = 'showing' | 'out' | 'in'
-
-function nextSlide(s: TVSlide): TVSlide {
-  if (s === 'leaderboard') return 'match'
-  if (s === 'match') return 'image'
-  return 'leaderboard'
-}
-
-function slideDuration(s: TVSlide): number {
-  if (s === 'leaderboard') return LEADERBOARD_SHOW_DURATION
-  return IMAGE_SHOW_DURATION
-}
 
 type TVPanel = {
   panel: ReturnType<typeof createLeaderboardPanel>
   imageEntity: Entity
   imageScale: Vector3
-  matchSlide: MatchSlideEntities
   slide: TVSlide
   phase: TVPhase
   slideTimer: number
@@ -82,21 +68,18 @@ function getSceneLeaderboardTransforms(fallback?: { position: Vector3; rotation?
 }
 
 function createImageSlide(parent: Entity, size: Vector3): { entity: Entity; scale: Vector3 } {
-  const scale = Vector3.create(size.x * 0.96, size.y * 0.9, 1)
+  const scale = Vector3.create(size.x * 0.86, size.y * 0.80, 1)
   const entity = engine.addEntity()
   Transform.createOrReplace(entity, {
     parent,
     position: Vector3.create(0, 0, -0.025),
     rotation: Quaternion.Identity(),
-    scale: Vector3.Zero()  // hidden by default
+    scale: Vector3.Zero()
   })
   MeshRenderer.setPlane(entity)
-  Material.setPbrMaterial(entity, {
-    texture: Material.Texture.Common({ src: 'images/scene-thumbnail.png' }),
-    emissiveTexture: Material.Texture.Common({ src: 'images/scene-thumbnail.png' }),
-    emissiveIntensity: 1.0,
-    roughness: 1.0,
-    metallic: 0.0
+  // Same material as banners — setBasicMaterial with texture works correctly on mobile
+  Material.setBasicMaterial(entity, {
+    texture: Material.Texture.Common({ src: 'images/scene-thumbnail.png' })
   })
   return { entity, scale }
 }
@@ -160,13 +143,11 @@ export function initProdeLeaderboard(transform?: {
     })
 
     const { entity: imageEntity, scale: imageScale } = createImageSlide(panel.root, sceneTransform.size)
-    const matchSlide = createMatchSlide(panel.root, sceneTransform.size)
 
     return {
       panel,
       imageEntity,
       imageScale,
-      matchSlide,
       slide: 'leaderboard' as TVSlide,
       phase: 'showing' as TVPhase,
       slideTimer: 0,
@@ -211,29 +192,15 @@ export function initProdeLeaderboard(transform?: {
       tickTypewriter(tv, dt)
 
       if (tv.phase === 'showing') {
-        if (tv.slide === 'match') {
-          // Page cycling — each page stays for PAGE_DURATION, no TV pinch between pages
-          tv.matchSlide.pageTimer += dt
-          if (tv.matchSlide.pageTimer >= PAGE_DURATION) {
-            tv.matchSlide.pageTimer = 0
-            tv.matchSlide.currentPage++
-            if (tv.matchSlide.currentPage >= tv.matchSlide.totalPages) {
-              tv.phase = 'out'
-              tv.transitionTimer = 0
-            } else {
-              updateMatchSlide(tv.matchSlide)
-            }
-          }
-        } else {
-          tv.slideTimer += dt
-          if (tv.slideTimer >= slideDuration(tv.slide)) {
-            tv.phase = 'out'
-            tv.transitionTimer = 0
-          } else if (tv.slide === 'leaderboard' && !tv.twActive && tv.pendingData !== null) {
-            tv.twData = tv.pendingData
-            tv.pendingData = null
-            startTypewriter(tv)
-          }
+        tv.slideTimer += dt
+        const showDur = tv.slide === 'leaderboard' ? LEADERBOARD_SHOW_DURATION : IMAGE_SHOW_DURATION
+        if (tv.slideTimer >= showDur) {
+          tv.phase = 'out'
+          tv.transitionTimer = 0
+        } else if (tv.slide === 'leaderboard' && !tv.twActive && tv.pendingData !== null) {
+          tv.twData = tv.pendingData
+          tv.pendingData = null
+          startTypewriter(tv)
         }
       } else if (tv.phase === 'out') {
         tv.transitionTimer += dt
@@ -241,23 +208,14 @@ export function initProdeLeaderboard(transform?: {
         Transform.getMutable(tv.panel.root).scale = Vector3.create(1 - t * t, 1, 1)
 
         if (t >= 1) {
-          const next = nextSlide(tv.slide)
+          const next: TVSlide = tv.slide === 'leaderboard' ? 'image' : 'leaderboard'
 
-          // hide current
-          if (tv.slide === 'image') Transform.getMutable(tv.imageEntity).scale = Vector3.Zero()
-          if (tv.slide === 'match') Transform.getMutable(tv.matchSlide.root).scale = Vector3.Zero()
-
-          // show next — toggle contentRoot so leaderboard TextShapes don't bleed through
           if (next === 'image') {
+            // Hide leaderboard text (TextShape ignores depth in DCL — must scale to 0)
             Transform.getMutable(tv.panel.contentRoot).scale = Vector3.Zero()
             Transform.getMutable(tv.imageEntity).scale = tv.imageScale
-          } else if (next === 'match') {
-            Transform.getMutable(tv.panel.contentRoot).scale = Vector3.Zero()
-            Transform.getMutable(tv.matchSlide.root).scale = Vector3.One()
-            tv.matchSlide.currentPage = 0
-            tv.matchSlide.pageTimer = 0
-            updateMatchSlide(tv.matchSlide)
           } else {
+            Transform.getMutable(tv.imageEntity).scale = Vector3.Zero()
             Transform.getMutable(tv.panel.contentRoot).scale = Vector3.One()
             if (tv.pendingData !== null) {
               tv.twData = tv.pendingData
@@ -273,7 +231,6 @@ export function initProdeLeaderboard(transform?: {
       } else if (tv.phase === 'in') {
         tv.transitionTimer += dt
         const t = Math.min(tv.transitionTimer / TRANSITION_DURATION, 1)
-        // ease-out: decelerate into full width
         const eased = 1 - (1 - t) * (1 - t)
         Transform.getMutable(tv.panel.root).scale = Vector3.create(eased, 1, 1)
 
