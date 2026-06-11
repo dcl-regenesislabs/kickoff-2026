@@ -2,10 +2,10 @@ import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/react-ecs'
 import { getPlayer } from '@dcl/sdk/players'
 import {
-  MATCHES, GROUPS, predictions, savePrediction, getCompletedCount, isGroupComplete,
+  MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
   getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
-import { getLeaderboard } from '../client/prodeClient'
+import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -22,13 +22,15 @@ import { ConfettiOverlay, setupConfettiSystem, startConfetti } from './confetti'
 // The board is just a clickable; opening it shows this UI to step through the
 // group's matches and set each score.
 const groupState = {
-  visible:    false,
-  groupIndex: 0,
-  matchIndex: 0,
-  score1:     0,
-  score2:     0,
-  dirty:      false,                          // true once the score was edited
-  onChange:   null as (() => void) | null   // refresh the 3D board progress
+  visible:        false,
+  groupIndex:     0,
+  matchIndex:     0,
+  score1:         0,
+  score2:         0,
+  dirty:          false,
+  onChange:       null as (() => void) | null,
+  saving:         false,                        // true while waiting for server ack
+  pendingAdvance: null as (() => void) | null   // queued navigation after successful save
 }
 
 // Admin form state — iterates the flat MATCHES list to load official results.
@@ -56,6 +58,17 @@ const claimState = { visible: false, done: false }
 export function showClaimPending() { claimState.visible = true; claimState.done = false }
 export function showClaimDone() { claimState.visible = true; claimState.done = true }
 export function hideClaim() { claimState.visible = false }
+
+// Rejection toast — shown briefly when the server rejects a prediction.
+const toastState = { visible: false, message: '' }
+function showRejectionToast(reason: 'locked' | 'error' | 'disconnected') {
+  toastState.message =
+    reason === 'locked'       ? 'Match is locked — prediction not saved' :
+    reason === 'disconnected' ? 'Server not connected — prediction not saved' :
+                                'Server error — please try again'
+  toastState.visible = true
+  setTimeout(() => { toastState.visible = false }, 3000)
+}
 
 // All-predictions-complete celebration (fires once when the 72nd is saved).
 const celebrateState = { visible: false }
@@ -119,6 +132,17 @@ function loadAdminMatch(index: number) {
 
 export function setupProdeUi() {
   setupConfettiSystem()
+  setOnPredictionAck((matchId, ok, reason) => {
+    const wasExplicit = groupState.pendingAdvance !== null
+    groupState.saving = false
+    if (ok) {
+      groupState.pendingAdvance?.()
+    } else {
+      unsubmitPrediction(matchId)
+      if (wasExplicit) showRejectionToast(reason === 'locked' ? 'locked' : reason === 'disconnected' ? 'disconnected' : 'error')
+    }
+    groupState.pendingAdvance = null
+  })
   ReactEcsRenderer.setUiRenderer(ProdeUi)
 }
 
@@ -212,6 +236,9 @@ const ProdeUi = () => {
 
       {/* ── Wearable claim status overlay ────────────────────────────────────── */}
       <ClaimOverlay />
+
+      {/* ── Prediction rejected toast ─────────────────────────────────────────── */}
+      <RejectionToast />
 
     </UiEntity>
   )
@@ -311,6 +338,7 @@ const GroupForm = () => {
   if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
 
   const total  = g.matches.length
+  const connected  = isServerReady()
   const finished   = hasResult(match.id)
   const timeLocked = isMatchLocked(match.team1, match.team2)
   const locked = finished || timeLocked     // can't edit a finished or about-to-start match
@@ -333,7 +361,7 @@ const GroupForm = () => {
   // Persist the current match. `force` saves even an untouched 0-0 (explicit Save);
   // otherwise (nav/close) we only save if it was actually edited.
   const commit = (force: boolean) => {
-    if (!locked && (force || groupState.dirty)) {
+    if (!locked && connected && (force || groupState.dirty)) {
       const wasComplete = isGroupComplete(groupState.groupIndex)
       savePrediction(match.id, inferred, groupState.score1, groupState.score2)
       groupState.onChange?.()
@@ -353,11 +381,15 @@ const GroupForm = () => {
     loadGroupMatch()
   }
   const close = () => { commit(false); groupState.visible = false }
-  // Explicit save: always records this match (incl. 0-0), then next or close.
+  // Explicit save: send to server and wait for ack before advancing.
   const saveNext = () => {
+    if (groupState.saving || locked || !connected) return
+    groupState.saving = true
+    groupState.pendingAdvance = () => {
+      if (canNext) { groupState.matchIndex += 1; loadGroupMatch() }
+      else groupState.visible = false
+    }
     commit(true)
-    if (canNext) { groupState.matchIndex += 1; loadGroupMatch() }
-    else groupState.visible = false
   }
 
   // One team column: flag + name + score + +/- , highlighted when it's the winner.
@@ -425,10 +457,7 @@ const GroupForm = () => {
             uiBackground={{ color: VIOLET }} />
         </UiEntity>
 
-        {/* Match indicator (navigation lives in the bottom buttons now) */}
-        <Label value={`Match ${groupState.matchIndex + 1} / ${total}${saved ? '   (saved)' : ''}`}
-          fontSize={F(30)} color={saved ? TEAL : Color4.create(0.7, 0.7, 0.7, 1)}
-          uiTransform={{ width: '100%', height: S(56), margin: `0 0 ${S(14)}px 0` }} />
+
 
         {/* Teams */}
         <UiEntity uiTransform={{ width: '100%', height: S(teamsH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(10)}px 0` }}>
@@ -439,12 +468,13 @@ const GroupForm = () => {
             () => { groupState.score2--; groupState.dirty = true }, () => { groupState.score2++; groupState.dirty = true })}
         </UiEntity>
 
-        {/* Inferred result / lock status */}
+        {/* Inferred result / lock status / connection warning */}
         <Label
-          value={finished ? 'Match finished - predictions are locked'
+          value={!connected ? 'Server not connected — predictions disabled'
+            : finished ? 'Match finished - predictions are locked'
             : timeLocked ? 'Voting closed - kickoff is near'
             : resultText}
-          fontSize={F(36)} color={locked ? RED : GOLD}
+          fontSize={F(36)} color={!connected ? RED : locked ? RED : GOLD}
           uiTransform={{ width: '100%', height: S(52), margin: `0 0 ${S(mob ? 26 : 18)}px 0` }}
         />
 
@@ -459,7 +489,7 @@ const GroupForm = () => {
             onMouseDown={() => { if (canPrev) go(-1) }} />
           <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
             width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
-            tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+            tint={(locked || groupState.saving || !connected) ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
             onMouseDown={saveNext} />
         </UiEntity>
       </UiEntity>
@@ -595,6 +625,39 @@ const ScorePanel = () => {
             width={S(88 * 2.27)} height={S(88)}
             onMouseDown={() => { scoreState.visible = false }} />
         </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Prediction rejected toast — non-blocking banner, auto-dismisses after 3s ──
+const RejectionToast = () => {
+  if (!toastState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: S(mob ? 180 : 140), left: 0 },
+        width: '100%', height: S(mob ? 80 : 64),
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'none'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          padding: `${S(12)}px ${S(32)}px`,
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+          borderRadius: S(16)
+        }}
+        uiBackground={{ color: Color4.fromHexString('#B03030ee') }}
+      >
+        <Label
+          value={toastState.message}
+          fontSize={F(mob ? 22 : 18)}
+          color={Color4.White()}
+          uiTransform={{ height: S(mob ? 32 : 26) }}
+        />
       </UiEntity>
     </UiEntity>
   )

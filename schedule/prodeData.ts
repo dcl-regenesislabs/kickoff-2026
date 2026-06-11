@@ -180,6 +180,11 @@ export function savePrediction(
   _onSave?.(pred)
 }
 
+export function unsubmitPrediction(matchId: number) {
+  const pred = predictions.find(p => p.matchId === matchId)
+  if (pred) pred.submitted = false
+}
+
 // Rehydrate the in-memory cache from a server snapshot (mutates in place so all
 // existing references — UI progress bar, panel refresh — see the new values).
 export function loadPredictions(arr: Prediction[]) {
