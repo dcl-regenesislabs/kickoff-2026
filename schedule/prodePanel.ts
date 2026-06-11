@@ -260,7 +260,8 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
     const vsLbl = engine.addEntity()
     Transform.createOrReplace(vsLbl, { position: Vector3.create(-0.46, ry, FRONT_Z), parent: root })
     TextShape.createOrReplace(vsLbl, {
-      text: 'vs', fontSize: 0.70, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+      text: fmtDate(getMatchDate(m.team1, m.team2)) || 'vs',
+      fontSize: 0.62, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER
     })
     mkHide(vsLbl)
 
