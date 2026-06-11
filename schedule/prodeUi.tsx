@@ -526,7 +526,7 @@ const CompletionOverlay = () => {
       {/* Completion panel (text baked into the image) — LetsGo button overlaid */}
       <UiEntity
         uiTransform={{
-          width: S(imgW), height: S(imgH),
+          width: S(imgW), height: S(imgH), alignSelf: 'center',
           flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end'
         }}
         uiBackground={{ texture: { src: 'images/buttons/allComplete.png' }, textureMode: 'stretch' }}
