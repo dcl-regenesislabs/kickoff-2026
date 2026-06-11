@@ -1,4 +1,5 @@
 import { PTS_WINNER, PTS_SCORE } from './prodeConfig'
+import { isMatchLocked } from './matchDates'
 
 export type Outcome = 'team1' | 'draw' | 'team2'
 
@@ -156,7 +157,10 @@ export function getCompletedCount(): number {
 export function isGroupComplete(groupIndex: number): boolean {
   const g = GROUPS[groupIndex]
   if (!g) return false
-  return g.matches.every(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false)
+  return g.matches.every(m => {
+    const submitted = predictions.find(p => p.matchId === m.id)?.submitted ?? false
+    return submitted || isMatchLocked(m.team1, m.team2)
+  })
 }
 
 // ── Persistence hooks ─────────────────────────────────────────────────────────

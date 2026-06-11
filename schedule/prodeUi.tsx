@@ -344,7 +344,10 @@ const GroupForm = () => {
   const locked = finished || timeLocked     // can't edit a finished or about-to-start match
   const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
   const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
-  const complete = total > 0 && done === total
+  const complete = total > 0 && g.matches.every(m => {
+    const submitted = predictions.find(p => p.matchId === m.id)?.submitted ?? false
+    return submitted || isMatchLocked(m.team1, m.team2)
+  })
   const canPrev = groupState.matchIndex > 0
   const canNext = groupState.matchIndex < total - 1
 

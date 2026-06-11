@@ -342,7 +342,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
       const r = getResult(m.id)
 
       const predTs = TextShape.getMutable(row.pred)
-      predTs.text = p?.submitted ? `${p.score1}-${p.score2}` : '?'
+      predTs.text = p?.submitted ? `${p.score1}-${p.score2}` : (locked ? '-' : '?')
       if (r && p?.submitted) {
         const exact = p.score1 === r.score1 && p.score2 === r.score2
         predTs.textColor = exact ? ACCENT : p.winner === r.winner ? GREEN : RED
