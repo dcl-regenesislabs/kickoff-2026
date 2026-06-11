@@ -26,8 +26,10 @@ export type LeaderboardPanelOptions = {
   hideTabNav?: boolean
 }
 
-type PanelState = {
+// Exported so prodeLeaderboard can toggle contentRoot.scale to hide/show text
+export type PanelState = {
   root: Entity
+  contentRoot: Entity  // parent of all TextShape entities — scale to 0 to hide text
   rowNames: Entity[]
   rowValues: Entity[]
   currentTab: number
@@ -76,6 +78,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
   const headerBg = Color4.fromHexString('#371064ff')
   const separator = Color4.fromHexString('#6f28c8ff')
 
+  // Planes stay under root — they are opaque and depth-test correctly
   addPanelPlane(root, Vector3.create(0, 0, 0.01), Vector3.create(panelW, panelH, 1), panelBg)
   addPanelPlane(root, Vector3.create(0, panelH / 2 - 0.58, 0.012), Vector3.create(panelW * 0.9, 0.88, 1), headerBg)
 
@@ -90,6 +93,17 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
   addPanelPlane(root, Vector3.create(-panelW / 2 + innerBorderInset, 0, 0.03), Vector3.create(borderThickness, panelH - innerBorderInset * 2, 1), frameInner)
   addPanelPlane(root, Vector3.create(panelW / 2 - innerBorderInset, 0, 0.03), Vector3.create(borderThickness, panelH - innerBorderInset * 2, 1), frameInner)
 
+  // contentRoot groups all TextShape entities.
+  // TextShape uses alpha blending in DCL and ignores depth — scaling this to 0
+  // is the only reliable way to hide text when another slide is active.
+  const contentRoot = engine.addEntity()
+  Transform.createOrReplace(contentRoot, {
+    parent: root,
+    position: Vector3.Zero(),
+    rotation: Quaternion.Identity(),
+    scale: Vector3.One()
+  })
+
   const titleFont = Math.max(1.7, size.y * 0.26) * 5
   const headerFont = Math.max(1.0, size.y * 0.15) * 5
   const rowFont = Math.max(1.0, size.y * 0.165) * 5
@@ -98,7 +112,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
 
   const titleEntity = engine.addEntity()
   Transform.createOrReplace(titleEntity, {
-    parent: root,
+    parent: contentRoot,
     position: Vector3.create(0, panelH / 2 - 0.58, -0.02),
     rotation: Quaternion.Identity(),
     scale: Vector3.One()
@@ -112,7 +126,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
 
   const headerName = engine.addEntity()
   Transform.createOrReplace(headerName, {
-    parent: root,
+    parent: contentRoot,
     position: Vector3.create(leftX, panelH / 2 - 1.52, -0.02),
     rotation: Quaternion.Identity(),
     scale: Vector3.One()
@@ -126,7 +140,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
 
   const headerValue = engine.addEntity()
   Transform.createOrReplace(headerValue, {
-    parent: root,
+    parent: contentRoot,
     position: Vector3.create(rightX, panelH / 2 - 1.52, -0.02),
     rotation: Quaternion.Identity(),
     scale: Vector3.One()
@@ -158,7 +172,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
 
     const nameEntity = engine.addEntity()
     Transform.createOrReplace(nameEntity, {
-      parent: root,
+      parent: contentRoot,
       position: Vector3.create(leftX, y, -0.02),
       rotation: Quaternion.Identity(),
       scale: Vector3.One()
@@ -172,7 +186,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
 
     const valueEntity = engine.addEntity()
     Transform.createOrReplace(valueEntity, {
-      parent: root,
+      parent: contentRoot,
       position: Vector3.create(rightX, y, -0.02),
       rotation: Quaternion.Identity(),
       scale: Vector3.One()
@@ -190,6 +204,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
 
   const state: PanelState = {
     root,
+    contentRoot,
     rowNames,
     rowValues,
     currentTab: 0
