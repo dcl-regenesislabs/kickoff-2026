@@ -487,10 +487,18 @@ const GroupForm = () => {
             width={S(actH * 2.18)} height={S(actH)}
             tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
             onMouseDown={() => { if (canPrev) go(-1) }} />
-          <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
-            width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
-            tint={(locked || groupState.saving || !connected) ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
-            onMouseDown={saveNext} />
+          {locked
+            ? (canNext
+                // Locked match → can't save, but you can still skip ahead to the next ones.
+                ? <ImgButton src="images/buttons/Next-primary.png"
+                    width={S(actH * 2.356)} height={S(actH)}
+                    onMouseDown={() => go(1)} />
+                // Locked + last match → nothing to advance to; keep layout with a spacer.
+                : <UiEntity uiTransform={{ width: S(actH * 2.356), height: S(actH) }} />)
+            : <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
+                width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
+                tint={(groupState.saving || !connected) ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+                onMouseDown={saveNext} />}
         </UiEntity>
       </UiEntity>
     </UiEntity>
