@@ -761,12 +761,13 @@ const InfoForm = () => {
   if (!infoState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
 
   const row = (title: string, pts: string, note: string) => (
-    <UiEntity uiTransform={{ width: '100%', height: S(96), flexDirection: 'column', margin: '0 0 18px 0' }}>
-      <UiEntity uiTransform={{ width: '100%', height: S(48), flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Label value={title} fontSize={F(30)} color={Color4.White()} uiTransform={{ height: S(48) }} />
-        <Label value={pts} fontSize={F(32)} color={GOLD} uiTransform={{ height: S(48) }} />
+    <UiEntity uiTransform={{ width: '100%', height: S(104), flexDirection: 'column', margin: '0 0 16px 0' }}>
+      <UiEntity uiTransform={{ width: '100%', height: S(48), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Label value={title} fontSize={F(30)} color={Color4.White()} textAlign="middle-left" uiTransform={{ height: S(48) }} />
+        <Label value={pts} fontSize={F(32)} color={GOLD} textAlign="middle-right" uiTransform={{ height: S(48) }} />
       </UiEntity>
-      <Label value={note} fontSize={F(22)} color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36) }} />
+      <Label value={note} fontSize={F(22)} color={Color4.create(0.7, 0.7, 0.7, 1)} textAlign="middle-left"
+        uiTransform={{ width: '100%', height: S(48) }} />
     </UiEntity>
   )
 
@@ -787,19 +788,19 @@ const InfoForm = () => {
         }}
         uiBackground={{ color: DARK }}
       >
-        <Label value="How scoring works" fontSize={F(44)} color={TEAL}
+        <Label value="How scoring works" fontSize={F(44)} color={TEAL} textAlign="middle-left"
           uiTransform={{ width: '100%', height: S(64), margin: '0 0 8px 0' }} />
         <Label value="Predict the result and the exact score of every match." fontSize={F(24)}
-          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 28px 0' }} />
+          color={Color4.create(0.7, 0.7, 0.7, 1)} textAlign="middle-left" uiTransform={{ width: '100%', height: S(36), margin: '0 0 28px 0' }} />
 
-        {row('Correct result', `${PTS_WINNER} pts`, 'You called the winner — or correctly picked a draw — but not the exact score.')}
-        {row('Exact score', `${PTS_WINNER + PTS_SCORE} pts`, `You nailed the scoreline. That's the ${PTS_WINNER} for the result, plus a ${PTS_SCORE}-point bonus.`)}
-        {row('Missed it', '0 pts', "The match didn't go the way you predicted.")}
+        {row('Correct result', `${PTS_WINNER} pts`, 'Right winner (or a draw), but not the exact score.')}
+        {row('Exact score', `${PTS_WINNER + PTS_SCORE} pts`, `Perfect scoreline: ${PTS_WINNER} for the result + a ${PTS_SCORE}-pt bonus.`)}
+        {row('Missed it', '0 pts', "Your pick didn't match the result.")}
 
         <Label value="Predicting a draw? Enter the same score for both teams (e.g. 1-1)." fontSize={F(22)}
-          color={RED} uiTransform={{ width: '100%', height: S(36), margin: '0 0 6px 0' }} />
-        <Label value="Predictions lock at match kickoff — once a match starts, your pick is final." fontSize={F(22)}
-          color={Color4.create(0.65, 0.65, 0.65, 1)} uiTransform={{ width: '100%', height: S(36), margin: '0 0 24px 0' }} />
+          color={RED} textAlign="middle-left" uiTransform={{ width: '100%', height: S(40), margin: '0 0 6px 0' }} />
+        <Label value="Predictions lock at kickoff — once a match starts, your pick is final." fontSize={F(22)}
+          color={Color4.create(0.65, 0.65, 0.65, 1)} textAlign="middle-left" uiTransform={{ width: '100%', height: S(40), margin: '0 0 24px 0' }} />
 
         <UiEntity uiTransform={{ width: '100%', height: S(92), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
           <ImgButton src="images/buttons/gotit-primary.png"
