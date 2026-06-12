@@ -368,3 +368,87 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
 // ── Refresh registry ──────────────────────────────────────────────────────────
 const panelRefreshers: (() => void)[] = []
 export function refreshAllPanels() { for (const r of panelRefreshers) r() }
+
+// ── Knockout placeholder panel (no interaction, teams TBD) ────────────────────
+export function addKnockoutPanel(roundLabel: string, transform: TransformTypeWithOptionals) {
+  const root = engine.addEntity()
+  Transform.createOrReplace(root, transform)
+
+  const panel = engine.addEntity()
+  Transform.createOrReplace(panel, {
+    position: PANEL_OFFSET,
+    scale: Vector3.create(PANEL_CS, PANEL_CS, PANEL_CS),
+    parent: root
+  })
+  GltfContainer.create(panel, {
+    src: PANEL_MODEL,
+    visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS,
+    invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
+  })
+
+  // Round label header
+  const hdrBg = engine.addEntity()
+  Transform.createOrReplace(hdrBg, {
+    position: Vector3.create(0, 0.44, BG_Z),
+    scale: Vector3.create(2.48, 0.16, 1),
+    parent: root
+  })
+  MeshRenderer.setPlane(hdrBg)
+  Material.setBasicMaterial(hdrBg, { diffuseColor: PROG_HEADER })
+
+  const hdrLbl = engine.addEntity()
+  Transform.createOrReplace(hdrLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
+  TextShape.createOrReplace(hdrLbl, {
+    text: roundLabel, fontSize: 0.85, textColor: WHITE,
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
+
+  // Flag placeholders (gray boxes with "?")
+  const mkPlaceholder = (x: number) => {
+    const bg = engine.addEntity()
+    Transform.createOrReplace(bg, {
+      position: Vector3.create(x, 0.10, BG_Z),
+      scale: Vector3.create(0.40, 0.28, 1),
+      parent: root
+    })
+    MeshRenderer.setPlane(bg)
+    Material.setBasicMaterial(bg, { diffuseColor: Color4.fromHexString('#2a2a4aff') })
+
+    const qmark = engine.addEntity()
+    Transform.createOrReplace(qmark, { position: Vector3.create(x, 0.10, FRONT_Z), parent: root })
+    TextShape.createOrReplace(qmark, {
+      text: '?', fontSize: 1.1, textColor: GRAY,
+      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    })
+  }
+  mkPlaceholder(-0.55)
+  mkPlaceholder(0.55)
+
+  // "vs" center
+  const vsLbl = engine.addEntity()
+  Transform.createOrReplace(vsLbl, { position: Vector3.create(0, 0.10, FRONT_Z), parent: root })
+  TextShape.createOrReplace(vsLbl, {
+    text: 'vs', fontSize: 0.75, textColor: MUTED,
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
+
+  // Team name placeholders
+  const mkTeamLbl = (x: number) => {
+    const e = engine.addEntity()
+    Transform.createOrReplace(e, { position: Vector3.create(x, -0.22, FRONT_Z), parent: root })
+    TextShape.createOrReplace(e, {
+      text: 'A DEFINIR', fontSize: 0.58, textColor: GRAY,
+      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    })
+  }
+  mkTeamLbl(-0.55)
+  mkTeamLbl(0.55)
+
+  // Status
+  const statusLbl = engine.addEntity()
+  Transform.createOrReplace(statusLbl, { position: Vector3.create(0, -0.70, FRONT_Z), parent: root })
+  TextShape.createOrReplace(statusLbl, {
+    text: 'PRÓXIMAMENTE', fontSize: 0.55, textColor: MUTED,
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
+}
