@@ -1,4 +1,5 @@
 import { PTS_WINNER, PTS_SCORE } from './prodeConfig'
+import { isMatchLocked } from './matchDates'
 
 export type Outcome = 'team1' | 'draw' | 'team2'
 
@@ -149,14 +150,22 @@ export function makeDefaultPredictions(): Prediction[] {
 
 export const predictions: Prediction[] = makeDefaultPredictions()
 
+// A match counts as "done" once it's predicted, OR once it's locked (kickoff passed).
+// Late joiners can't vote locked matches, so those count as handled for progress &
+// completion — keeps the checklist, group panels, MY SCORE and the celebration in sync.
+export function isMatchDone(m: Match): boolean {
+  const submitted = predictions.find(p => p.matchId === m.id)?.submitted ?? false
+  return submitted || isMatchLocked(m.team1, m.team2)
+}
+
 export function getCompletedCount(): number {
-  return predictions.filter(p => p.submitted).length
+  return MATCHES.filter(isMatchDone).length
 }
 
 export function isGroupComplete(groupIndex: number): boolean {
   const g = GROUPS[groupIndex]
   if (!g) return false
-  return g.matches.every(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false)
+  return g.matches.every(isMatchDone)
 }
 
 // ── Persistence hooks ─────────────────────────────────────────────────────────

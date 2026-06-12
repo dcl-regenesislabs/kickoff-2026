@@ -3,7 +3,7 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/re
 import { getPlayer } from '@dcl/sdk/players'
 import {
   MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
-  getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
+  isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
 import { isMatchLocked } from './matchDates'
@@ -256,7 +256,7 @@ const MatchChecklist = () => {
     (mob && getCompletedCount() === MATCHES.length)
 
   const cluster = (g: (typeof GROUPS)[number]) => {
-    const done = g.matches.filter((m) => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
+    const done = g.matches.filter(isMatchDone).length
     const complete = done === g.matches.length
     const activeColor = complete ? CHECKLIST_COMPLETE : done > 0 ? CHECKLIST_PARTIAL : VIOLET
 
@@ -267,11 +267,11 @@ const MatchChecklist = () => {
       }}>
         <UiEntity uiTransform={{ flexDirection: 'row' }}>
           {g.matches.map((m, mi) => {
-            const sub = predictions.find(p => p.matchId === m.id)?.submitted ?? false
+            const cellDone = isMatchDone(m)
             return (
               <UiEntity key={mi}
                 uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3 * k) }}
-                uiBackground={{ color: sub ? activeColor : CELL_EMPTY }} />
+                uiBackground={{ color: cellDone ? activeColor : CELL_EMPTY }} />
             )
           })}
         </UiEntity>
@@ -344,7 +344,7 @@ const GroupForm = () => {
   const locked = finished || timeLocked     // can't edit a finished or about-to-start match
   const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
   const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
-  const complete = total > 0 && done === total
+  const complete = total > 0 && g.matches.every(isMatchDone)
   const canPrev = groupState.matchIndex > 0
   const canNext = groupState.matchIndex < total - 1
 
