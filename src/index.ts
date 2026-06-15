@@ -7,9 +7,10 @@ import { setupWearableSpin } from '../client/wearableDisplay'
 import { setupCrowdAudio, setupFieldTrigger } from '../client/sceneEffects'
 import { setupSfx, playClick } from '../client/sfx'
 import { setupReflectors } from '../client/reflectors'
+import { Portal } from './portal'
 import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 import {
-  engine, Entity, MeshRenderer, MeshCollider, Material,
+  engine, Entity, MeshRenderer, MeshCollider, Material, Transform,
   ColliderLayer, pointerEventsSystem, InputAction
 } from '@dcl/sdk/ecs'
 import { isServer } from '@dcl/sdk/network'
@@ -33,6 +34,7 @@ export async function main() {
     rotation: Quaternion.fromEulerDegrees(0, 90, 0),
     size: Vector3.create(5, 7, 1)
   })
+  setupKapuPortal()
   setupScenePlanes()
   // setupReflectors()
   setupWearableSpin()
@@ -103,6 +105,37 @@ function applyLeaderboardMaterial(entity: Entity) {
   MeshRenderer.setPlane(entity)
   Material.setBasicMaterial(entity, {
     diffuseColor: Color4.fromHexString('#08111cff')
+  })
+}
+
+function setupKapuPortal() {
+  let done = false
+  let elapsed = 0
+
+  engine.addSystem((dt: number) => {
+    if (done) return
+    elapsed += dt
+    if (elapsed > 8) {
+      done = true
+      return
+    }
+
+    const kapu = engine.getEntityOrNullByName<EntityNames>(EntityNames.kapu_glb)
+    const kapuTransform = kapu ? Transform.getOrNull(kapu) : null
+    if (!kapuTransform) return
+
+    new Portal({
+      position: {
+        x: kapuTransform.position.x - 6,
+        y: kapuTransform.position.y,
+        z: kapuTransform.position.z + 12
+      },
+      rotation: { x: 0, y: 270, z: 0 },
+      size: 1,
+      hoverText: 'Portal'
+    })
+
+    done = true
   })
 }
 
