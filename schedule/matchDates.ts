@@ -96,7 +96,7 @@ export function getMatchDate(team1: string, team2: string): string {
 // Voting closes LOCK_LEAD_MS before kickoff. Times are UTC ("YYYY-MM-DDTHH:MM",
 // ':00Z" appended on parse), keyed by team pair (both orderings). The final-round
 // simultaneous pairs share their group-mate's kickoff.
-export const LOCK_LEAD_MS = 10 * 60 * 1000   // 10 minutes
+export const LOCK_LEAD_MS = 1 * 60 * 1000   // 1 minute
 
 const KICKOFFS: { h: string; a: string; utc: string }[] = [
   { h: 'Mexico',                 a: 'South Africa',           utc: '2026-06-11T19:00' },
