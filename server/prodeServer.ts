@@ -1,4 +1,4 @@
-import { Storage } from '@dcl/sdk/server'
+import { Storage } from '@dcl/sdk/server/index.js'
 import { room, STORAGE_KEY, RESULTS_KEY, PLAYER_PREFIX } from '../schedule/prodeNet'
 import {
   Prediction, OfficialResult, MATCHES, makeDefaultPredictions,

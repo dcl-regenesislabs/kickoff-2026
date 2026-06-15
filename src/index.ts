@@ -10,11 +10,11 @@ import { setupReflectors } from '../client/reflectors'
 import { Portal } from './portal'
 import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 import {
-  engine, Entity, MeshRenderer, MeshCollider, Material, Transform,
+  engine, Entity, MeshRenderer, MeshCollider, Material,
   ColliderLayer, pointerEventsSystem, InputAction
 } from '@dcl/sdk/ecs'
 import { isServer } from '@dcl/sdk/network'
-import { openExternalUrl } from '~system/RestrictedActions'
+import { changeRealm, openExternalUrl } from '~system/RestrictedActions'
 import { EntityNames } from '../assets/scene/entity-names'
 
 export async function main() {
@@ -109,33 +109,21 @@ function applyLeaderboardMaterial(entity: Entity) {
 }
 
 function setupKapuPortal() {
-  let done = false
-  let elapsed = 0
-
-  engine.addSystem((dt: number) => {
-    if (done) return
-    elapsed += dt
-    if (elapsed > 8) {
-      done = true
-      return
+  new Portal({
+    position: {
+      x: 35.3,
+      y: 0,
+      z: 15.3
+    },
+    rotation: { x: 0, y: 180, z: 0 },
+    size: 0.75,
+    hoverText: 'Go to Goal Legends',
+    onActivate: () => {
+      void changeRealm({
+        realm: 'goallegends.dcl.eth',
+        message: 'Go to goallegends.dcl.eth?'
+      })
     }
-
-    const kapu = engine.getEntityOrNullByName<EntityNames>(EntityNames.kapu_glb)
-    const kapuTransform = kapu ? Transform.getOrNull(kapu) : null
-    if (!kapuTransform) return
-
-    new Portal({
-      position: {
-        x: kapuTransform.position.x - 6,
-        y: kapuTransform.position.y,
-        z: kapuTransform.position.z + 12
-      },
-      rotation: { x: 0, y: 270, z: 0 },
-      size: 1,
-      hoverText: 'Portal'
-    })
-
-    done = true
   })
 }
 
