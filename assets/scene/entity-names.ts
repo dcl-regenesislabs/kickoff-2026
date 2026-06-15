@@ -76,6 +76,7 @@ export enum EntityNames {
   collider_right = "collider_right",
   dispenser_1_glb = "dispenser_1.glb",
   dispenser_1_glb_2 = "dispenser_1.glb_2",
+  kapu_glb = "kapu.glb",
   leaderboard = "leaderboard",
   leaderboard_2 = "leaderboard_2",
   trikot_final_female_fix1__glb = "trikot_final_female_fix1#.glb",
