@@ -113,7 +113,7 @@ function buildWorld() {
     const left = i % 2 === 0
     const z = left ? 56 : 44                 // even groups (A,C,E…) on the player's LEFT, read left→right
     const x = 56 + Math.floor(i / 2) * 6
-    const yaw = 90
+    const yaw = left ? 45 : 135
 
     addProdePanel(i, {
       position: Vector3.create(x, 3, z + groupPanelsZOffset),
