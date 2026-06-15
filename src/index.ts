@@ -108,15 +108,17 @@ function applyLeaderboardMaterial(entity: Entity) {
 
 function buildWorld() {
   const groupPanelsZOffset = -2
+  const panelSpacing = 7
 
   for (let i = 0; i < GROUPS.length; i++) {
     const left = i % 2 === 0
+    const sideOffset = left ? 2 : -2
     const z = left ? 56 : 44                 // even groups (A,C,E…) on the player's LEFT, read left→right
-    const x = 56 + Math.floor(i / 2) * 6
-    const yaw = left ? 45 : 135
+    const x = 56 + Math.floor(i / 2) * panelSpacing
+    const yaw = left ? 0 : 180
 
     addProdePanel(i, {
-      position: Vector3.create(x, 3, z + groupPanelsZOffset),
+      position: Vector3.create(x, 3, z + groupPanelsZOffset + sideOffset),
       rotation: Quaternion.fromEulerDegrees(0, yaw, 0),
       scale: Vector3.create(2.2, 2.2, 2.2)
     })
