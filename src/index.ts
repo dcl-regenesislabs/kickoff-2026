@@ -7,13 +7,14 @@ import { setupWearableSpin } from '../client/wearableDisplay'
 import { setupCrowdAudio, setupFieldTrigger } from '../client/sceneEffects'
 import { setupSfx, playClick } from '../client/sfx'
 import { setupReflectors } from '../client/reflectors'
+import { Portal } from './portal'
 import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 import {
   engine, Entity, MeshRenderer, MeshCollider, Material,
   ColliderLayer, pointerEventsSystem, InputAction
 } from '@dcl/sdk/ecs'
 import { isServer } from '@dcl/sdk/network'
-import { openExternalUrl } from '~system/RestrictedActions'
+import { changeRealm, openExternalUrl } from '~system/RestrictedActions'
 import { EntityNames } from '../assets/scene/entity-names'
 
 export async function main() {
@@ -33,6 +34,7 @@ export async function main() {
     rotation: Quaternion.fromEulerDegrees(0, 90, 0),
     size: Vector3.create(5, 7, 1)
   })
+  setupKapuPortal()
   setupScenePlanes()
   // setupReflectors()
   setupWearableSpin()
@@ -48,7 +50,7 @@ function setupScenePlanes() {
   const leaderboard2 = engine.getEntityOrNullByName<EntityNames>(EntityNames.leaderboard_2)
 
   if (bannerRight) {
-    applyBannerMaterial(bannerRight, 'images/banner.png')
+    applyBannerMaterial(bannerRight, 'images/banner.png') 
   }
 
   if (bannerLeft) {
@@ -103,6 +105,25 @@ function applyLeaderboardMaterial(entity: Entity) {
   MeshRenderer.setPlane(entity)
   Material.setBasicMaterial(entity, {
     diffuseColor: Color4.fromHexString('#08111cff')
+  })
+}
+
+function setupKapuPortal() {
+  new Portal({
+    position: {
+      x: 35.3,
+      y: 0,
+      z: 15.3
+    },
+    rotation: { x: 0, y: 180, z: 0 },
+    size: 0.75,
+    hoverText: 'Go to Goal Legends',
+    onActivate: () => {
+      void changeRealm({
+        realm: 'goallegends.dcl.eth',
+        message: 'Go to goallegends.dcl.eth?'
+      })
+    }
   })
 }
 

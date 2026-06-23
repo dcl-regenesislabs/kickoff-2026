@@ -1,4 +1,4 @@
-import { Storage } from '@dcl/sdk/server'
+import { Storage } from '@dcl/sdk/server/index.js'
 import { room, STORAGE_KEY, RESULTS_KEY, PLAYER_PREFIX } from '../schedule/prodeNet'
 import {
   Prediction, OfficialResult, MATCHES, makeDefaultPredictions,
@@ -6,6 +6,7 @@ import {
 } from '../schedule/prodeData'
 import { isMatchLocked } from '../schedule/matchDates'
 import { isAdmin, LEADERBOARD_SIZE } from '../schedule/prodeConfig'
+import { startResultsSync } from './resultsSync'
 
 // ── Authoritative server ──────────────────────────────────────────────────────
 // Storage.player    → each player's own predictions (their snapshot).
@@ -83,24 +84,15 @@ export function startProdeServer() {
     }
 
     try {
-      const results = await loadResults()
       const incoming: OfficialResult = {
         matchId: data.matchId,
         winner:  data.winner as OfficialResult['winner'],
         score1:  data.score1,
         score2:  data.score2
       }
-      const idx = results.findIndex(r => r.matchId === incoming.matchId)
-      if (idx >= 0) results[idx] = incoming
-      else results.push(incoming)
-
-      await Storage.set(RESULTS_KEY, results)
+      await applyResults([incoming])   // persists + pushes snapshot + recomputes leaderboard
       console.log(`[Server] saved official result for match ${data.matchId}`)
-
       room.send('resultSaved', { matchId: data.matchId, ok: true }, { to: [addr] })
-      // Results changed → push to everyone + recompute the leaderboard.
-      room.send('resultsSnapshot', { json: JSON.stringify(results) })
-      await broadcastLeaderboard(results)
     } catch (e) {
       console.log('[Server] result save FAILED:', e)
       room.send('resultSaved', { matchId: data.matchId, ok: false }, { to: [addr] })
@@ -113,6 +105,34 @@ export function startProdeServer() {
     const board = await buildLeaderboard()
     room.send('leaderboardSnapshot', { json: JSON.stringify(board) }, { to: [ctx.from] })
   })
+
+  // ── Auto-sync official results from TheSportsDB (premium, server-side) ──────────
+  startResultsSync({ loadResults, applyResults })
+}
+
+// Upsert official results, persist once, then push to everyone + recompute the
+// leaderboard. Shared by the admin handler and the TheSportsDB auto-sync.
+// Returns how many entries were actually new or changed (0 → no broadcast).
+async function applyResults(incoming: OfficialResult[]): Promise<number> {
+  if (incoming.length === 0) return 0
+  const results = await loadResults()
+  let changed = 0
+  for (const inc of incoming) {
+    const idx = results.findIndex(r => r.matchId === inc.matchId)
+    if (idx >= 0) {
+      const c = results[idx]
+      if (c.winner === inc.winner && c.score1 === inc.score1 && c.score2 === inc.score2) continue
+      results[idx] = inc
+    } else {
+      results.push(inc)
+    }
+    changed++
+  }
+  if (changed === 0) return 0
+  await Storage.set(RESULTS_KEY, results)
+  room.send('resultsSnapshot', { json: JSON.stringify(results) })
+  await broadcastLeaderboard(results)
+  return changed
 }
 
 // ── Storage helpers ─────────────────────────────────────────────────────────────

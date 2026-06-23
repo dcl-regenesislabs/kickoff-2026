@@ -96,7 +96,7 @@ export function getMatchDate(team1: string, team2: string): string {
 // Voting closes LOCK_LEAD_MS before kickoff. Times are UTC ("YYYY-MM-DDTHH:MM",
 // ':00Z" appended on parse), keyed by team pair (both orderings). The final-round
 // simultaneous pairs share their group-mate's kickoff.
-export const LOCK_LEAD_MS = 10 * 60 * 1000   // 10 minutes
+export const LOCK_LEAD_MS = 1 * 60 * 1000   // 1 minute
 
 const KICKOFFS: { h: string; a: string; utc: string }[] = [
   { h: 'Mexico',                 a: 'South Africa',           utc: '2026-06-11T19:00' },
@@ -120,8 +120,8 @@ const KICKOFFS: { h: string; a: string; utc: string }[] = [
   { h: 'Argentina',              a: 'Algeria',                utc: '2026-06-17T01:00' },
   { h: 'Austria',                a: 'Jordan',                 utc: '2026-06-17T04:00' },
   { h: 'Portugal',               a: 'DR Congo',               utc: '2026-06-17T17:00' },
-  { h: 'England',                a: 'Croatia',                utc: '2026-06-17T19:00' },
-  { h: 'Ghana',                  a: 'Panama',                 utc: '2026-06-18T00:00' },
+  { h: 'England',                a: 'Croatia',                utc: '2026-06-17T20:00' },
+  { h: 'Ghana',                  a: 'Panama',                 utc: '2026-06-17T23:00' },
   { h: 'Uzbekistan',             a: 'Colombia',               utc: '2026-06-18T02:00' },
   { h: 'Czechia',                a: 'South Africa',           utc: '2026-06-18T16:00' },
   { h: 'Switzerland',            a: 'Bosnia and Herzegovina', utc: '2026-06-18T19:00' },
@@ -129,8 +129,8 @@ const KICKOFFS: { h: string; a: string; utc: string }[] = [
   { h: 'Mexico',                 a: 'South Korea',            utc: '2026-06-19T01:00' },
   { h: 'United States',          a: 'Australia',              utc: '2026-06-19T19:00' },
   { h: 'Scotland',               a: 'Morocco',                utc: '2026-06-19T22:00' },
-  { h: 'Brazil',                 a: 'Haiti',                  utc: '2026-06-20T01:00' },
-  { h: 'Türkiye',                a: 'Paraguay',               utc: '2026-06-20T04:00' },
+  { h: 'Brazil',                 a: 'Haiti',                  utc: '2026-06-20T00:30' },
+  { h: 'Türkiye',                a: 'Paraguay',               utc: '2026-06-20T03:00' },
   { h: 'Netherlands',            a: 'Sweden',                 utc: '2026-06-20T17:00' },
   { h: 'Germany',                a: 'Ivory Coast',            utc: '2026-06-20T20:00' },
   { h: 'Ecuador',                a: 'Curaçao',                utc: '2026-06-21T00:00' },
