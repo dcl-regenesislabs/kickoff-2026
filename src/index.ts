@@ -50,7 +50,7 @@ function setupScenePlanes() {
   const leaderboard2 = engine.getEntityOrNullByName<EntityNames>(EntityNames.leaderboard_2)
 
   if (bannerRight) {
-    applyBannerMaterial(bannerRight, 'images/banner.png')
+    applyBannerMaterial(bannerRight, 'images/banner.png') 
   }
 
   if (bannerLeft) {

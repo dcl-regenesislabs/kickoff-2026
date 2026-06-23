@@ -1,6 +1,7 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/react-ecs'
 import { getPlayer } from '@dcl/sdk/players'
+import { engine } from '@dcl/sdk/ecs'
 import {
   MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
@@ -17,6 +18,32 @@ import { isAdmin, PTS_WINNER, PTS_SCORE } from './prodeConfig'
 const S = (n: number) => Math.round(n * layoutScale())
 const F = (n: number) => Math.round(n * layoutScale())
 import { ConfettiOverlay, setupConfettiSystem, startConfetti } from './confetti'
+
+function normalizeDegrees(angle: number): number {
+  let value = angle % 360
+  if (value < 0) value += 360
+  return value
+}
+
+// Same technique used in cozy-farm's map arrow: rotate the 4 UV corners around
+// the center of the sprite. Positive degrees = clockwise visual rotation.
+function rotateUVs(angleDeg: number): number[] {
+  const a = (angleDeg * Math.PI) / 180
+  const c = Math.cos(a)
+  const s = Math.sin(a)
+
+  function rot(u: number, v: number): [number, number] {
+    const du = u - 0.5
+    const dv = v - 0.5
+    return [du * c - dv * s + 0.5, du * s + dv * c + 0.5]
+  }
+
+  const [u0, v0] = rot(0, 1)
+  const [u1, v1] = rot(1, 1)
+  const [u2, v2] = rot(1, 0)
+  const [u3, v3] = rot(0, 0)
+  return [u0, v0, u1, v1, u2, v2, u3, v3]
+}
 
 // ── Group form state ──────────────────────────────────────────────────────────
 // The board is just a clickable; opening it shows this UI to step through the
@@ -52,6 +79,16 @@ export function openScorePanel() { scoreState.visible = true }
 
 // Welcome overlay shown on entry; 3 steps, dismissed with "Join the Challenge".
 const welcomeState = { visible: true, step: 0 }
+
+// Server gate overlay shown before onboarding. It blocks interaction until the
+// authoritative multiplayer room is ready, then remains visible for 3 seconds.
+const serverGateState = {
+  visible: true,
+  holdElapsed: 0,
+  spinnerAngle: 0
+}
+
+const SPINNER_DEG_PER_SEC = 220
 
 // Wearable claim status overlay ("on the way" → "received!").
 const claimState = { visible: false, done: false }
@@ -132,6 +169,20 @@ function loadAdminMatch(index: number) {
 
 export function setupProdeUi() {
   setupConfettiSystem()
+  engine.addSystem((dt: number) => {
+    if (!serverGateState.visible) return
+
+    serverGateState.spinnerAngle = normalizeDegrees(serverGateState.spinnerAngle + dt * SPINNER_DEG_PER_SEC)
+
+    if (isServerReady()) {
+      serverGateState.holdElapsed += dt
+      if (serverGateState.holdElapsed >= 3) {
+        serverGateState.visible = false
+      }
+    } else {
+      serverGateState.holdElapsed = 0
+    }
+  })
   setOnPredictionAck((matchId, ok, reason) => {
     const wasExplicit = groupState.pendingAdvance !== null
     groupState.saving = false
@@ -232,10 +283,11 @@ const ProdeUi = () => {
       <CompletionOverlay />
 
       {/* ── Welcome overlay (on entry) ───────────────────────────────────────── */}
-      <WelcomeOverlay />
+      {!serverGateState.visible && <WelcomeOverlay />}
 
       {/* ── Wearable claim status overlay ────────────────────────────────────── */}
       <ClaimOverlay />
+      <ServerGateOverlay />
 
       {/* ── Prediction rejected toast ─────────────────────────────────────────── */}
       <RejectionToast />
@@ -714,6 +766,61 @@ const ClaimOverlay = () => {
 }
 
 // ── Welcome — shown on entry, dismissed with "Go!" ────────────────────────────
+const ServerGateOverlay = () => {
+  if (!serverGateState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const mob = isMobile()
+  const imgW = mob ? 1360 : 1000
+  const imgH = imgW / 1.647
+  const spinnerSize = mob ? 170 : 132
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(imgW), height: S(imgH),
+          positionType: 'relative',
+          alignItems: 'center', justifyContent: 'center'
+        }}
+        uiBackground={{ texture: { src: 'images/server_modal.png' }, textureMode: 'stretch' }}
+      >
+        <UiEntity
+          uiTransform={{
+            width: S(spinnerSize), height: S(spinnerSize),
+            positionType: 'absolute',
+            position: { bottom: S(mob ? 78 : 58) }
+          }}
+        >
+          <UiEntity
+            uiTransform={{
+              width: '100%', height: '100%',
+              positionType: 'absolute', position: { top: 0, left: 0 }
+            }}
+            uiBackground={{ texture: { src: 'images/loadingback.png' }, textureMode: 'stretch' }}
+          />
+          <UiEntity
+            uiTransform={{
+              width: '100%', height: '100%',
+              positionType: 'absolute', position: { top: 0, left: 0 }
+            }}
+            uiBackground={{
+              texture: { src: 'images/loadingcolor.png' },
+              textureMode: 'stretch',
+              uvs: rotateUVs(serverGateState.spinnerAngle)
+            }}
+          />
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
 const WelcomeOverlay = () => {
   if (!welcomeState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
   const mob = isMobile()
@@ -726,10 +833,14 @@ const WelcomeOverlay = () => {
   const btnRatio = last ? 6.66 : 2.356
   const btnH = mob ? 96 : 80
   const btnW = btnH * btnRatio
+  const closeSize = mob ? 168 : 56
+  const closeRight = mob ? 10 : 18
+  const closeTop = mob ? -10 : 18
   const advance = () => {
     if (last) welcomeState.visible = false
     else welcomeState.step += 1
   }
+  const close = () => { welcomeState.visible = false }
 
   return (
     <UiEntity
@@ -748,6 +859,19 @@ const WelcomeOverlay = () => {
         }}
         uiBackground={{ texture: { src: `images/welcome_${welcomeState.step + 1}.png` }, textureMode: 'stretch' }}
       >
+        <UiEntity
+          uiTransform={{
+            width: S(closeSize), height: S(closeSize),
+            positionType: 'absolute',
+            position: { top: S(closeTop), right: S(closeRight) },
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseDown={() => { playClick(); close() }}
+        >
+          <Label value="×" fontSize={F(mob ? 98 : 34)} color={Color4.White()}
+            uiTransform={{ width: '100%', height: '100%' }} />
+        </UiEntity>
         <UiEntity uiTransform={{ margin: `0 0 ${S(BTN_BOTTOM)}px 0` }}>
           <ImgButton src={btnSrc} width={S(btnW)} height={S(btnH)} onMouseDown={advance} />
         </UiEntity>
@@ -926,3 +1050,4 @@ const AdminForm = () => {
     </UiEntity>
   )
 }
+
