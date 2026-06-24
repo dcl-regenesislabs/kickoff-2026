@@ -75,6 +75,10 @@ export const ProdeMessages = {
     dirX:  Schemas.Float,
     dirZ:  Schemas.Float,
     power: Schemas.Float
+  }),
+
+  // Client → Server: pedir snapshot actual de la pelota al conectar
+  requestBallState: Schemas.Map({
   })
 }
 

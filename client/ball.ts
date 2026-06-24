@@ -6,21 +6,29 @@ import {
 import { Vector3, Quaternion, Color4, Color3 } from '@dcl/sdk/math'
 import { room } from '../schedule/prodeNet'
 import { getPlayer } from '@dcl/sdk/players'
+import { clampBallToSafeArea } from '../src/ballSafeArea'
+import { resolveGoalCollision } from '../src/goalCollision'
 
 const BALL_SRC       = 'assets/scene/Models/ball.glb'
 const TARGET_SRC     = 'assets/scene/Models/target_position.glb'
-const BALL_START     = Vector3.create(30, 0.3, 48)
-const BALL_SCALE     = Vector3.create(0.6, 0.6, 0.6)
-const BALL_RADIUS    = 0.3
-const BALL_FRONT     = 1.2
+const BALL_START     = Vector3.create(30, 0.28, 48)
+const BALL_SCALE     = Vector3.create(0.51, 0.51, 0.51)
+const BALL_RADIUS    = 0.28
+const BALL_FRONT     = 1.7
 const BALL_FRONT_MAX = 2.2
+const OWNED_BALL_Y   = 0.34
+const KICK_START_PUSH = 1.5
+const PREDICT_TAKE_RADIUS = 1.65
+const PREDICT_TAKE_TIMEOUT_MS = 500
+const KICK_RETAKE_COOLDOWN_MS = 700
 const FRICTION       = 0.55
 const MIN_SPEED      = 0.05
 const GRAVITY        = 9.8
-const KICK_VY        = 0.28
 const MAX_CHARGE_MS  = 2000
 const MIN_KICK_POWER = 5
 const MAX_KICK_POWER = 25
+const MIN_KICK_LOFT  = 2.2
+const MAX_KICK_LOFT  = 9.5
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 type ClientState = { mode: 'free' } | { mode: 'owned'; ownerId: string }
@@ -45,26 +53,113 @@ let dribbleZ    = BALL_START.z
 let myAddress        = ''
 let optimisticKickAt = 0
 let localIsOwner     = false   // set en ballOwned, corregido lazy en system loop
+let predictedTakeUntil = 0
+let mobileKickPressed = false
 
 // Referencia al entity ball para la fn de release optimista
 let ballEntity: ReturnType<typeof engine.addEntity> | null = null
 
+function getPlayerForward(playerT: { rotation: { x: number; y: number; z: number; w: number } }) {
+  const q = playerT.rotation
+  let dirX = 2 * (q.x * q.z + q.w * q.y)
+  let dirZ = 1 - 2 * (q.x * q.x + q.y * q.y)
+  const len = Math.sqrt(dirX * dirX + dirZ * dirZ)
+  if (len < 0.0001) return { x: 0, z: 1 }
+  dirX /= len
+  dirZ /= len
+  return { x: dirX, z: dirZ }
+}
+
+function getOwnedBallAnchor(playerT: { position: { x: number; z: number }, rotation: { x: number; y: number; z: number; w: number } }) {
+  const forward = getPlayerForward(playerT)
+  return clampBallToSafeArea(
+    playerT.position.x + forward.x * BALL_FRONT,
+    playerT.position.z + forward.z * BALL_FRONT
+  )
+}
+
+function snapDribbleToLocalPlayer() {
+  const myT = Transform.getOrNull(engine.PlayerEntity)
+  if (!myT) return
+
+  const forward = getPlayerForward(myT)
+  moveDirX = forward.x
+  moveDirZ = forward.z
+  prevPlayerX = myT.position.x
+  prevPlayerZ = myT.position.z
+
+  const anchored = getOwnedBallAnchor(myT)
+
+  dribbleX = anchored.x
+  dribbleZ = anchored.z
+  localPos.x = anchored.x
+  localPos.y = OWNED_BALL_Y
+  localPos.z = anchored.z
+  localVel.x = 0
+  localVel.z = 0
+  localVelY = 0
+}
+
+function dist2d(ax: number, az: number, bx: number, bz: number) {
+  const dx = ax - bx
+  const dz = az - bz
+  return Math.sqrt(dx * dx + dz * dz)
+}
+
+function getKickLift(power: number) {
+  const normalizedPower = Math.max(0, Math.min(1, (power - MIN_KICK_POWER) / (MAX_KICK_POWER - MIN_KICK_POWER)))
+  return MIN_KICK_LOFT + (MAX_KICK_LOFT - MIN_KICK_LOFT) * normalizedPower * normalizedPower
+}
+
+function setBallCollisionEnabled(enabled: boolean) {
+  if (!ballEntity) return
+  GltfContainer.createOrReplace(ballEntity, {
+    src: BALL_SRC,
+    visibleMeshesCollisionMask: enabled ? ColliderLayer.CL_PHYSICS : ColliderLayer.CL_NONE,
+    invisibleMeshesCollisionMask: enabled ? ColliderLayer.CL_PHYSICS : ColliderLayer.CL_NONE
+  })
+}
+
+function predictLocalTake() {
+  if (!myAddress || clientState.mode !== 'free') return
+  predictedTakeUntil = Date.now() + PREDICT_TAKE_TIMEOUT_MS
+  clientState = { mode: 'owned', ownerId: myAddress }
+  localIsOwner = true
+  setBallCollisionEnabled(false)
+  snapDribbleToLocalPlayer()
+}
+
+export function setMobileKickPressed(pressed: boolean) {
+  mobileKickPressed = pressed
+}
+
+export function getMobileKickButtonState() {
+  const visible = localIsOwner && predictedTakeUntil === 0
+  return {
+    visible,
+    pressed: visible && mobileKickPressed
+  }
+}
+
 function releaseOptimistic(power: number, kx: number, kz: number) {
   if (!ballEntity) return
   optimisticKickAt = Date.now()
-  localPos.x = dribbleX
+  predictedTakeUntil = 0
+  mobileKickPressed = false
+  const kickClamp = clampBallToSafeArea(
+    dribbleX + kx * KICK_START_PUSH,
+    dribbleZ + kz * KICK_START_PUSH
+  )
+  localPos.x = kickClamp.x
   localPos.y = BALL_RADIUS
-  localPos.z = dribbleZ
+  localPos.z = kickClamp.z
   localVel.x = kx * power
   localVel.z = kz * power
-  localVelY  = power * KICK_VY
+  localVelY  = getKickLift(power)
   clientState = { mode: 'free' }
   prevMode    = 'free'
-  GltfContainer.createOrReplace(ballEntity, {
-    src: BALL_SRC,
-    visibleMeshesCollisionMask:   ColliderLayer.CL_PHYSICS,
-    invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
-  })
+  localIsOwner = false
+  setBallCollisionEnabled(true)
 }
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
@@ -93,19 +188,16 @@ export function setupBallClient() {
     emissiveIntensity: 3
   })
 
-  const chargeBg   = engine.addEntity()
   const chargeFill = engine.addEntity()
-  Transform.create(chargeBg,   { position: Vector3.clone(BALL_START), scale: Vector3.Zero() })
   Transform.create(chargeFill, { position: Vector3.clone(BALL_START), scale: Vector3.Zero() })
-  MeshRenderer.setBox(chargeBg)
   MeshRenderer.setBox(chargeFill)
-  Material.setPbrMaterial(chargeBg,   { albedoColor: Color4.create(0.15, 0.15, 0.15, 0.85) })
   Material.setPbrMaterial(chargeFill, { albedoColor: Color4.Yellow() })
-  Billboard.create(chargeBg,   { billboardMode: BillboardMode.BM_Y })
   Billboard.create(chargeFill, { billboardMode: BillboardMode.BM_Y })
 
   // ── Mensajes del server ───────────────────────────────────────────────────
   room.onMessage('ballOwned', (data) => {
+    const prevOwnerId = clientState.mode === 'owned' ? clientState.ownerId.toLowerCase() : ''
+    const prevWasLocalOwner = localIsOwner
     const newMode: 'free' | 'owned' = data.ownerId === '' ? 'free' : 'owned'
     clientState = data.ownerId === ''
       ? { mode: 'free' }
@@ -117,26 +209,31 @@ export function setupBallClient() {
       if (addr) myAddress = addr
     }
     localIsOwner = newMode === 'owned' && !!myAddress && data.ownerId.toLowerCase() === myAddress
+    const ownerChanged = prevOwnerId !== data.ownerId.toLowerCase()
+    predictedTakeUntil = 0
+
+    if (localIsOwner && (ownerChanged || !prevWasLocalOwner)) {
+      snapDribbleToLocalPlayer()
+    }
 
     if (newMode !== prevMode) {
       prevMode = newMode
       if (newMode === 'owned') {
-        GltfContainer.createOrReplace(ball, {
-          src: BALL_SRC,
-          visibleMeshesCollisionMask:   ColliderLayer.CL_NONE,
-          invisibleMeshesCollisionMask: ColliderLayer.CL_NONE
-        })
-        prevPlayerX = -9999
-        prevPlayerZ = -9999
+        setBallCollisionEnabled(false)
+        if (!localIsOwner) {
+          prevPlayerX = -9999
+          prevPlayerZ = -9999
+        }
       } else {
-        GltfContainer.createOrReplace(ball, {
-          src: BALL_SRC,
-          visibleMeshesCollisionMask:   ColliderLayer.CL_PHYSICS,
-          invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
-        })
-        charging    = false
+        setBallCollisionEnabled(true)
+        charging     = false
         localIsOwner = false
       }
+    }
+
+    if (!localIsOwner) {
+      charging = false
+      mobileKickPressed = false
     }
   })
 
@@ -154,9 +251,21 @@ export function setupBallClient() {
   engine.addSystem((dt) => {
     const ballT   = Transform.getMutableOrNull(ball)
     const targetT = Transform.getMutableOrNull(target)
-    const bgT     = Transform.getMutableOrNull(chargeBg)
     const fillT   = Transform.getMutableOrNull(chargeFill)
-    if (!ballT || !targetT || !bgT || !fillT) return
+    if (!ballT || !targetT || !fillT) return
+
+    if (
+      predictedTakeUntil > 0 &&
+      Date.now() > predictedTakeUntil &&
+      clientState.mode === 'owned' &&
+      localIsOwner
+    ) {
+      predictedTakeUntil = 0
+      clientState = { mode: 'free' }
+      localIsOwner = false
+      mobileKickPressed = false
+      setBallCollisionEnabled(true)
+    }
 
     // Cachear address del player local; actualizar localIsOwner lazy si llegó tarde
     if (!myAddress) {
@@ -170,13 +279,16 @@ export function setupBallClient() {
       // Si acaba de resolverse y estamos en owned, corregir el flag
       if (myAddress && clientState.mode === 'owned') {
         localIsOwner = (clientState as { mode: 'owned'; ownerId: string }).ownerId.toLowerCase() === myAddress
+        if (localIsOwner) snapDribbleToLocalPlayer()
       }
     }
 
-    const iAmOwner = localIsOwner
+    let iAmOwner = localIsOwner
 
     // ── Posición de la pelota ─────────────────────────────────────────────
     if (clientState.mode === 'free') {
+      const prevPos = { x: localPos.x, y: localPos.y, z: localPos.z }
+
       // Gravedad
       localVelY  -= GRAVITY * dt
       localPos.y += localVelY * dt
@@ -197,7 +309,31 @@ export function setupBallClient() {
         localPos.z += localVel.z * dt
       }
 
+      const freeClamp = clampBallToSafeArea(localPos.x, localPos.z)
+      if (freeClamp.wasClamped) {
+        localPos.x = freeClamp.x
+        localPos.z = freeClamp.z
+        localVel.x = 0
+        localVel.z = 0
+      } else {
+        localPos.x = freeClamp.x
+        localPos.z = freeClamp.z
+      }
+
       // Rotación al rodar
+      const goalCollision = resolveGoalCollision(
+        { x: localPos.x, y: localPos.y, z: localPos.z },
+        prevPos,
+        { x: localVel.x, y: localVelY, z: localVel.z },
+        BALL_RADIUS
+      )
+      localPos.x = goalCollision.position.x
+      localPos.y = goalCollision.position.y
+      localPos.z = goalCollision.position.z
+      localVel.x = goalCollision.velocity.x
+      localVelY = goalCollision.velocity.y
+      localVel.z = goalCollision.velocity.z
+
       if (speed > MIN_SPEED) {
         const rollAxis  = Vector3.normalize(Vector3.create(localVel.z, 0, -localVel.x))
         const rollAngle = (speed / BALL_RADIUS) * dt * (180 / Math.PI)
@@ -208,6 +344,21 @@ export function setupBallClient() {
       ballT.position.x = localPos.x
       ballT.position.y = localPos.y
       ballT.position.z = localPos.z
+
+      const myT = Transform.getOrNull(engine.PlayerEntity)
+      if (
+        myT &&
+        myAddress &&
+        Date.now() - optimisticKickAt > KICK_RETAKE_COOLDOWN_MS &&
+        localPos.y <= BALL_RADIUS + 0.08 &&
+        dist2d(myT.position.x, myT.position.z, localPos.x, localPos.z) <= PREDICT_TAKE_RADIUS
+      ) {
+        predictLocalTake()
+        iAmOwner = localIsOwner
+        ballT.position.x = dribbleX
+        ballT.position.y = OWNED_BALL_Y
+        ballT.position.z = dribbleZ
+      }
 
     } else if (iAmOwner) {
       // Dribbling local — seguir en la dirección de movimiento
@@ -232,16 +383,20 @@ export function setupBallClient() {
         prevPlayerZ = pz
 
         // Offset dinámico según velocidad
-        const dynFront = BALL_FRONT + Math.min(moveSpeed * 0.18, BALL_FRONT_MAX - BALL_FRONT)
-        const targetX  = px + moveDirX * dynFront
-        const targetZ  = pz + moveDirZ * dynFront
+        const ownedAnchor = getOwnedBallAnchor(myT)
+        const targetX  = ownedAnchor.x
+        const targetZ  = ownedAnchor.z
 
         const lerp = Math.min(1, 12 * dt)
         dribbleX += (targetX - dribbleX) * lerp
         dribbleZ += (targetZ - dribbleZ) * lerp
 
+        const ownedClamp = clampBallToSafeArea(dribbleX, dribbleZ)
+        dribbleX = ownedClamp.x
+        dribbleZ = ownedClamp.z
+
         ballT.position.x = dribbleX
-        ballT.position.y = BALL_RADIUS
+      ballT.position.y = OWNED_BALL_Y
         ballT.position.z = dribbleZ
 
         // Rotación mientras driblea
@@ -258,9 +413,10 @@ export function setupBallClient() {
       const state = clientState as { mode: 'owned'; ownerId: string }
       for (const [_e, identity, playerT] of engine.getEntitiesWith(PlayerIdentityData, Transform)) {
         if (identity.address.toLowerCase() !== state.ownerId.toLowerCase()) continue
-        ballT.position.x = playerT.position.x
+        const anchor = getOwnedBallAnchor(playerT)
+        ballT.position.x = anchor.x
         ballT.position.y = BALL_RADIUS
-        ballT.position.z = playerT.position.z
+        ballT.position.z = anchor.z
         break
       }
     }
@@ -274,8 +430,9 @@ export function setupBallClient() {
     }
 
     // ── Charge bar + kick ─────────────────────────────────────────────────
-    if (iAmOwner) {
-      const isHolding = inputSystem.isPressed(InputAction.IA_PRIMARY)
+    if (iAmOwner && predictedTakeUntil === 0) {
+      const isHolding = inputSystem.isPressed(InputAction.IA_PRIMARY) || mobileKickPressed
+      const myT = Transform.getOrNull(engine.PlayerEntity)
 
       if (isHolding && !charging) {
         charging    = true
@@ -284,19 +441,13 @@ export function setupBallClient() {
 
       if (charging) {
         const chargeValue = Math.min(1, (Date.now() - chargeStart) / MAX_CHARGE_MS)
-        const BAR_W = 1.0, BAR_H = 0.1, BAR_D = 0.05
-        const barY  = ballT.position.y + 1.6
-
-        bgT.position = { x: ballT.position.x, y: barY, z: ballT.position.z }
-        bgT.scale    = { x: BAR_W, y: BAR_H, z: BAR_D }
+        const BAR_W = 1.2, BAR_H = 0.12, BAR_D = 0.05
 
         const fillW    = Math.max(0.01, BAR_W * chargeValue)
-        fillT.position = {
-          x: ballT.position.x - (BAR_W - fillW) * 0.5,
-          y: barY,
-          z: ballT.position.z
-        }
-        fillT.scale = { x: fillW, y: BAR_H * 1.1, z: BAR_D * 1.1 }
+        fillT.position = myT
+          ? { x: myT.position.x, y: myT.position.y + 2.2, z: myT.position.z }
+          : { x: ballT.position.x, y: ballT.position.y + 2.2, z: ballT.position.z }
+        fillT.scale = { x: fillW, y: BAR_H, z: BAR_D }
 
         Material.setPbrMaterial(chargeFill, {
           albedoColor: Color4.create(chargeValue, 1 - chargeValue, 0, 1)
@@ -324,7 +475,6 @@ export function setupBallClient() {
           releaseOptimistic(power, kx, kz)
 
           charging    = false
-          bgT.scale   = Vector3.Zero()
           fillT.scale = Vector3.Zero()
         }
       }
@@ -332,7 +482,7 @@ export function setupBallClient() {
     } else {
       if (charging) {
         charging    = false
-        bgT.scale   = Vector3.Zero()
+        mobileKickPressed = false
         fillT.scale = Vector3.Zero()
       }
     }

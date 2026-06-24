@@ -7,6 +7,7 @@ import {
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
+import { getMobileKickButtonState, setMobileKickPressed } from '../client/ball'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -268,6 +269,7 @@ const ProdeUi = () => {
       )}
 
       {/* ── Group prediction form overlay ───────────────────────────────────── */}
+      <MobileKickButton />
       <GroupForm />
 
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
@@ -299,6 +301,47 @@ const ProdeUi = () => {
 // ── Match checklist ───────────────────────────────────────────────────────────
 // Desktop: single horizontal row of 12 groups at the top.
 // Mobile:  compact 3×4 vertical sidebar on the left (avoids blocking gameplay).
+const MobileKickButton = () => {
+  if (!isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const state = getMobileKickButtonState()
+  if (!state.visible) {
+    if (state.pressed) setMobileKickPressed(false)
+    return <UiEntity uiTransform={{ display: 'none' }} />
+  }
+
+  const btnH = S(144)
+  const btnW = S(Math.round((386 / 200) * 144))
+  return (
+    <UiEntity
+      uiTransform={{
+        width: btnW,
+        height: btnH,
+        positionType: 'absolute',
+        position: {
+          right: S(280),
+          top: '50%'
+        },
+        margin: { top: -Math.round(btnH / 2) }
+      }}
+      onMouseDown={() => setMobileKickPressed(true)}
+      onMouseUp={() => setMobileKickPressed(false)}
+      onMouseLeave={() => setMobileKickPressed(false)}
+    >
+      <UiEntity
+        uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+        uiBackground={{ texture: { src: 'images/kick.png' }, textureMode: 'stretch' }}
+      />
+      {state.pressed && (
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+          uiBackground={{ texture: { src: 'images/kick_pressed.png' }, textureMode: 'stretch' }}
+        />
+      )}
+    </UiEntity>
+  )
+}
+
 const MatchChecklist = () => {
   const mob = isMobile()
   const k = mob ? 1.55 : 1
