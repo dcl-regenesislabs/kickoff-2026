@@ -53,6 +53,15 @@ export const ProdeMessages = {
   // Server → Client: leaderboard standings
   leaderboardSnapshot: Schemas.Map({
     json: Schemas.String       // JSON.stringify({name,address,value}[])
+  }),
+
+  // Server → All clients: ball position + velocity every physics frame
+  ballState: Schemas.Map({
+    x:  Schemas.Float,
+    y:  Schemas.Float,
+    z:  Schemas.Float,
+    vx: Schemas.Float,
+    vz: Schemas.Float
   })
 }
 
