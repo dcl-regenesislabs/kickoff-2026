@@ -55,13 +55,26 @@ export const ProdeMessages = {
     json: Schemas.String       // JSON.stringify({name,address,value}[])
   }),
 
-  // Server → All clients: ball position + velocity every physics frame
+  // Server → All clients: ball position + velocity (cuando está libre)
   ballState: Schemas.Map({
     x:  Schemas.Float,
     y:  Schemas.Float,
     z:  Schemas.Float,
     vx: Schemas.Float,
+    vy: Schemas.Float,
     vz: Schemas.Float
+  }),
+
+  // Server → All clients: quién tiene la pelota ('' = libre)
+  ballOwned: Schemas.Map({
+    ownerId: Schemas.String
+  }),
+
+  // Client → Server: patear con dirección y potencia
+  kickBall: Schemas.Map({
+    dirX:  Schemas.Float,
+    dirZ:  Schemas.Float,
+    power: Schemas.Float
   })
 }
 
