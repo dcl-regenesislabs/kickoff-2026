@@ -522,7 +522,19 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
     />
   )
 
-  const matchBox = (key: string, x: number, y: number, text: string, color = boxColor) => (
+  const slotSize = props.mob ? UY(7) : UY(8)
+  const slotGap = props.mob ? UX(5) : UX(6)
+  const slotEmpty = Color4.create(1, 1, 1, 0.18)
+  const slotFilled = Color4.White()
+
+  const progressBox = (
+    key: string,
+    x: number,
+    y: number,
+    total: number,
+    filled: number,
+    color = boxColor
+  ) => (
     <UiEntity
       key={key}
       uiTransform={{
@@ -536,12 +548,20 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
       }}
       uiBackground={{ color }}
     >
-      <Label
-        value={text}
-        fontSize={F(props.mob ? 9 : 10)}
-        color={Color4.White()}
-        uiTransform={{ width: '100%', height: '100%' }}
-      />
+      <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <UiEntity
+            key={`${key}-slot-${i}`}
+            uiTransform={{
+              width: slotSize,
+              height: slotSize,
+              margin: `0 ${slotGap}px 0 0`,
+              borderRadius: UY(2)
+            }}
+            uiBackground={{ color: i < filled ? slotFilled : slotEmpty }}
+          />
+        ))}
+      </UiEntity>
     </UiEntity>
   )
 
@@ -584,6 +604,13 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
   const midMidYs = yMid.map(y => y + boxH / 2)
   const innerMidY = yInner + boxH / 2
   const finalMidY = yFinal + boxH / 2
+  const knockoutProgress = {
+    outer: [0, 0, 0, 0],
+    mid: [0, 0],
+    inner: [0],
+    final: 0,
+    third: 0
+  }
 
   const bracketBoard = (
     <UiEntity
@@ -602,24 +629,26 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
       {header('h-right-mid', xMidR, UY(0), 'NEXT ROUND')}
       {header('h-right-outer', xOuterR, UY(0), 'ROUND OF 32')}
 
-      {matchBox('l-1', xOuterL, yOuter[0], '1-2', accentColor)}
-      {matchBox('l-2', xOuterL, yOuter[1], '3-4', accentColor)}
-      {matchBox('l-3', xOuterL, yOuter[2], '5-6', accentColor)}
-      {matchBox('l-4', xOuterL, yOuter[3], '7-8', accentColor)}
-      {matchBox('l-5', xMidL, yMid[0], '1-4')}
-      {matchBox('l-6', xMidL, yMid[1], '5-8')}
-      {matchBox('l-7', xInnerL, yInner, 'SEMI A')}
+      {progressBox('l-1', xOuterL, yOuter[0], 2, knockoutProgress.outer[0], accentColor)}
+      {progressBox('l-2', xOuterL, yOuter[1], 2, knockoutProgress.outer[1], accentColor)}
+      {progressBox('l-3', xOuterL, yOuter[2], 2, knockoutProgress.outer[2], accentColor)}
+      {progressBox('l-4', xOuterL, yOuter[3], 2, knockoutProgress.outer[3], accentColor)}
+      {progressBox('l-5', xMidL, yMid[0], 2, knockoutProgress.mid[0])}
+      {progressBox('l-6', xMidL, yMid[1], 2, knockoutProgress.mid[1])}
+      {progressBox('l-7', xInnerL, yInner, 2, knockoutProgress.inner[0])}
 
-      {matchBox('center-final', xCenter, yFinal, 'FINAL', centerColor)}
-      {matchBox('center-third', xCenter, yThird, '3RD PLACE', centerColor)}
+      {header('final-label', xCenter, yFinal - UY(16), 'FINAL')}
+      {progressBox('center-final', xCenter, yFinal, 1, knockoutProgress.final, centerColor)}
+      {header('third-label', xCenter, yThird - UY(16), '3RD PLACE')}
+      {progressBox('center-third', xCenter, yThird, 1, knockoutProgress.third, centerColor)}
 
-      {matchBox('r-1', xOuterR, yOuter[0], '9-10', accentColor)}
-      {matchBox('r-2', xOuterR, yOuter[1], '11-12', accentColor)}
-      {matchBox('r-3', xOuterR, yOuter[2], '13-14', accentColor)}
-      {matchBox('r-4', xOuterR, yOuter[3], '15-16', accentColor)}
-      {matchBox('r-5', xMidR, yMid[0], '9-12')}
-      {matchBox('r-6', xMidR, yMid[1], '13-16')}
-      {matchBox('r-7', xInnerR, yInner, 'SEMI B')}
+      {progressBox('r-1', xOuterR, yOuter[0], 2, knockoutProgress.outer[0], accentColor)}
+      {progressBox('r-2', xOuterR, yOuter[1], 2, knockoutProgress.outer[1], accentColor)}
+      {progressBox('r-3', xOuterR, yOuter[2], 2, knockoutProgress.outer[2], accentColor)}
+      {progressBox('r-4', xOuterR, yOuter[3], 2, knockoutProgress.outer[3], accentColor)}
+      {progressBox('r-5', xMidR, yMid[0], 2, knockoutProgress.mid[0])}
+      {progressBox('r-6', xMidR, yMid[1], 2, knockoutProgress.mid[1])}
+      {progressBox('r-7', xInnerR, yInner, 2, knockoutProgress.inner[0])}
 
       {hLine('lh1a', xOuterL + boxW, outerMidYs[0], leftJoin1X - (xOuterL + boxW))}
       {hLine('lh1b', xOuterL + boxW, outerMidYs[1], leftJoin1X - (xOuterL + boxW))}
