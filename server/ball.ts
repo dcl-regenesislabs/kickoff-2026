@@ -5,7 +5,7 @@ import { resolveGoalCollision } from '../src/goalCollision'
 
 const BALL_START       = { x: 30, y: 0.28, z: 48 }
 const BALL_RADIUS      = 0.28
-const BALL_FRONT       = 1.7
+const BALL_FRONT       = 1.82
 const OWNED_BALL_Y     = 0.34
 const KICK_START_PUSH  = 1.5
 

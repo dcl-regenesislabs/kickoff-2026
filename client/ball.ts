@@ -14,7 +14,7 @@ const TARGET_SRC     = 'assets/scene/Models/target_position.glb'
 const BALL_START     = Vector3.create(30, 0.28, 48)
 const BALL_SCALE     = Vector3.create(0.51, 0.51, 0.51)
 const BALL_RADIUS    = 0.28
-const BALL_FRONT     = 1.7
+const BALL_FRONT     = 1.82
 const BALL_FRONT_MAX = 2.2
 const OWNED_BALL_Y   = 0.34
 const KICK_START_PUSH = 1.5
@@ -49,6 +49,11 @@ let moveDirX    = 0
 let moveDirZ    = 1
 let dribbleX    = BALL_START.x
 let dribbleZ    = BALL_START.z
+let remotePrevOwnerId = ''
+let remotePrevX = 0
+let remotePrevZ = 0
+let remoteMoveDirX = 0
+let remoteMoveDirZ = 1
 
 let myAddress        = ''
 let optimisticKickAt = 0
@@ -414,9 +419,37 @@ export function setupBallClient() {
       for (const [_e, identity, playerT] of engine.getEntitiesWith(PlayerIdentityData, Transform)) {
         if (identity.address.toLowerCase() !== state.ownerId.toLowerCase()) continue
         const anchor = getOwnedBallAnchor(playerT)
+        let remoteSpeed = 0
+        if (remotePrevOwnerId !== state.ownerId.toLowerCase()) {
+          remotePrevOwnerId = state.ownerId.toLowerCase()
+          remotePrevX = anchor.x
+          remotePrevZ = anchor.z
+          remoteMoveDirX = 0
+          remoteMoveDirZ = 1
+        } else {
+          const dmx = anchor.x - remotePrevX
+          const dmz = anchor.z - remotePrevZ
+          const d2 = dmx * dmx + dmz * dmz
+          remoteSpeed = d2 > 0 ? Math.sqrt(d2) / dt : 0
+          if (d2 > 0.003 * 0.003) {
+            const len = Math.sqrt(d2)
+            remoteMoveDirX = dmx / len
+            remoteMoveDirZ = dmz / len
+          }
+          remotePrevX = anchor.x
+          remotePrevZ = anchor.z
+        }
+
         ballT.position.x = anchor.x
-        ballT.position.y = BALL_RADIUS
+        ballT.position.y = OWNED_BALL_Y
         ballT.position.z = anchor.z
+
+        if (remoteSpeed > 0.1) {
+          const rollAxis  = Vector3.normalize(Vector3.create(remoteMoveDirZ, 0, -remoteMoveDirX))
+          const rollAngle = (remoteSpeed / BALL_RADIUS) * dt * (180 / Math.PI)
+          ballRotation    = Quaternion.multiply(Quaternion.fromAngleAxis(rollAngle, rollAxis), ballRotation)
+          ballT.rotation  = ballRotation
+        }
         break
       }
     }
