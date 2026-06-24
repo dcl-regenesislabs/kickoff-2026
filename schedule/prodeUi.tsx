@@ -83,12 +83,16 @@ const welcomeState = { visible: true, step: 0 }
 // Server gate overlay shown before onboarding. It blocks interaction until the
 // authoritative multiplayer room is ready, then remains visible for 3 seconds.
 const serverGateState = {
-  visible: true,
+  visible: false,
   holdElapsed: 0,
   spinnerAngle: 0
 }
 
 const SPINNER_DEG_PER_SEC = 220
+
+const predictionPanelState = {
+  expanded: 'knockout' as 'knockout' | 'group' | null
+}
 
 // Wearable claim status overlay ("on the way" → "received!").
 const claimState = { visible: false, done: false }
@@ -210,6 +214,7 @@ const OVERLAY   = Color4.create(0, 0, 0, 0.7)
 const RED       = Color4.fromHexString('#FF6B6Bff')
 const GOLD      = Color4.fromHexString('#F2C14Eff')
 const VIOLET    = Color4.fromHexString('#9f78e7ff')
+const MUTED     = Color4.create(0.6, 0.6, 0.7, 1)
 const CHECKLIST_PARTIAL = Color4.fromHexString('#7a1f31ff')
 const CHECKLIST_COMPLETE = Color4.fromHexString('#39ff78ff')
 const CELL_EMPTY = Color4.create(0.42, 0.42, 0.52, 1)    // pending checklist cell
@@ -296,9 +301,9 @@ const ProdeUi = () => {
   )
 }
 
-// ── Match checklist ───────────────────────────────────────────────────────────
-// Desktop: single horizontal row of 12 groups at the top.
-// Mobile:  compact 3×4 vertical sidebar on the left (avoids blocking gameplay).
+// ── Prediction panels ─────────────────────────────────────────────────────────
+// Desktop: top-centered, with the inactive panel minimized to the left.
+// Mobile: left sidebar, stacked vertically in the same area as the previous checklist.
 const MatchChecklist = () => {
   const mob = isMobile()
   const k = mob ? 1.55 : 1
@@ -307,6 +312,111 @@ const MatchChecklist = () => {
     groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
     (mob && getCompletedCount() === MATCHES.length)
 
+  const openPanel = (panel: 'knockout' | 'group') => {
+    playClick()
+    predictionPanelState.expanded = panel
+  }
+
+  const minimizeExpanded = () => {
+    playClick()
+    predictionPanelState.expanded = null
+  }
+
+  const minimizedChip = (panel: 'knockout' | 'group') => {
+    const label = panel === 'knockout' ? 'KNOCKOUT' : 'GROUP STAGE'
+    const subtitle = panel === 'knockout' ? 'Bracket view' : `${getCompletedCount()}/${MATCHES.length}`
+    return (
+      <UiEntity
+        key={panel}
+        uiTransform={{
+          width: S(mob ? 180 : 160),
+          minHeight: S(mob ? 88 : 74),
+          padding: S(mob ? 12 : 10),
+          margin: mob ? `0 0 ${S(8)}px 0` : `0 ${S(10)}px 0 0`,
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          borderRadius: S(16),
+          pointerFilter: 'block'
+        }}
+        uiBackground={{ color: Color4.create(0.05, 0.05, 0.08, 0.92) }}
+        onMouseDown={() => openPanel(panel)}
+      >
+        <Label value={label} fontSize={F(mob ? 15 : 14)} color={Color4.White()}
+          uiTransform={{ height: S(mob ? 18 : 16) }} />
+        <Label value={subtitle} fontSize={F(mob ? 12 : 11)} color={MUTED}
+          uiTransform={{ height: S(mob ? 16 : 14), margin: `${S(4)}px 0 0 0` }} />
+      </UiEntity>
+    )
+  }
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: mob ? { top: S(300), left: S(240) } : { top: S(12), left: 0 },
+        width: mob ? 'auto' : '100%',
+        flexDirection: mob ? 'column' : 'row',
+        alignItems: mob ? 'flex-start' : 'center',
+        justifyContent: mob ? 'flex-start' : 'center',
+        display: hidden ? 'none' : 'flex'
+      }}
+    >
+      {predictionPanelState.expanded === 'knockout' && minimizedChip('group')}
+      {predictionPanelState.expanded === 'group' && minimizedChip('knockout')}
+      {predictionPanelState.expanded === null && (
+        <UiEntity uiTransform={{ flexDirection: mob ? 'column' : 'row', alignItems: 'flex-start' }}>
+          {minimizedChip('knockout')}
+          {minimizedChip('group')}
+        </UiEntity>
+      )}
+
+      {predictionPanelState.expanded === 'knockout' && (
+        <KnockoutChecklistPanel mob={mob} k={k} onMinimize={minimizeExpanded} />
+      )}
+      {predictionPanelState.expanded === 'group' && (
+        <GroupStageChecklistPanel mob={mob} k={k} onMinimize={minimizeExpanded} />
+      )}
+    </UiEntity>
+  )
+}
+
+const PanelHeader = (props: { title: string; subtitle: string; mob: boolean; onMinimize: () => void }) => (
+  <UiEntity
+    uiTransform={{
+      width: '100%',
+      height: S(props.mob ? 48 : 40),
+      margin: `0 0 ${S(8)}px 0`,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }}
+  >
+    <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+      <Label value={props.title} fontSize={F(props.mob ? 16 : 18)} color={Color4.White()}
+        uiTransform={{ height: S(props.mob ? 18 : 20) }} />
+      <Label value={props.subtitle} fontSize={F(props.mob ? 11 : 12)} color={MUTED}
+        uiTransform={{ height: S(props.mob ? 14 : 14), margin: `${S(2)}px 0 0 0` }} />
+    </UiEntity>
+    <UiEntity
+      uiTransform={{
+        width: S(props.mob ? 36 : 32),
+        height: S(props.mob ? 36 : 32),
+        borderRadius: S(10),
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: Color4.create(0.12, 0.12, 0.18, 1) }}
+      onMouseDown={props.onMinimize}
+    >
+      <Label value="−" fontSize={F(props.mob ? 26 : 22)} color={Color4.White()}
+        uiTransform={{ height: '100%', width: '100%' }} />
+    </UiEntity>
+  </UiEntity>
+)
+
+const GroupStageChecklistPanel = (props: { mob: boolean; k: number; onMinimize: () => void }) => {
   const cluster = (g: (typeof GROUPS)[number]) => {
     const done = g.matches.filter(isMatchDone).length
     const complete = done === g.matches.length
@@ -315,68 +425,259 @@ const MatchChecklist = () => {
     return (
       <UiEntity key={g.name} uiTransform={{
         flexDirection: 'column', alignItems: 'center',
-        margin: mob ? `${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px` : `0px ${S(5)}px 0px ${S(5)}px`
+        margin: props.mob
+          ? `${S(4 * props.k)}px ${S(4 * props.k)}px ${S(4 * props.k)}px ${S(4 * props.k)}px`
+          : `0px ${S(5)}px 0px ${S(5)}px`
       }}>
         <UiEntity uiTransform={{ flexDirection: 'row' }}>
           {g.matches.map((m, mi) => {
             const cellDone = isMatchDone(m)
             return (
               <UiEntity key={mi}
-                uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3 * k) }}
+                uiTransform={{ width: S(14 * props.k), height: S(14 * props.k), margin: S(1 * props.k), borderRadius: S(3 * props.k) }}
                 uiBackground={{ color: cellDone ? activeColor : CELL_EMPTY }} />
             )
           })}
         </UiEntity>
-        <Label value={g.name.replace('Group ', '')} fontSize={F(13 * k)}
+        <Label value={g.name.replace('Group ', '')} fontSize={F(13 * props.k)}
           color={complete ? CHECKLIST_COMPLETE : Color4.create(0.6, 0.6, 0.7, 1)}
-          uiTransform={{ height: S(16 * k) }} />
+          uiTransform={{ height: S(16 * props.k) }} />
       </UiEntity>
     )
   }
 
-  // Desktop: 2 rows × 6 groups centered. Mobile: 6 rows × 2 groups (vertical sidebar).
-  const rows = mob
+  const rows = props.mob
     ? [GROUPS.slice(0, 2), GROUPS.slice(2, 4), GROUPS.slice(4, 6), GROUPS.slice(6, 8), GROUPS.slice(8, 10), GROUPS.slice(10, 12)]
     : [GROUPS.slice(0, 6), GROUPS.slice(6, 12)]
 
   return (
     <UiEntity
       uiTransform={{
-        positionType: 'absolute',
-        position: mob ? { top: S(300), left: S(240) } : { top: S(12), left: 0 },
-        width: mob ? 'auto' : '100%',
+        padding: S(10 * props.k),
         flexDirection: 'column',
-        alignItems: mob ? 'flex-start' : 'center',
-        justifyContent: 'flex-start',
-        display: hidden ? 'none' : 'flex'
+        alignItems: 'center',
+        alignSelf: props.mob ? 'flex-start' : 'center',
+        borderRadius: S(16),
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
+    >
+      <PanelHeader
+        title="Group Stage Predictions"
+        subtitle={`${getCompletedCount()} / ${MATCHES.length} predicted  •  ${myPoints()} pts`}
+        mob={props.mob}
+        onMinimize={props.onMinimize}
+      />
+      <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
+        {rows.map((rowGroups, ri) => (
+          <UiEntity key={ri} uiTransform={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            {rowGroups.map(g => cluster(g))}
+          </UiEntity>
+        ))}
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: () => void }) => {
+  const scaleX = props.mob ? 0.62 : 1.22
+  const scaleY = props.mob ? 0.62 : 1
+  const UX = (n: number) => S(n * scaleX)
+  const UY = (n: number) => S(n * scaleY)
+  const boxW = UX(84)
+  const boxH = UY(30)
+  const boardW = UX(920)
+  const boardH = UY(244)
+  const lineColor = Color4.create(1, 1, 1, 0.92)
+  const boxColor = Color4.create(0.11, 0.13, 0.22, 1)
+  const accentColor = Color4.fromHexString('#7a1f31ff')
+  const centerColor = Color4.fromHexString('#18A187ff')
+
+  const xOuterL = UX(12)
+  const xMidL = UX(148)
+  const xInnerL = UX(284)
+  const xCenter = UX(420)
+  const xInnerR = UX(556)
+  const xMidR = UX(692)
+  const xOuterR = UX(828)
+
+  const yOuter = [UY(18), UY(72), UY(126), UY(180)]
+  const yMid = [UY(45), UY(153)]
+  const yInner = UY(99)
+  const yFinal = UY(66)
+  const yThird = UY(176)
+
+  const header = (key: string, x: number, y: number, text: string) => (
+    <Label
+      key={key}
+      value={text}
+      fontSize={F(props.mob ? 8 : 10)}
+      color={MUTED}
+      uiTransform={{
+        width: boxW,
+        height: UY(14),
+        positionType: 'absolute',
+        position: { left: x, top: y }
+      }}
+    />
+  )
+
+  const matchBox = (key: string, x: number, y: number, text: string, color = boxColor) => (
+    <UiEntity
+      key={key}
+      uiTransform={{
+        width: boxW,
+        height: boxH,
+        positionType: 'absolute',
+        position: { left: x, top: y },
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: UY(8)
+      }}
+      uiBackground={{ color }}
+    >
+      <Label
+        value={text}
+        fontSize={F(props.mob ? 9 : 10)}
+        color={Color4.White()}
+        uiTransform={{ width: '100%', height: '100%' }}
+      />
+    </UiEntity>
+  )
+
+  const hLine = (key: string, x: number, y: number, w: number) => (
+    <UiEntity
+      key={key}
+      uiTransform={{
+        width: w,
+        height: UY(3),
+        positionType: 'absolute',
+        position: { left: x, top: y },
+        borderRadius: UY(2)
+      }}
+      uiBackground={{ color: lineColor }}
+    />
+  )
+
+  const vLine = (key: string, x: number, y: number, h: number) => (
+    <UiEntity
+      key={key}
+      uiTransform={{
+        width: UY(3),
+        height: h,
+        positionType: 'absolute',
+        position: { left: x, top: y },
+        borderRadius: UY(2)
+      }}
+      uiBackground={{ color: lineColor }}
+    />
+  )
+
+  const leftJoin1X = UX(112)
+  const leftJoin2X = UX(248)
+  const leftJoin3X = UX(384)
+  const rightJoin1X = UX(804)
+  const rightJoin2X = UX(668)
+  const rightJoin3X = UX(532)
+
+  const outerMidYs = yOuter.map(y => y + boxH / 2)
+  const midMidYs = yMid.map(y => y + boxH / 2)
+  const innerMidY = yInner + boxH / 2
+  const finalMidY = yFinal + boxH / 2
+
+  const bracketBoard = (
+    <UiEntity
+      uiTransform={{
+        width: boardW,
+        height: boardH,
+        positionType: 'relative',
+        margin: `${S(4)}px 0 0 0`
       }}
     >
-      <UiEntity
-        uiTransform={{
-          padding: S(10 * k),
-          flexDirection: 'column',
-          alignItems: 'center',
-          alignSelf: mob ? 'flex-start' : 'center',
-          borderRadius: S(16),
-          pointerFilter: 'block'
-        }}
-        uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
-      >
-        <Label
-          value={mob
-            ? `${getCompletedCount()}/${MATCHES.length}  •  ${myPoints()} pts`
-            : `Predictions  ${getCompletedCount()} / ${MATCHES.length}      ${myPoints()} pts`}
-          fontSize={F(mob ? 14 * k : 18)} color={Color4.White()}
-          uiTransform={{ height: S(mob ? 18 * k : 24), margin: '0 0 6px 0' }}
-        />
-        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
-          {rows.map((rowGroups, ri) => (
-            <UiEntity key={ri} uiTransform={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              {rowGroups.map(g => cluster(g))}
-            </UiEntity>
-          ))}
-        </UiEntity>
-      </UiEntity>
+      {header('h-left-outer', xOuterL, UY(0), 'ROUND OF 32')}
+      {header('h-left-mid', xMidL, UY(0), 'NEXT ROUND')}
+      {header('h-left-inner', xInnerL, UY(0), 'SEMI')}
+      {header('h-center', xCenter, UY(0), 'FINALS')}
+      {header('h-right-inner', xInnerR, UY(0), 'SEMI')}
+      {header('h-right-mid', xMidR, UY(0), 'NEXT ROUND')}
+      {header('h-right-outer', xOuterR, UY(0), 'ROUND OF 32')}
+
+      {matchBox('l-1', xOuterL, yOuter[0], '1-2', accentColor)}
+      {matchBox('l-2', xOuterL, yOuter[1], '3-4', accentColor)}
+      {matchBox('l-3', xOuterL, yOuter[2], '5-6', accentColor)}
+      {matchBox('l-4', xOuterL, yOuter[3], '7-8', accentColor)}
+      {matchBox('l-5', xMidL, yMid[0], '1-4')}
+      {matchBox('l-6', xMidL, yMid[1], '5-8')}
+      {matchBox('l-7', xInnerL, yInner, 'SEMI A')}
+
+      {matchBox('center-final', xCenter, yFinal, 'FINAL', centerColor)}
+      {matchBox('center-third', xCenter, yThird, '3RD PLACE', centerColor)}
+
+      {matchBox('r-1', xOuterR, yOuter[0], '9-10', accentColor)}
+      {matchBox('r-2', xOuterR, yOuter[1], '11-12', accentColor)}
+      {matchBox('r-3', xOuterR, yOuter[2], '13-14', accentColor)}
+      {matchBox('r-4', xOuterR, yOuter[3], '15-16', accentColor)}
+      {matchBox('r-5', xMidR, yMid[0], '9-12')}
+      {matchBox('r-6', xMidR, yMid[1], '13-16')}
+      {matchBox('r-7', xInnerR, yInner, 'SEMI B')}
+
+      {hLine('lh1a', xOuterL + boxW, outerMidYs[0], leftJoin1X - (xOuterL + boxW))}
+      {hLine('lh1b', xOuterL + boxW, outerMidYs[1], leftJoin1X - (xOuterL + boxW))}
+      {vLine('lv1', leftJoin1X, outerMidYs[0], outerMidYs[1] - outerMidYs[0])}
+      {hLine('lh1c', leftJoin1X, midMidYs[0], xMidL - leftJoin1X)}
+
+      {hLine('lh2a', xOuterL + boxW, outerMidYs[2], leftJoin1X - (xOuterL + boxW))}
+      {hLine('lh2b', xOuterL + boxW, outerMidYs[3], leftJoin1X - (xOuterL + boxW))}
+      {vLine('lv2', leftJoin1X, outerMidYs[2], outerMidYs[3] - outerMidYs[2])}
+      {hLine('lh2c', leftJoin1X, midMidYs[1], xMidL - leftJoin1X)}
+
+      {hLine('lh3a', xMidL + boxW, midMidYs[0], leftJoin2X - (xMidL + boxW))}
+      {hLine('lh3b', xMidL + boxW, midMidYs[1], leftJoin2X - (xMidL + boxW))}
+      {vLine('lv3', leftJoin2X, midMidYs[0], midMidYs[1] - midMidYs[0])}
+      {hLine('lh3c', leftJoin2X, innerMidY, xInnerL - leftJoin2X)}
+
+      {hLine('lh4a', xInnerL + boxW, innerMidY, leftJoin3X - (xInnerL + boxW))}
+      {hLine('lh4b', leftJoin3X, innerMidY, xCenter - leftJoin3X)}
+
+      {hLine('rh1a', rightJoin1X, outerMidYs[0], xOuterR - rightJoin1X)}
+      {hLine('rh1b', rightJoin1X, outerMidYs[1], xOuterR - rightJoin1X)}
+      {vLine('rv1', rightJoin1X, outerMidYs[0], outerMidYs[1] - outerMidYs[0])}
+      {hLine('rh1c', xMidR + boxW, midMidYs[0], rightJoin1X - (xMidR + boxW))}
+
+      {hLine('rh2a', rightJoin1X, outerMidYs[2], xOuterR - rightJoin1X)}
+      {hLine('rh2b', rightJoin1X, outerMidYs[3], xOuterR - rightJoin1X)}
+      {vLine('rv2', rightJoin1X, outerMidYs[2], outerMidYs[3] - outerMidYs[2])}
+      {hLine('rh2c', xMidR + boxW, midMidYs[1], rightJoin1X - (xMidR + boxW))}
+
+      {hLine('rh3a', rightJoin2X, midMidYs[0], xMidR - rightJoin2X)}
+      {hLine('rh3b', rightJoin2X, midMidYs[1], xMidR - rightJoin2X)}
+      {vLine('rv3', rightJoin2X, midMidYs[0], midMidYs[1] - midMidYs[0])}
+      {hLine('rh3c', xInnerR + boxW, innerMidY, rightJoin2X - (xInnerR + boxW))}
+
+      {hLine('rh4a', rightJoin3X, innerMidY, xInnerR - rightJoin3X)}
+      {hLine('rh4b', xCenter + boxW, finalMidY, rightJoin3X - (xCenter + boxW))}
+    </UiEntity>
+  )
+
+  return (
+    <UiEntity
+      uiTransform={{
+        padding: S(10 * props.k),
+        flexDirection: 'column',
+        alignItems: props.mob ? 'flex-start' : 'center',
+        alignSelf: props.mob ? 'flex-start' : 'center',
+        borderRadius: S(16),
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
+    >
+      <PanelHeader
+        title="Knockout Predictions"
+        subtitle="Bracket layout"
+        mob={props.mob}
+        onMinimize={props.onMinimize}
+      />
+      {bracketBoard}
     </UiEntity>
   )
 }

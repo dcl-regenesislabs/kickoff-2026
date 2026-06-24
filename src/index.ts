@@ -163,9 +163,12 @@ function buildKnockoutPanels() {
   addKnockoutPanel('SEMI FINAL', { position: Vector3.create(76.15, Y, 48.05), rotation: L, scale: S })
 
   // ── FINAL — center (double-sided, perpendicular to rest) ─────────────────
-  const FINAL_POS = Vector3.create(86.46, Y, 47.44)
-  addKnockoutPanel('FINAL', { position: FINAL_POS, rotation: Quaternion.fromEulerDegrees(0, 0, 0),   scale: S })
-  addKnockoutPanel('FINAL', { position: FINAL_POS, rotation: Quaternion.fromEulerDegrees(0, 180, 0), scale: S })
+  const FINAL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
+  const THIRD_PLACE_ROT = Quaternion.fromEulerDegrees(0, 0, 0)
+  const FINAL_POS = Vector3.create(86.46, Y, 55.10)
+  const THIRD_PLACE_POS = Vector3.create(86.46, Y, 39.78)
+  addKnockoutPanel('FINAL', { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
+  addKnockoutPanel('THIRD PLACE', { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
 
   // ── SF — RIGHT (large bracket, x=97) ──────────────────────────────────────
   addKnockoutPanel('SEMI FINAL', { position: Vector3.create(96.76, Y, 47.22), rotation: R, scale: S })
