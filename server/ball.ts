@@ -45,6 +45,48 @@ function getKickLift(power: number) {
   return MIN_KICK_LOFT + (MAX_KICK_LOFT - MIN_KICK_LOFT) * normalizedPower * normalizedPower
 }
 
+// Pre-simulate the ball trajectory to find Point B (where it stops).
+// Runs at 30fps coarse steps — fast but accurate enough for a landing position.
+function computeLanding(sx: number, sy: number, sz: number, svx: number, svz: number, svy: number): { x: number; z: number } {
+  let px = sx, py = sy, pz = sz
+  let vx = svx, vz = svz, vy = svy
+  const SIM_DT = 1 / 30
+
+  for (let i = 0; i < 600; i++) {
+    const prevPx = px, prevPy = py, prevPz = pz
+
+    vy -= GRAVITY * SIM_DT
+    py += vy * SIM_DT
+    if (py <= BALL_RADIUS) {
+      py = BALL_RADIUS
+      vy = vy < -0.8 ? -vy * 0.4 : 0
+    }
+
+    const ff = Math.pow(FRICTION, SIM_DT)
+    vx *= ff; vz *= ff
+    const speed = Math.sqrt(vx * vx + vz * vz)
+
+    if (speed < MIN_SPEED && py <= BALL_RADIUS + 0.01 && Math.abs(vy) < 0.05) break
+
+    px += vx * SIM_DT; pz += vz * SIM_DT
+
+    const cl = clampBallToSafeArea(px, pz)
+    if (cl.wasClamped) { px = cl.x; pz = cl.z; vx = 0; vz = 0; break }
+    px = cl.x; pz = cl.z
+
+    const gc = resolveGoalCollision(
+      { x: px, y: py, z: pz },
+      { x: prevPx, y: prevPy, z: prevPz },
+      { x: vx, y: vy, z: vz },
+      BALL_RADIUS
+    )
+    px = gc.position.x; py = gc.position.y; pz = gc.position.z
+    vx = gc.velocity.x; vy = gc.velocity.y; vz = gc.velocity.z
+  }
+
+  return { x: px, z: pz }
+}
+
 function getPlayerForward(playerT: { rotation: { x: number; y: number; z: number; w: number } }) {
   const q = playerT.rotation
   let dirX = 2 * (q.x * q.z + q.w * q.y)
@@ -100,6 +142,9 @@ export function setupBall() {
     wasMoving = true
     room.send('ballOwned', { ownerId: '' })
     room.send('ballState', { x: pos.x, y: pos.y, z: pos.z, vx: vel.x, vy: velY, vz: vel.z })
+    // Send Point B to the kicker so the client can anchor the local trajectory's endpoint
+    const landing = computeLanding(pos.x, pos.y, pos.z, vel.x, vel.z, velY)
+    room.send('kickLand', { x: landing.x, z: landing.z }, { to: [ctx.from] })
   })
 
   engine.addSystem((dt) => {

@@ -9,26 +9,27 @@ import { getPlayer } from '@dcl/sdk/players'
 import { clampBallToSafeArea } from '../src/ballSafeArea'
 import { resolveGoalCollision } from '../src/goalCollision'
 
-const BALL_SRC       = 'assets/scene/Models/ball.glb'
-const TARGET_SRC     = 'assets/scene/Models/target_position.glb'
-const BALL_START     = Vector3.create(30, 0.28, 48)
-const BALL_SCALE     = Vector3.create(0.51, 0.51, 0.51)
-const BALL_RADIUS    = 0.28
-const BALL_FRONT     = 1.82
-const BALL_FRONT_MAX = 2.2
-const OWNED_BALL_Y   = 0.34
-const KICK_START_PUSH = 1.5
-const PREDICT_TAKE_RADIUS = 1.65
+const BALL_SRC             = 'assets/scene/Models/ball.glb'
+const TARGET_SRC           = 'assets/scene/Models/target_position.glb'
+const BALL_START           = Vector3.create(30, 0.28, 48)
+const BALL_SCALE           = Vector3.create(0.51, 0.51, 0.51)
+const BALL_RADIUS          = 0.28
+const BALL_FRONT           = 1.82
+const BALL_FRONT_MAX       = 2.2
+const OWNED_BALL_Y         = 0.34
+const KICK_START_PUSH      = 1.5
+const PREDICT_TAKE_RADIUS  = 1.65
 const PREDICT_TAKE_TIMEOUT_MS = 500
 const KICK_RETAKE_COOLDOWN_MS = 700
-const FRICTION       = 0.55
-const MIN_SPEED      = 0.05
-const GRAVITY        = 9.8
-const MAX_CHARGE_MS  = 2000
-const MIN_KICK_POWER = 5
-const MAX_KICK_POWER = 25
-const MIN_KICK_LOFT  = 2.2
-const MAX_KICK_LOFT  = 9.5
+const KICK_STALE_OWNED_MS  = 500   // ignore stale "you own it" messages after a kick
+const FRICTION             = 0.55
+const MIN_SPEED            = 0.05
+const GRAVITY              = 9.8
+const MAX_CHARGE_MS        = 2000
+const MIN_KICK_POWER       = 5
+const MAX_KICK_POWER       = 25
+const MIN_KICK_LOFT        = 2.2
+const MAX_KICK_LOFT        = 9.5
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 type ClientState = { mode: 'free' } | { mode: 'owned'; ownerId: string }
@@ -55,13 +56,14 @@ let remotePrevZ = 0
 let remoteMoveDirX = 0
 let remoteMoveDirZ = 1
 
-let myAddress        = ''
-let optimisticKickAt = 0
-let localIsOwner     = false   // set en ballOwned, corregido lazy en system loop
+let myAddress          = ''
+let optimisticKickAt   = 0
+let localIsOwner       = false
 let predictedTakeUntil = 0
-let mobileKickPressed = false
+let mobileKickPressed  = false
+// Point B: where the server says the ball will land after this kick
+let kickLandTarget: { x: number; z: number } | null = null
 
-// Referencia al entity ball para la fn de release optimista
 let ballEntity: ReturnType<typeof engine.addEntity> | null = null
 
 function getPlayerForward(playerT: { rotation: { x: number; y: number; z: number; w: number } }) {
@@ -148,12 +150,16 @@ export function getMobileKickButtonState() {
 
 function releaseOptimistic(power: number, kx: number, kz: number) {
   if (!ballEntity) return
-  optimisticKickAt = Date.now()
+  optimisticKickAt   = Date.now()
+  kickLandTarget     = null   // server will send Point B shortly via kickLand
   predictedTakeUntil = 0
-  mobileKickPressed = false
+  mobileKickPressed  = false
+  // Use the real anchor (same calc as server) as starting point — avoids lateral blip
+  const myT = Transform.getOrNull(engine.PlayerEntity)
+  const startPos = myT ? getOwnedBallAnchor(myT) : { x: dribbleX, z: dribbleZ }
   const kickClamp = clampBallToSafeArea(
-    dribbleX + kx * KICK_START_PUSH,
-    dribbleZ + kz * KICK_START_PUSH
+    startPos.x + kx * KICK_START_PUSH,
+    startPos.z + kz * KICK_START_PUSH
   )
   localPos.x = kickClamp.x
   localPos.y = BALL_RADIUS
@@ -161,8 +167,8 @@ function releaseOptimistic(power: number, kx: number, kz: number) {
   localVel.x = kx * power
   localVel.z = kz * power
   localVelY  = getKickLift(power)
-  clientState = { mode: 'free' }
-  prevMode    = 'free'
+  clientState  = { mode: 'free' }
+  prevMode     = 'free'
   localIsOwner = false
   setBallCollisionEnabled(true)
 }
@@ -185,7 +191,6 @@ export function setupBallClient() {
 
   const target = engine.addEntity()
   Transform.create(target, { position: Vector3.clone(BALL_START), scale: Vector3.Zero() })
-  // Disc visible siempre — GLB fallback por si el modelo falla
   MeshRenderer.setCylinder(target, 1, 1)
   Material.setPbrMaterial(target, {
     albedoColor:       Color4.create(0, 0.9, 1, 0.85),
@@ -201,6 +206,18 @@ export function setupBallClient() {
 
   // ── Mensajes del server ───────────────────────────────────────────────────
   room.onMessage('ballOwned', (data) => {
+    if (!myAddress) {
+      const addr = (PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address ?? getPlayer()?.userId ?? '').toLowerCase()
+      if (addr) myAddress = addr
+    }
+
+    // Discard stale "you own the ball" messages that arrive after we already kicked
+    if (
+      optimisticKickAt > 0 &&
+      Date.now() - optimisticKickAt < KICK_STALE_OWNED_MS &&
+      myAddress && data.ownerId && data.ownerId.toLowerCase() === myAddress
+    ) return
+
     const prevOwnerId = clientState.mode === 'owned' ? clientState.ownerId.toLowerCase() : ''
     const prevWasLocalOwner = localIsOwner
     const newMode: 'free' | 'owned' = data.ownerId === '' ? 'free' : 'owned'
@@ -208,11 +225,6 @@ export function setupBallClient() {
       ? { mode: 'free' }
       : { mode: 'owned', ownerId: data.ownerId }
 
-    // Intentar resolver la address aquí también (por si el system loop no la cacheo aún)
-    if (!myAddress) {
-      const addr = (PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address ?? getPlayer()?.userId ?? '').toLowerCase()
-      if (addr) myAddress = addr
-    }
     localIsOwner = newMode === 'owned' && !!myAddress && data.ownerId.toLowerCase() === myAddress
     const ownerChanged = prevOwnerId !== data.ownerId.toLowerCase()
     predictedTakeUntil = 0
@@ -242,11 +254,18 @@ export function setupBallClient() {
     }
   })
 
+  // Server sends Point B (where the ball will land) right after processing the kick.
+  // The client runs local physics for the full trajectory and snaps to this position
+  // when the ball stops — so it always lands exactly where the server computed.
+  room.onMessage('kickLand', (data: { x: number; z: number }) => {
+    kickLandTarget = data
+  })
+
   room.onMessage('ballState', (data) => {
     if (clientState.mode !== 'free') return
-    // Ignorar corrección del server durante 700ms tras un kick optimista
-    // para evitar que la pelota "blinke" hacia atrás por desfase de posición
-    if (Date.now() - optimisticKickAt < 700) return
+    // While ball is in flight after a kick, trust local physics entirely.
+    // The server-authoritative landing position arrives via kickLand instead.
+    if (optimisticKickAt > 0) return
     localPos.x = data.x; localPos.y = data.y; localPos.z = data.z
     localVel.x = data.vx; localVel.z = data.vz
     localVelY  = data.vy
@@ -281,7 +300,6 @@ export function setupBallClient() {
         const uid = getPlayer()?.userId
         if (uid) myAddress = uid.toLowerCase()
       }
-      // Si acaba de resolverse y estamos en owned, corregir el flag
       if (myAddress && clientState.mode === 'owned') {
         localIsOwner = (clientState as { mode: 'owned'; ownerId: string }).ownerId.toLowerCase() === myAddress
         if (localIsOwner) snapDribbleToLocalPlayer()
@@ -309,6 +327,13 @@ export function setupBallClient() {
       const speed = Math.sqrt(localVel.x ** 2 + localVel.z ** 2)
       if (speed < MIN_SPEED && localPos.y <= BALL_RADIUS + 0.01) {
         localVel.x = 0; localVel.z = 0
+        // Snap to server's authoritative landing position (Point B)
+        if (kickLandTarget) {
+          localPos.x = kickLandTarget.x
+          localPos.z = kickLandTarget.z
+          kickLandTarget   = null
+          optimisticKickAt = 0
+        }
       } else {
         localPos.x += localVel.x * dt
         localPos.z += localVel.z * dt
@@ -325,7 +350,6 @@ export function setupBallClient() {
         localPos.z = freeClamp.z
       }
 
-      // Rotación al rodar
       const goalCollision = resolveGoalCollision(
         { x: localPos.x, y: localPos.y, z: localPos.z },
         prevPos,
@@ -387,7 +411,6 @@ export function setupBallClient() {
         prevPlayerX = px
         prevPlayerZ = pz
 
-        // Offset dinámico según velocidad
         const ownedAnchor = getOwnedBallAnchor(myT)
         const targetX  = ownedAnchor.x
         const targetZ  = ownedAnchor.z
@@ -401,10 +424,9 @@ export function setupBallClient() {
         dribbleZ = ownedClamp.z
 
         ballT.position.x = dribbleX
-      ballT.position.y = OWNED_BALL_Y
+        ballT.position.y = OWNED_BALL_Y
         ballT.position.z = dribbleZ
 
-        // Rotación mientras driblea
         if (moveSpeed > 0.1) {
           const rollAxis  = Vector3.normalize(Vector3.create(moveDirZ, 0, -moveDirX))
           const rollAngle = (moveSpeed / BALL_RADIUS) * dt * (180 / Math.PI)
@@ -457,7 +479,7 @@ export function setupBallClient() {
     // ── Target ────────────────────────────────────────────────────────────
     if (iAmOwner) {
       targetT.position = { x: ballT.position.x, y: 0.05, z: ballT.position.z }
-      targetT.scale    = Vector3.create(1.2, 0.04, 1.2)  // disco plano brillante
+      targetT.scale    = Vector3.create(1.2, 0.04, 1.2)
     } else {
       targetT.scale = Vector3.Zero()
     }
@@ -503,8 +525,6 @@ export function setupBallClient() {
           }
 
           room.send('kickBall', { dirX: kx, dirZ: kz, power })
-
-          // Optimistic: liberar la pelota localmente sin esperar al server
           releaseOptimistic(power, kx, kz)
 
           charging    = false
