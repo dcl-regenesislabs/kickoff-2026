@@ -7,6 +7,7 @@ import {
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
+import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -83,16 +84,13 @@ const welcomeState = { visible: true, step: 0 }
 // Server gate overlay shown before onboarding. It blocks interaction until the
 // authoritative multiplayer room is ready, then remains visible for 3 seconds.
 const serverGateState = {
-  visible: false,
+  visible: true,
   holdElapsed: 0,
   spinnerAngle: 0
 }
 
 const SPINNER_DEG_PER_SEC = 220
 
-const predictionPanelState = {
-  expanded: 'knockout' as 'knockout' | 'group' | null
-}
 
 // Wearable claim status overlay ("on the way" → "received!").
 const claimState = { visible: false, done: false }
@@ -215,7 +213,6 @@ const RED       = Color4.fromHexString('#FF6B6Bff')
 const GOLD      = Color4.fromHexString('#F2C14Eff')
 const VIOLET    = Color4.fromHexString('#9f78e7ff')
 const MUTED     = Color4.create(0.6, 0.6, 0.7, 1)
-const CHECKLIST_PARTIAL = Color4.fromHexString('#7a1f31ff')
 const CHECKLIST_COMPLETE = Color4.fromHexString('#39ff78ff')
 const CELL_EMPTY = Color4.create(0.42, 0.42, 0.52, 1)    // pending checklist cell
 const BTN_DISABLED = Color4.create(0.24, 0.24, 0.30, 1)  // greyed/disabled button
@@ -273,6 +270,8 @@ const ProdeUi = () => {
       )}
 
       {/* ── Group prediction form overlay ───────────────────────────────────── */}
+      <MobileKickButton />
+      <DesktopKickHint />
       <GroupForm />
 
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
@@ -301,54 +300,122 @@ const ProdeUi = () => {
   )
 }
 
+// ── Kick UI (from main) ───────────────────────────────────────────────────────
+let kickHintShownAt  = 0
+let kickHintHiddenAt = 0
+const HINT_ENTER_MS  = 300
+const HINT_EXIT_MS   = 220
+const HINT_TARGET_LEFT = 100  // final resting x in unscaled px
+
+const DesktopKickHint = () => {
+  if (isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const visible = getKickHintVisible()
+  const now = Date.now()
+
+  if (visible) {
+    if (kickHintShownAt === 0) kickHintShownAt = now
+    kickHintHiddenAt = 0
+  } else {
+    if (kickHintShownAt > 0 && kickHintHiddenAt === 0) kickHintHiddenAt = now
+  }
+
+  // Exit animation finished — fully hide
+  if (kickHintHiddenAt > 0 && now - kickHintHiddenAt > HINT_EXIT_MS) {
+    kickHintShownAt = 0
+    kickHintHiddenAt = 0
+  }
+
+  // Always render the entity (never destroy/recreate it) so borderRadius is
+  // applied from the start. Visibility is controlled purely via position.
+  const targetL = S(HINT_TARGET_LEFT)
+  const offscreen = -500
+
+  let leftPos: number
+  if (kickHintShownAt === 0) {
+    leftPos = offscreen
+  } else if (kickHintHiddenAt > 0) {
+    // Exit: ease-in slide back left
+    const t = Math.min(1, (now - kickHintHiddenAt) / HINT_EXIT_MS)
+    const eased = t * t
+    leftPos = Math.round(targetL - (targetL - offscreen) * eased)
+  } else {
+    // Enter: ease-out cubic slide from left
+    const t = Math.min(1, (now - kickHintShownAt) / HINT_ENTER_MS)
+    const eased = 1 - Math.pow(1 - t, 3)
+    leftPos = Math.round(offscreen + (targetL - offscreen) * eased)
+  }
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: S(160), left: leftPos },
+        padding: { top: S(14), bottom: S(14), left: S(26), right: S(26) },
+        borderRadius: S(28),
+      }}
+      uiBackground={{ color: Color4.create(0.45, 0.18, 0.9, 0.82) }}
+    >
+      <Label
+        value="Hold  <b>E</b>  to kick"
+        fontSize={S(18)}
+        color={Color4.create(1, 1, 1, 0.88)}
+        textAlign="middle-center"
+      />
+    </UiEntity>
+  )
+}
+
+const MobileKickButton = () => {
+  if (!isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const state = getMobileKickButtonState()
+  if (!state.visible) {
+    if (state.pressed) setMobileKickPressed(false)
+    return <UiEntity uiTransform={{ display: 'none' }} />
+  }
+
+  const btnH = S(144)
+  const btnW = S(Math.round((386 / 200) * 144))
+  return (
+    <UiEntity
+      uiTransform={{
+        width: btnW,
+        height: btnH,
+        positionType: 'absolute',
+        position: {
+          right: S(280),
+          top: '50%'
+        },
+        margin: { top: -Math.round(btnH / 2) }
+      }}
+      onMouseDown={() => setMobileKickPressed(true)}
+      onMouseUp={() => setMobileKickPressed(false)}
+      onMouseLeave={() => setMobileKickPressed(false)}
+    >
+      <UiEntity
+        uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+        uiBackground={{ texture: { src: 'images/kick.png' }, textureMode: 'stretch' }}
+      />
+      {state.pressed && (
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+          uiBackground={{ texture: { src: 'images/kick_pressed.png' }, textureMode: 'stretch' }}
+        />
+      )}
+    </UiEntity>
+  )
+}
+
 // ── Prediction panels ─────────────────────────────────────────────────────────
-// Desktop: top-centered, with the inactive panel minimized to the left.
-// Mobile: left sidebar, stacked vertically in the same area as the previous checklist.
 const MatchChecklist = () => {
   const mob = isMobile()
   const k = mob ? 1.55 : 1
   const hidden =
     welcomeState.visible ||
-    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
-    (mob && getCompletedCount() === MATCHES.length)
+    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible
 
-  const openPanel = (panel: 'knockout' | 'group') => {
-    playClick()
-    predictionPanelState.expanded = panel
-  }
-
-  const minimizeExpanded = () => {
-    playClick()
-    predictionPanelState.expanded = null
-  }
-
-  const minimizedChip = (panel: 'knockout' | 'group') => {
-    const label = panel === 'knockout' ? 'KNOCKOUT' : 'GROUP STAGE'
-    const subtitle = panel === 'knockout' ? 'Bracket view' : `${getCompletedCount()}/${MATCHES.length}`
-    return (
-      <UiEntity
-        key={panel}
-        uiTransform={{
-          width: S(mob ? 180 : 160),
-          minHeight: S(mob ? 88 : 74),
-          padding: S(mob ? 12 : 10),
-          margin: mob ? `0 0 ${S(8)}px 0` : `0 ${S(10)}px 0 0`,
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          borderRadius: S(16),
-          pointerFilter: 'block'
-        }}
-        uiBackground={{ color: Color4.create(0.05, 0.05, 0.08, 0.92) }}
-        onMouseDown={() => openPanel(panel)}
-      >
-        <Label value={label} fontSize={F(mob ? 15 : 14)} color={Color4.White()}
-          uiTransform={{ height: S(mob ? 18 : 16) }} />
-        <Label value={subtitle} fontSize={F(mob ? 12 : 11)} color={MUTED}
-          uiTransform={{ height: S(mob ? 16 : 14), margin: `${S(4)}px 0 0 0` }} />
-      </UiEntity>
-    )
-  }
+  const onMinimize = () => { playClick() }
 
   return (
     <UiEntity
@@ -362,21 +429,7 @@ const MatchChecklist = () => {
         display: hidden ? 'none' : 'flex'
       }}
     >
-      {predictionPanelState.expanded === 'knockout' && minimizedChip('group')}
-      {predictionPanelState.expanded === 'group' && minimizedChip('knockout')}
-      {predictionPanelState.expanded === null && (
-        <UiEntity uiTransform={{ flexDirection: mob ? 'column' : 'row', alignItems: 'flex-start' }}>
-          {minimizedChip('knockout')}
-          {minimizedChip('group')}
-        </UiEntity>
-      )}
-
-      {predictionPanelState.expanded === 'knockout' && (
-        <KnockoutChecklistPanel mob={mob} k={k} onMinimize={minimizeExpanded} />
-      )}
-      {predictionPanelState.expanded === 'group' && (
-        <GroupStageChecklistPanel mob={mob} k={k} onMinimize={minimizeExpanded} />
-      )}
+      <KnockoutChecklistPanel mob={mob} k={k} onMinimize={onMinimize} />
     </UiEntity>
   )
 }
@@ -416,68 +469,7 @@ const PanelHeader = (props: { title: string; subtitle: string; mob: boolean; onM
   </UiEntity>
 )
 
-const GroupStageChecklistPanel = (props: { mob: boolean; k: number; onMinimize: () => void }) => {
-  const cluster = (g: (typeof GROUPS)[number]) => {
-    const done = g.matches.filter(isMatchDone).length
-    const complete = done === g.matches.length
-    const activeColor = complete ? CHECKLIST_COMPLETE : done > 0 ? CHECKLIST_PARTIAL : VIOLET
 
-    return (
-      <UiEntity key={g.name} uiTransform={{
-        flexDirection: 'column', alignItems: 'center',
-        margin: props.mob
-          ? `${S(4 * props.k)}px ${S(4 * props.k)}px ${S(4 * props.k)}px ${S(4 * props.k)}px`
-          : `0px ${S(5)}px 0px ${S(5)}px`
-      }}>
-        <UiEntity uiTransform={{ flexDirection: 'row' }}>
-          {g.matches.map((m, mi) => {
-            const cellDone = isMatchDone(m)
-            return (
-              <UiEntity key={mi}
-                uiTransform={{ width: S(14 * props.k), height: S(14 * props.k), margin: S(1 * props.k), borderRadius: S(3 * props.k) }}
-                uiBackground={{ color: cellDone ? activeColor : CELL_EMPTY }} />
-            )
-          })}
-        </UiEntity>
-        <Label value={g.name.replace('Group ', '')} fontSize={F(13 * props.k)}
-          color={complete ? CHECKLIST_COMPLETE : Color4.create(0.6, 0.6, 0.7, 1)}
-          uiTransform={{ height: S(16 * props.k) }} />
-      </UiEntity>
-    )
-  }
-
-  const rows = props.mob
-    ? [GROUPS.slice(0, 2), GROUPS.slice(2, 4), GROUPS.slice(4, 6), GROUPS.slice(6, 8), GROUPS.slice(8, 10), GROUPS.slice(10, 12)]
-    : [GROUPS.slice(0, 6), GROUPS.slice(6, 12)]
-
-  return (
-    <UiEntity
-      uiTransform={{
-        padding: S(10 * props.k),
-        flexDirection: 'column',
-        alignItems: 'center',
-        alignSelf: props.mob ? 'flex-start' : 'center',
-        borderRadius: S(16),
-        pointerFilter: 'block'
-      }}
-      uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
-    >
-      <PanelHeader
-        title="Group Stage Predictions"
-        subtitle={`${getCompletedCount()} / ${MATCHES.length} predicted  •  ${myPoints()} pts`}
-        mob={props.mob}
-        onMinimize={props.onMinimize}
-      />
-      <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
-        {rows.map((rowGroups, ri) => (
-          <UiEntity key={ri} uiTransform={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            {rowGroups.map(g => cluster(g))}
-          </UiEntity>
-        ))}
-      </UiEntity>
-    </UiEntity>
-  )
-}
 
 const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: () => void }) => {
   const scaleX = props.mob ? 0.62 : 1.22
