@@ -106,7 +106,7 @@
   ],
   "authoritativeMultiplayer": true,
   "worldConfiguration": {
-    "name": "kickoff.dcl.eth"
+    "name": "carrito.dcl.eth"
   },
   "logsPermissions": [
     "0xc502975b49398f9754afc4e9693cf0e1594f3275"

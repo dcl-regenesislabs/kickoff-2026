@@ -79,6 +79,12 @@ export const ProdeMessages = {
 
   // Client → Server: pedir snapshot actual de la pelota al conectar
   requestBallState: Schemas.Map({
+  }),
+
+  // Server → Kicker: punto de aterrizaje autoritativo post-kick (Point B)
+  kickLand: Schemas.Map({
+    x: Schemas.Float,
+    z: Schemas.Float
   })
 }
 
