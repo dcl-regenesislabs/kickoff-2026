@@ -4,6 +4,7 @@ import { GROUPS } from '../schedule/prodeData'
 import { startProdeClient } from '../client/prodeClient'
 import { initProdeLeaderboard } from '../client/prodeLeaderboard'
 import { setupWearableSpin } from '../client/wearableDisplay'
+import { setupBallClient } from '../client/ball'
 import { setupCrowdAudio, setupFieldTrigger } from '../client/sceneEffects'
 import { setupSfx, playClick } from '../client/sfx'
 import { setupReflectors } from '../client/reflectors'
@@ -38,6 +39,7 @@ export async function main() {
   setupScenePlanes()
   // setupReflectors()
   setupWearableSpin()
+  setupBallClient()
   startProdeClient(refreshAllPanels)
 }
 

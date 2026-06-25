@@ -7,6 +7,7 @@ import {
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
+import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -268,6 +269,8 @@ const ProdeUi = () => {
       )}
 
       {/* ── Group prediction form overlay ───────────────────────────────────── */}
+      <MobileKickButton />
+      <DesktopKickHint />
       <GroupForm />
 
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
@@ -299,6 +302,112 @@ const ProdeUi = () => {
 // ── Match checklist ───────────────────────────────────────────────────────────
 // Desktop: single horizontal row of 12 groups at the top.
 // Mobile:  compact 3×4 vertical sidebar on the left (avoids blocking gameplay).
+let kickHintShownAt  = 0
+let kickHintHiddenAt = 0
+const HINT_ENTER_MS  = 300
+const HINT_EXIT_MS   = 220
+const HINT_TARGET_LEFT = 100  // final resting x in unscaled px
+
+const DesktopKickHint = () => {
+  if (isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const visible = getKickHintVisible()
+  const now = Date.now()
+
+  if (visible) {
+    if (kickHintShownAt === 0) kickHintShownAt = now
+    kickHintHiddenAt = 0
+  } else {
+    if (kickHintShownAt > 0 && kickHintHiddenAt === 0) kickHintHiddenAt = now
+  }
+
+  // Exit animation finished — fully hide
+  if (kickHintHiddenAt > 0 && now - kickHintHiddenAt > HINT_EXIT_MS) {
+    kickHintShownAt = 0
+    kickHintHiddenAt = 0
+  }
+
+  // Always render the entity (never destroy/recreate it) so borderRadius is
+  // applied from the start. Visibility is controlled purely via position.
+  const targetL = S(HINT_TARGET_LEFT)
+  const offscreen = -500
+
+  let leftPos: number
+  if (kickHintShownAt === 0) {
+    leftPos = offscreen
+  } else if (kickHintHiddenAt > 0) {
+    // Exit: ease-in slide back left
+    const t = Math.min(1, (now - kickHintHiddenAt) / HINT_EXIT_MS)
+    const eased = t * t
+    leftPos = Math.round(targetL - (targetL - offscreen) * eased)
+  } else {
+    // Enter: ease-out cubic slide from left
+    const t = Math.min(1, (now - kickHintShownAt) / HINT_ENTER_MS)
+    const eased = 1 - Math.pow(1 - t, 3)
+    leftPos = Math.round(offscreen + (targetL - offscreen) * eased)
+  }
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: S(160), left: leftPos },
+        padding: { top: S(14), bottom: S(14), left: S(26), right: S(26) },
+        borderRadius: S(28),
+      }}
+      uiBackground={{ color: Color4.create(0.45, 0.18, 0.9, 0.82) }}
+    >
+      <Label
+        value="Hold  <b>E</b>  to kick"
+        fontSize={S(18)}
+        color={Color4.create(1, 1, 1, 0.88)}
+        textAlign="middle-center"
+      />
+    </UiEntity>
+  )
+}
+
+const MobileKickButton = () => {
+  if (!isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const state = getMobileKickButtonState()
+  if (!state.visible) {
+    if (state.pressed) setMobileKickPressed(false)
+    return <UiEntity uiTransform={{ display: 'none' }} />
+  }
+
+  const btnH = S(144)
+  const btnW = S(Math.round((386 / 200) * 144))
+  return (
+    <UiEntity
+      uiTransform={{
+        width: btnW,
+        height: btnH,
+        positionType: 'absolute',
+        position: {
+          right: S(280),
+          top: '50%'
+        },
+        margin: { top: -Math.round(btnH / 2) }
+      }}
+      onMouseDown={() => setMobileKickPressed(true)}
+      onMouseUp={() => setMobileKickPressed(false)}
+      onMouseLeave={() => setMobileKickPressed(false)}
+    >
+      <UiEntity
+        uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+        uiBackground={{ texture: { src: 'images/kick.png' }, textureMode: 'stretch' }}
+      />
+      {state.pressed && (
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+          uiBackground={{ texture: { src: 'images/kick_pressed.png' }, textureMode: 'stretch' }}
+        />
+      )}
+    </UiEntity>
+  )
+}
+
 const MatchChecklist = () => {
   const mob = isMobile()
   const k = mob ? 1.55 : 1

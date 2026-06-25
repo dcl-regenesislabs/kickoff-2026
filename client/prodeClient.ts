@@ -96,6 +96,7 @@ function syncOnConnect() {
   room.send('requestPredictions', {})
   room.send('requestResults', {})
   room.send('requestLeaderboard', {})
+  room.send('requestBallState', {})
 }
 
 // Ask the server for a fresh leaderboard (e.g. when the panel comes into view).
