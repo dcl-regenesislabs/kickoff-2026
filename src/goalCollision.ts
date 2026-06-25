@@ -11,10 +11,10 @@ type GoalPlane = {
 }
 
 const GOAL_COLLIDER_NAMES = [
-  EntityNames.goal_collision_left,
-  EntityNames.goal_collision_right,
-  EntityNames.goal_collision_top,
-  EntityNames.goal_collision_back
+  // EntityNames.goal_collision_left,
+  // EntityNames.goal_collision_right,
+  // EntityNames.goal_collision_top,
+  // EntityNames.goal_collision_back
 ] as const
 
 function rotateVector(vector: Vec3, rotation: Quat): Vec3 {

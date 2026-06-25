@@ -8,7 +8,11 @@
       "Bash(curl -s \"https://www.thesportsdb.com/api/v1/json/3/all_leagues.php\")",
       "Bash(python3 -c ' *)",
       "Bash(node -e \"require\\('fs'\\).readFileSync\\('assets/scene/main.composite', 'utf8'\\); const j = JSON.parse\\(require\\('fs'\\).readFileSync\\('assets/scene/main.composite', 'utf8'\\)\\); console.log\\('JSON valid, top-level keys:', Object.keys\\(j\\)\\)\")",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(node -e ' *)",
+      "Bash(xargs grep -l \"Transform.*componentId\\\\|componentId.*Transform\")",
+      "Bash(node \"C:\\\\Users\\\\Agustin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Agustin-Documents-GitHub-world-cup-prediction-game\\\\910ff1de-adc4-4eab-ae8a-b344f6b563f0\\\\scratchpad\\\\read-crdt-transforms.js\")",
+      "Bash(grep -v \"//\")"
     ]
   }
 }
