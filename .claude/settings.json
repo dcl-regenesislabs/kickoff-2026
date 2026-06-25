@@ -6,7 +6,9 @@
       "Bash(git add *)",
       "Read(//private/tmp/**)",
       "Bash(curl -s \"https://www.thesportsdb.com/api/v1/json/3/all_leagues.php\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('assets/scene/main.composite', 'utf8'\\); const j = JSON.parse\\(require\\('fs'\\).readFileSync\\('assets/scene/main.composite', 'utf8'\\)\\); console.log\\('JSON valid, top-level keys:', Object.keys\\(j\\)\\)\")",
+      "Bash(git commit *)"
     ]
   }
 }
