@@ -148,6 +148,10 @@ export function getMobileKickButtonState() {
   }
 }
 
+export function getKickHintVisible(): boolean {
+  return localIsOwner && predictedTakeUntil === 0
+}
+
 function releaseOptimistic(power: number, kx: number, kz: number) {
   if (!ballEntity) return
   optimisticKickAt   = Date.now()
