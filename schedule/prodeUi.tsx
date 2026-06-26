@@ -6,7 +6,7 @@ import {
   MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
-import { koFixtures, koPredictions } from './knockoutData'
+import { koFixtures, koPredictions, koResults, myKoPoints, scoreKoPrediction } from './knockoutData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
@@ -76,8 +76,8 @@ const infoState = { visible: false }
 export function openProdeInfo() { infoState.visible = true }
 
 // Player stats overlay ("MY SCORE").
-const scoreState = { visible: false }
-export function openScorePanel() { scoreState.visible = true }
+const scoreState = { visible: false, tab: 'total' as 'total' | 'group' | 'knockout' }
+export function openScorePanel() { scoreState.visible = true; scoreState.tab = 'total' }
 
 // Welcome overlay shown on entry; 3 steps, dismissed with "Join the Challenge".
 const welcomeState = { visible: true, step: 0 }
@@ -221,6 +221,7 @@ const MUTED     = Color4.create(0.6, 0.6, 0.7, 1)
 const PANEL_BG      = Color4.create(0.05, 0.04, 0.11, 0.97)
 const ACCENT_KO     = Color4.fromHexString('#9f78e7ff')
 const ACCENT_GS     = Color4.fromHexString('#F28C28ff')
+const ACCENT_GS_CHIP = Color4.fromHexString('#B9BBC7ff')
 const TAB_INACTIVE  = Color4.create(0.45, 0.44, 0.55, 1)
 const CHIP_HOVER    = Color4.create(0.09, 0.08, 0.18, 1)
 const CHECKLIST_PARTIAL  = Color4.fromHexString('#7a1f31ff')
@@ -235,7 +236,6 @@ function impliedWinner(s1: number, s2: number): Outcome {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const ProdeUi = () => {
-  const allComplete = getCompletedCount() === MATCHES.length
   const mob = isMobile()
   return (
     // Single root wrapper
@@ -248,20 +248,7 @@ const ProdeUi = () => {
       <MatchChecklist />
 
       {/* ── My Score entry button — only once every match is predicted ──────── */}
-      {allComplete && !scoreState.visible && (
-        <UiEntity
-          uiTransform={{
-            positionType: 'absolute',
-            position: { bottom: S(mob ? 150 : 100), left: 0 },
-            width: '100%', height: S(mob ? 150 : 130),
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
-          }}
-        >
-          <ImgButton src="images/buttons/myscore.png"
-            width={S((mob ? 150 : 130) * 2.716)} height={S(mob ? 150 : 130)}
-            onMouseDown={() => openScorePanel()} />
-        </UiEntity>
-      )}
+      <ScoreEntryButton />
 
       {/* ── Admin entry button — TOP-right (off the bottom joystick/action area) */}
       {localIsAdmin() && !adminState.visible && (
@@ -552,13 +539,13 @@ const PredictionChip = (props: {
 }) => {
   const { mob, type } = props
   const uiScale = mob ? 1.3 : 0.9
-  const accent = type === 'knockout' ? ACCENT_KO : ACCENT_GS
+  const accent = type === 'knockout' ? ACCENT_KO : ACCENT_GS_CHIP
   const label = type === 'knockout' ? 'KNOCKOUT' : 'GROUP STAGE'
   const isActive = props.active ?? false
   const completed = type === 'knockout' ? getKnockoutBoardProgress().completed : getCompletedCount()
   const total = type === 'knockout' ? KNOCKOUT_TOTAL_MATCHES : MATCHES.length
   const pct = total > 0 ? Math.round(completed / total * 100) : 0
-  const chipW = S((mob ? 248 : 232) * uiScale)
+  const chipW = S((mob ? 224 : 232) * uiScale)
   const chipH = S((mob ? 88 : 78) * uiScale)
 
   return (
@@ -582,7 +569,7 @@ const PredictionChip = (props: {
           flex: 1,
           flexDirection: 'column',
           justifyContent: 'center',
-          padding: { top: S(10 * uiScale), bottom: S(10 * uiScale), left: S(14 * uiScale), right: S(10 * uiScale) }
+          padding: { top: S(10 * uiScale), bottom: S(10 * uiScale), left: S(14 * uiScale), right: S((mob ? 6 : 10) * uiScale) }
         }}
       >
         <Label value={label} fontSize={F((mob ? 13 : 12) * uiScale)} color={Color4.White()}
@@ -594,13 +581,13 @@ const PredictionChip = (props: {
       </UiEntity>
       <UiEntity
         uiTransform={{
-          width: S((mob ? 28 : 24) * uiScale),
+          width: S((mob ? 48 : 24) * uiScale),
           alignItems: 'center',
-          justifyContent: 'center',
-          margin: `0 ${S(10 * uiScale)}px 0 0`
+          justifyContent: 'flex-end',
+          margin: `0 ${S((mob ? 10 : 10) * uiScale)}px 0 0`
         }}
       >
-        <Label value="›" fontSize={F((mob ? 22 : 20) * uiScale)} color={accent} />
+        <Label value="›" fontSize={F((mob ? 42 : 20) * uiScale)} color={accent} />
       </UiEntity>
     </UiEntity>
   )
@@ -736,6 +723,37 @@ const MatchChecklist = () => {
   )
 }
 
+const ScoreEntryButton = () => {
+  const mob = isMobile()
+  const uiScale = mob ? 1.3 : 0.9
+  const chipWidth = S((mob ? 248 : 232) * uiScale)
+  const hidden =
+    welcomeState.visible ||
+    groupState.visible || adminState.visible || infoState.visible || celebrateState.visible
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: S(mob ? 150 : 100), left: 0 },
+        width: '100%',
+        height: S(mob ? 120 : 100),
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        display: hidden ? 'none' : 'flex'
+      }}
+    >
+      <ImgButton
+        src={scoreState.visible ? 'images/buttons/myscore_pressed.png' : 'images/buttons/myscore.png'}
+        width={chipWidth}
+        height={S((mob ? 92 : 84) * uiScale)}
+        onMouseDown={() => openScorePanel()}
+      />
+    </UiEntity>
+  )
+}
+
 const GroupStageChecklistPanel = (props: { mob: boolean; k: number }) => {
   const cluster = (g: (typeof GROUPS)[number]) => {
     const done = g.matches.filter(isMatchDone).length
@@ -800,7 +818,7 @@ const GroupStageChecklistPanel = (props: { mob: boolean; k: number }) => {
       >
         <UiEntity
           uiTransform={{ width: `${pct}%`, height: '100%', borderRadius: S(3) }}
-          uiBackground={{ color: ACCENT_GS }}
+          uiBackground={{ color: ACCENT_GS_CHIP }}
         />
       </UiEntity>
       <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
@@ -1142,21 +1160,54 @@ const CompletionOverlay = () => {
 const ScorePanel = () => {
   if (!scoreState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
   const mob = isMobile()
+  const activeTab = scoreState.tab
+  const totalAccent = Color4.fromHexString('#F28C28ff')
+  const totalAccentSoft = Color4.fromHexString('#FFD089ff')
+  const totalAccentDim = Color4.fromHexString('#C96D1Dff')
+  const groupAccent = Color4.fromHexString('#B9BBC7ff')
+  const groupAccentSoft = Color4.fromHexString('#E6E7EDff')
+  const groupAccentDim = Color4.fromHexString('#8F92A0ff')
+  const knockoutAccent = ACCENT_KO
+  const knockoutAccentSoft = Color4.fromHexString('#CEB1FFFF')
+  const knockoutAccentDim = Color4.fromHexString('#7B5FC8ff')
+  const panelAccent = activeTab === 'total' ? totalAccent : activeTab === 'group' ? groupAccent : knockoutAccent
+  const panelSoft = activeTab === 'total' ? Color4.create(0.22, 0.12, 0.03, 0.45) : activeTab === 'group' ? Color4.create(0.16, 0.18, 0.24, 0.45) : Color4.create(0.16, 0.10, 0.28, 0.45)
+  const cardBg = activeTab === 'total' ? Color4.create(0.24, 0.16, 0.08, 0.92) : activeTab === 'group' ? Color4.create(0.22, 0.24, 0.30, 0.92) : Color4.create(0.21, 0.19, 0.38, 0.92)
+  const sectionBg = activeTab === 'total' ? Color4.create(0.15, 0.09, 0.03, 0.42) : activeTab === 'group' ? Color4.create(0.15, 0.17, 0.22, 0.42) : Color4.create(0.12, 0.09, 0.20, 0.42)
+  const totalGroupCardBg = Color4.create(0.24, 0.24, 0.30, 0.92)
+  const totalKnockoutCardBg = Color4.create(0.21, 0.19, 0.38, 0.92)
 
-  // Hits breakdown over matches that already have an official result.
-  let exact = 0, winner = 0, missed = 0, pending = 0
+  let groupExact = 0, groupWinner = 0, groupMissed = 0, groupPending = 0
   for (const p of predictions) {
     if (!p.submitted) continue
     const r = getResult(p.matchId)
-    if (!r) { pending++; continue }
+    if (!r) { groupPending++; continue }
     const s = scorePrediction(p, r)
-    if (s === PTS_WINNER + PTS_SCORE) exact++
-    else if (s === PTS_WINNER) winner++
-    else missed++
+    if (s === PTS_WINNER + PTS_SCORE) groupExact++
+    else if (s === PTS_WINNER) groupWinner++
+    else groupMissed++
   }
-  const played   = exact + winner + missed
-  const accuracy = played > 0 ? Math.round(((exact + winner) / played) * 100) : null
-  const points   = myPoints()
+
+  let koExact = 0, koWinner = 0, koMissed = 0, koPending = 0
+  for (const p of koPredictions) {
+    if (!p.submitted) continue
+    const r = koResults.get(p.fixtureId)
+    if (!r) { koPending++; continue }
+    const s = scoreKoPrediction(p, r)
+    if (s === PTS_WINNER + PTS_SCORE) koExact++
+    else if (s === PTS_WINNER) koWinner++
+    else koMissed++
+  }
+
+  const groupPlayed = groupExact + groupWinner + groupMissed
+  const koPlayed = koExact + koWinner + koMissed
+  const totalPlayed = groupPlayed + koPlayed
+  const groupAccuracy = groupPlayed > 0 ? Math.round(((groupExact + groupWinner) / groupPlayed) * 100) : null
+  const koAccuracy = koPlayed > 0 ? Math.round(((koExact + koWinner) / koPlayed) * 100) : null
+  const totalAccuracy = totalPlayed > 0 ? Math.round(((groupExact + groupWinner + koExact + koWinner) / totalPlayed) * 100) : null
+  const groupPoints = myPoints()
+  const koPoints = myKoPoints()
+  const totalPoints = groupPoints + koPoints
 
   // Rank from the cached leaderboard (sorted desc by points), matched by wallet.
   const lb   = getLeaderboard()
@@ -1164,23 +1215,151 @@ const ScorePanel = () => {
   const idx  = me ? lb.findIndex(r => r.address?.toLowerCase() === me) : -1
   const rank = idx >= 0 ? `#${idx + 1} / ${lb.length}` : 'Unranked'
 
-  const statBlock = (label: string, value: string, color: Color4) => (
-    <UiEntity uiTransform={{ width: S(360), height: S(150), padding: S(16), flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: S(20) }}
-      uiBackground={{ color: DARK_BTN }}>
-      <Label value={value} fontSize={F(56)} color={color} uiTransform={{ width: '100%', height: S(80) }} />
-      <Label value={label} fontSize={F(24)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(36) }} />
+  const statBlock = (label: string, value: string, color: Color4, bg: Color4, compact = false) => (
+    <UiEntity
+      uiTransform={{
+        width: S(compact ? (mob ? 298 : 168) : (mob ? 318 : 286)),
+        height: S(compact ? (mob ? 104 : 84) : (mob ? 112 : 102)),
+        padding: S(compact ? 10 : 14),
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: S(18)
+      }}
+      uiBackground={{ color: bg }}
+    >
+      <UiEntity
+        uiTransform={{ width: S(compact ? 34 : 46), height: S(4), borderRadius: S(2), margin: `0 0 ${S(compact ? 8 : 10)}px 0` }}
+        uiBackground={{ color }}
+      />
+      <Label value={value} fontSize={F(compact ? (mob ? 40 : 28) : (mob ? 46 : 40))} color={color}
+        uiTransform={{ width: '100%', height: S(compact ? (mob ? 44 : 32) : (mob ? 52 : 46)) }} />
+      <Label value={label} fontSize={F(compact ? (mob ? 19 : 15) : (mob ? 21 : 19))} color={Color4.create(0.78, 0.78, 0.82, 1)}
+        uiTransform={{ width: '100%', height: S(compact ? 24 : 30) }} />
     </UiEntity>
   )
 
+  const totalStatGrid = () => {
+    if (!mob) {
+      return (
+        <UiEntity uiTransform={{ width: '100%', height: S(84), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(20)}px 0` }}>
+          {statBlock('Group stage', `${groupPoints}`, Color4.White(), totalGroupCardBg, true)}
+          {statBlock('Knockout stage', `${koPoints}`, knockoutAccentSoft, totalKnockoutCardBg, true)}
+          {statBlock('Total points', `${totalPoints}`, totalAccent, cardBg, true)}
+          {statBlock('Leaderboard', rank, totalAccentSoft, cardBg, true)}
+        </UiEntity>
+      )
+    }
+
+    return (
+      <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch', margin: `0 0 ${S(20)}px 0` }}>
+        <UiEntity uiTransform={{ width: '100%', height: S(104), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
+          {statBlock('Group stage', `${groupPoints}`, Color4.White(), totalGroupCardBg, true)}
+          {statBlock('Knockout stage', `${koPoints}`, knockoutAccentSoft, totalKnockoutCardBg, true)}
+        </UiEntity>
+        <UiEntity uiTransform={{ width: '100%', height: S(104), flexDirection: 'row', justifyContent: 'space-between' }}>
+          {statBlock('Total points', `${totalPoints}`, totalAccent, cardBg, true)}
+          {statBlock('Leaderboard', rank, totalAccentSoft, cardBg, true)}
+        </UiEntity>
+      </UiEntity>
+    )
+  }
+
+  const tabButton = (id: 'total' | 'group' | 'knockout', label: string, accent: Color4) => {
+    const active = activeTab === id
+    return (
+      <UiEntity
+        key={id}
+        uiTransform={{
+          width: 'auto',
+          height: S(mob ? 64 : 44),
+          margin: `0 ${S(mob ? 12 : 10)}px 0 ${S(mob ? 12 : 10)}px`,
+          padding: { left: S(4), right: S(4), top: 0, bottom: 0 },
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerFilter: 'block'
+        }}
+        onMouseDown={() => { playClick(); scoreState.tab = id }}
+      >
+        <Label
+          value={label}
+          fontSize={F(mob ? 24 : 17)}
+          color={active ? Color4.White() : MUTED}
+          uiTransform={{ height: S(mob ? 30 : 20), margin: `0 0 ${S(6)}px 0` }}
+        />
+        <UiEntity
+          uiTransform={{ width: '100%', height: S(3), borderRadius: S(2) }}
+          uiBackground={{ color: active ? accent : Color4.create(0, 0, 0, 0) }}
+        />
+      </UiEntity>
+    )
+  }
+
   const breakdownRow = (label: string, count: number, color: Color4) => (
-    <UiEntity uiTransform={{ width: '100%', height: S(52), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: `0 0 ${S(10)}px 0` }}>
-      <Label value={label} fontSize={F(28)} color={Color4.White()} uiTransform={{ height: S(52) }} />
-      <Label value={String(count)} fontSize={F(30)} color={color} uiTransform={{ height: S(52) }} />
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        height: S(mob ? 54 : 48),
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: `0 0 ${S(8)}px 0`,
+        padding: { left: S(12), right: S(12) },
+        borderRadius: S(14)
+      }}
+      uiBackground={{ color: Color4.create(1, 1, 1, 0.03) }}
+    >
+      <Label value={label} fontSize={F(mob ? 26 : 24)} color={Color4.White()} uiTransform={{ height: S(40) }} />
+      <Label value={String(count)} fontSize={F(mob ? 30 : 28)} color={color} uiTransform={{ height: S(40) }} />
     </UiEntity>
   )
 
   // Matches already played in the tournament (those with an official result).
-  const playedTotal = MATCHES.filter(m => hasResult(m.id)).length
+  const groupResolved = MATCHES.filter(m => hasResult(m.id)).length
+  const totalResolved = groupResolved + koResults.size
+  const totalFixtures = MATCHES.length + koFixtures.length
+
+  const breakdownSection = (
+    title: string,
+    accent: Color4,
+    strong: Color4,
+    mid: Color4,
+    low: Color4,
+    exact: number,
+    winner: number,
+    missed: number,
+    pending: number,
+    played: number,
+    accuracy: number | null,
+    predictedCount: number,
+    totalCount: number
+  ) => (
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        padding: S(20),
+        borderRadius: S(24)
+      }}
+      uiBackground={{ color: sectionBg }}
+    >
+      <Label value={title} fontSize={F(mob ? 28 : 26)} color={accent}
+        uiTransform={{ width: '100%', height: S(38), margin: `0 0 ${S(10)}px 0` }} />
+      <Label value={`Predicted: ${predictedCount} / ${totalCount}`} fontSize={F(24)}
+        color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(34), margin: `0 0 ${S(12)}px 0` }} />
+      {breakdownRow(`Exact scores  (+${PTS_WINNER + PTS_SCORE})`, exact, strong)}
+      {breakdownRow(`Correct winner  (+${PTS_WINNER})`, winner, mid)}
+      {breakdownRow('Missed', missed, low)}
+      {breakdownRow('Pending (not played yet)', pending, Color4.create(0.6, 0.6, 0.7, 1))}
+      <Label
+        value={accuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${accuracy}%   (${exact + winner} hits / ${played} played)`}
+        fontSize={F(26)} color={accent}
+        uiTransform={{ width: '100%', height: S(40), margin: `${S(6)}px 0 0 0` }}
+      />
+    </UiEntity>
+  )
 
   return (
     <UiEntity
@@ -1193,39 +1372,96 @@ const ScorePanel = () => {
     >
       <UiEntity
         uiTransform={{
-          width: S(880), height: S(mob ? 860 : 800), padding: S(56), alignSelf: 'center',
-          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
+          width: S(880), height: S(mob ? 1030 : 900), padding: S(40), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start',
           borderRadius: S(36)
         }}
         uiBackground={{ color: DARK }}
       >
-        <Label value="MY SCORE" fontSize={F(46)} color={VIOLET}
+        <UiEntity
+          uiTransform={{
+            width: '100%',
+            padding: { top: S(18), bottom: S(18), left: S(22), right: S(22) },
+            margin: `0 0 ${S(18)}px 0`,
+            borderRadius: S(24),
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+          uiBackground={{ color: panelSoft }}
+        >
+        <Label value="MY SCORE" fontSize={F(46)} color={panelAccent}
           uiTransform={{ width: '100%', height: S(60), margin: `0 0 ${S(4)}px 0` }} />
-        <Label value={`Matches played: ${playedTotal} / ${MATCHES.length}`} fontSize={F(24)}
-          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(34), margin: `0 0 ${S(14)}px 0` }} />
-
-        {/* Points + rank */}
-        <UiEntity uiTransform={{ width: '100%', height: S(150), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(24)}px 0` }}>
-          {statBlock('Total points', `${points}`, GOLD)}
-          {statBlock('Leaderboard', rank, VIOLET)}
+        <Label value={`Matches with results: ${totalResolved} / ${totalFixtures}`} fontSize={F(24)}
+          color={Color4.create(0.78, 0.78, 0.82, 1)} uiTransform={{ width: '100%', height: S(34) }} />
         </UiEntity>
 
-        {/* Hits breakdown */}
-        <Label value="Results so far" fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)}
-          uiTransform={{ width: '100%', height: S(36), margin: `0 0 ${S(12)}px 0` }} />
-        {breakdownRow(`Exact scores  (+${PTS_WINNER + PTS_SCORE})`, exact, GOLD)}
-        {breakdownRow(`Correct winner  (+${PTS_WINNER})`, winner, TEAL)}
-        {breakdownRow('Missed', missed, RED)}
-        {breakdownRow('Pending (not played yet)', pending, Color4.create(0.6, 0.6, 0.7, 1))}
+        <UiEntity uiTransform={{ width: '100%', height: S(mob ? 64 : 44), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `0 0 ${S(20)}px 0` }}>
+          {tabButton('total', 'TOTAL SCORE', totalAccent)}
+          {tabButton('group', 'GROUP STAGE', groupAccent)}
+          {tabButton('knockout', 'KNOCKOUT STAGE', knockoutAccent)}
+        </UiEntity>
 
-        {/* Accuracy */}
-        <Label
-          value={accuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${accuracy}%   (${exact + winner} hits / ${played} played)`}
-          fontSize={F(26)} color={VIOLET}
-          uiTransform={{ width: '100%', height: S(40), margin: `${S(6)}px 0 ${S(14)}px 0` }}
-        />
+        <UiEntity uiTransform={{ width: '100%', flex: 1, flexDirection: 'column', alignItems: 'stretch' }}>
+          {activeTab === 'total' && (
+            <UiEntity
+              uiTransform={{
+                width: '100%',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                padding: S(20),
+                borderRadius: S(24)
+              }}
+              uiBackground={{ color: sectionBg }}
+            >
+              {totalStatGrid()}
+              <Label value="Overall summary" fontSize={F(26)} color={totalAccent}
+                uiTransform={{ width: '100%', height: S(36), margin: `0 0 ${S(16)}px 0` }} />
+              {breakdownRow('Exact scores total', groupExact + koExact, totalAccentSoft)}
+              {breakdownRow('Correct winners total', groupWinner + koWinner, totalAccent)}
+              {breakdownRow('Missed total', groupMissed + koMissed, totalAccentDim)}
+              {breakdownRow('Pending total', groupPending + koPending, Color4.create(0.6, 0.6, 0.7, 1))}
+              <Label
+                value={totalAccuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${totalAccuracy}%   (${groupExact + groupWinner + koExact + koWinner} hits / ${totalPlayed} played)`}
+                fontSize={F(26)} color={totalAccent}
+                uiTransform={{ width: '100%', height: S(40), margin: `${S(12)}px 0 0 0` }}
+              />
+            </UiEntity>
+          )}
 
-        <UiEntity uiTransform={{ width: '100%', height: S(88), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          {activeTab === 'group' && breakdownSection(
+            'Group Stage Results',
+            groupAccent,
+            groupAccentSoft,
+            groupAccent,
+            groupAccentDim,
+            groupExact,
+            groupWinner,
+            groupMissed,
+            groupPending,
+            groupPlayed,
+            groupAccuracy,
+            predictions.filter(p => p.submitted).length,
+            MATCHES.length
+          )}
+
+          {activeTab === 'knockout' && breakdownSection(
+            'Knockout Stage Results',
+            knockoutAccent,
+            knockoutAccentSoft,
+            knockoutAccent,
+            knockoutAccentDim,
+            koExact,
+            koWinner,
+            koMissed,
+            koPending,
+            koPlayed,
+            koAccuracy,
+            koPredictions.filter(p => p.submitted).length,
+            koFixtures.length
+          )}
+        </UiEntity>
+
+        <UiEntity uiTransform={{ width: '100%', height: S(88), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `${S(24)}px 0 0 0` }}>
           <ImgButton src="images/buttons/close.png"
             width={S(88 * 2.27)} height={S(88)}
             onMouseDown={() => { scoreState.visible = false }} />
