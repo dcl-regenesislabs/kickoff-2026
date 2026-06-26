@@ -836,7 +836,7 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
   const progress = getKnockoutBoardProgress()
   const panelScale = props.k / 1.55
   const labelColor = Color4.White()
-  const compactScale = 1.1
+  const compactScale = 1.35
   const boardW = S(760 * compactScale)
   const boardH = Math.round(boardW * MOBILE_KO_BASE_H / MOBILE_KO_BASE_W)
   const boxW = Math.round(boardW * MOBILE_KO_BOX_W / MOBILE_KO_BASE_W)
@@ -1272,7 +1272,7 @@ const ScorePanel = () => {
         key={id}
         uiTransform={{
           width: 'auto',
-          height: S(mob ? 64 : 44),
+          height: S(mob ? 80 : 44),
           margin: `0 ${S(mob ? 12 : 10)}px 0 ${S(mob ? 12 : 10)}px`,
           padding: { left: S(4), right: S(4), top: 0, bottom: 0 },
           flexDirection: 'column',
@@ -1284,9 +1284,9 @@ const ScorePanel = () => {
       >
         <Label
           value={label}
-          fontSize={F(mob ? 24 : 17)}
+          fontSize={F(mob ? 30 : 17)}
           color={active ? Color4.White() : MUTED}
-          uiTransform={{ height: S(mob ? 30 : 20), margin: `0 0 ${S(6)}px 0` }}
+          uiTransform={{ height: S(mob ? 38 : 20), margin: `0 0 ${S(6)}px 0` }}
         />
         <UiEntity
           uiTransform={{ width: '100%', height: S(3), borderRadius: S(2) }}
@@ -1395,7 +1395,7 @@ const ScorePanel = () => {
           color={Color4.create(0.78, 0.78, 0.82, 1)} uiTransform={{ width: '100%', height: S(34) }} />
         </UiEntity>
 
-        <UiEntity uiTransform={{ width: '100%', height: S(mob ? 64 : 44), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `0 0 ${S(20)}px 0` }}>
+        <UiEntity uiTransform={{ width: '100%', height: S(mob ? 80 : 44), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `0 0 ${S(20)}px 0` }}>
           {tabButton('total', 'TOTAL SCORE', totalAccent)}
           {tabButton('group', 'GROUP STAGE', groupAccent)}
           {tabButton('knockout', 'KNOCKOUT STAGE', knockoutAccent)}
