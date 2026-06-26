@@ -131,11 +131,14 @@ function setupKapuPortal() {
 
 function buildWorld() {
   // Group stage panels — hidden while knockout layout is active
+  // const matchesPerGroup = GROUPS[0]?.matches.length ?? 6
   // for (let i = 0; i < GROUPS.length; i++) {
   //   const left = i % 2 === 0
   //   const z = left ? 56 : 44
   //   const x = 56 + Math.floor(i / 2) * 6
-  //   addProdePanel(i, {
+  //   const start = i * matchesPerGroup + 1
+  //   const end = start + matchesPerGroup - 1
+  //   addProdePanel(i, `${start}-${end}`, {
   //     position: Vector3.create(x, 3, z - 2),
   //     rotation: Quaternion.fromEulerDegrees(0, 90, 0),
   //     scale: Vector3.create(2.2, 2.2, 2.2)
@@ -164,36 +167,36 @@ function buildKnockoutPanels() {
   // power-of-2 pattern ('16'/'8'/'4') — verify when the API defines those rounds.
 
   // ── ROUND OF 32 — LEFT (slots 0,2,4,6) ────────────────────────────────────
-  addKnockoutPanel('ROUND OF 32', '32', 0, { position: Vector3.create(61.05, Y, 70.65), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 32', '32', 2, { position: Vector3.create(61.05, Y, 55.55), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 32', '32', 4, { position: Vector3.create(61.05, Y, 39.55), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 32', '32', 6, { position: Vector3.create(61.05, Y, 24.45), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 1-2 SUMMARY',   '32', 0, { position: Vector3.create(61.05, Y, 70.65), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 3-4 SUMMARY',   '32', 2, { position: Vector3.create(61.05, Y, 55.55), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 5-6 SUMMARY',   '32', 4, { position: Vector3.create(61.05, Y, 39.55), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 7-8 SUMMARY',   '32', 6, { position: Vector3.create(61.05, Y, 24.45), rotation: L, scale: S })
 
   // ── ROUND OF 16 — LEFT (slots 0,2) ────────────────────────────────────────
-  addKnockoutPanel('ROUND OF 16', '16', 0, { position: Vector3.create(69.05, Y, 63.15), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 16', '16', 2, { position: Vector3.create(69.15, Y, 32.05), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 16', 'MATCH 17-18 SUMMARY', '16', 0, { position: Vector3.create(69.05, Y, 63.15), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 16', 'MATCH 19-20 SUMMARY', '16', 2, { position: Vector3.create(69.15, Y, 32.05), rotation: L, scale: S })
 
   // ── QUARTER FINAL — LEFT (slot 0) ─────────────────────────────────────────
-  addKnockoutPanel('QUARTER FINAL', '8', 0, { position: Vector3.create(76.15, Y, 48.05), rotation: L, scale: S })
+  addKnockoutPanel('QUARTER FINAL', 'MATCH 25-26 SUMMARY', '8', 0, { position: Vector3.create(76.15, Y, 48.05), rotation: L, scale: S })
 
   // ── SEMI FINAL (2 crosses) + FINAL/3RD placeholder — center ───────────────
   const FINAL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
   const THIRD_PLACE_ROT = Quaternion.fromEulerDegrees(0, 0, 0)
   const FINAL_POS = Vector3.create(86.46, Y, 55.10)
   const THIRD_PLACE_POS = Vector3.create(86.46, Y, 39.78)
-  addKnockoutPanel('FINAL / 3RD', '', 0, { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
-  addKnockoutPanel('SEMI FINAL', '4', 0, { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
+  addKnockoutPanel('SEMI FINAL',  'MATCH 29-30 SUMMARY', '4', 0, { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
+  addKnockoutPanel('FINAL / 3RD', 'MATCH 31-32 SUMMARY', '',  0, { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
 
   // ── QUARTER FINAL — RIGHT (slot 2) ────────────────────────────────────────
-  addKnockoutPanel('QUARTER FINAL', '8', 2, { position: Vector3.create(96.76, Y, 47.22), rotation: R, scale: S })
+  addKnockoutPanel('QUARTER FINAL', 'MATCH 27-28 SUMMARY', '8', 2, { position: Vector3.create(96.76, Y, 47.22), rotation: R, scale: S })
 
   // ── ROUND OF 16 — RIGHT (slots 4,6) ───────────────────────────────────────
-  addKnockoutPanel('ROUND OF 16', '16', 4, { position: Vector3.create(103.86, Y, 63.00), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 16', '16', 6, { position: Vector3.create(103.86, Y, 32.12), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 16', 'MATCH 21-22 SUMMARY', '16', 4, { position: Vector3.create(103.86, Y, 63.00), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 16', 'MATCH 23-24 SUMMARY', '16', 6, { position: Vector3.create(103.86, Y, 32.12), rotation: R, scale: S })
 
   // ── ROUND OF 32 — RIGHT (slots 8,10,12,14) ────────────────────────────────
-  addKnockoutPanel('ROUND OF 32', '32', 8,  { position: Vector3.create(111.86, Y, 70.82), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 32', '32', 10, { position: Vector3.create(111.86, Y, 55.72), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 32', '32', 12, { position: Vector3.create(111.86, Y, 39.72), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 32', '32', 14, { position: Vector3.create(111.86, Y, 24.62), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 9-10 SUMMARY',  '32', 8,  { position: Vector3.create(111.86, Y, 70.82), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 11-12 SUMMARY', '32', 10, { position: Vector3.create(111.86, Y, 55.72), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 13-14 SUMMARY', '32', 12, { position: Vector3.create(111.86, Y, 39.72), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', 'MATCH 15-16 SUMMARY', '32', 14, { position: Vector3.create(111.86, Y, 24.62), rotation: R, scale: S })
 }

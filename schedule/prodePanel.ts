@@ -73,7 +73,7 @@ function mkBg(y: number, h: number, color: Color4, root: Entity): Entity {
 }
 
 // ── One clickable board per group ─────────────────────────────────────────────
-export function addProdePanel(groupIndex: number, transform: TransformTypeWithOptionals) {
+export function addProdePanel(groupIndex: number, matchRange: string, transform: TransformTypeWithOptionals) {
   const g = GROUPS[groupIndex]
   if (!g) return
 
@@ -109,7 +109,7 @@ export function addProdePanel(groupIndex: number, transform: TransformTypeWithOp
   const nameLbl = engine.addEntity()
   Transform.createOrReplace(nameLbl, { position: Vector3.create(0, 0.92, FRONT_Z), parent: root })
   TextShape.createOrReplace(nameLbl, {
-    text: g.name, fontSize: 1.1, textColor: WHITE,
+    text: matchRange, fontSize: 1.1, textColor: WHITE,
     textAlign: TextAlignMode.TAM_MIDDLE_CENTER
   })
 
@@ -379,7 +379,7 @@ export function refreshAllPanels() { for (const r of panelRefreshers) r() }
 const KO_PLACEHOLDER = Color4.fromHexString('#2a2a4aff')
 
 export function addKnockoutPanel(
-  roundLabel: string, round: string, slot0: number, transform: TransformTypeWithOptionals
+  roundLabel: string, matchLabel: string, round: string, slot0: number, transform: TransformTypeWithOptionals
 ) {
   const root = engine.addEntity()
   Transform.createOrReplace(root, transform)
@@ -394,29 +394,34 @@ export function addKnockoutPanel(
     invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
   })
 
-  // Round label header
+  // Top label — round name (always visible, same position as group name in group panels)
+  const nameLbl = engine.addEntity()
+  Transform.createOrReplace(nameLbl, { position: Vector3.create(0, 0.92, FRONT_Z), parent: root })
+  TextShape.createOrReplace(nameLbl, { text: roundLabel, fontSize: 1.1, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  // Match summary header strip (violet)
   const hdrBg = engine.addEntity()
   Transform.createOrReplace(hdrBg, { position: Vector3.create(0, 0.44, BG_Z), scale: Vector3.create(2.48, 0.16, 1), parent: root })
   MeshRenderer.setPlane(hdrBg)
-  Material.setBasicMaterial(hdrBg, { diffuseColor: PROG_HEADER })
+  Material.setBasicMaterial(hdrBg, { diffuseColor: VIOLET })
   const hdrLbl = engine.addEntity()
   Transform.createOrReplace(hdrLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
-  TextShape.createOrReplace(hdrLbl, { text: roundLabel, fontSize: 0.8, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+  TextShape.createOrReplace(hdrLbl, { text: matchLabel, fontSize: 0.8, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
 
   // Two match rows; keep entity refs so we can update them on refresh.
   type KoRow = { flag1: Entity; flag2: Entity; teams: Entity; status: Entity }
-  const rowYs = [0.16, -0.46]
+  const rowYs = [0.02, -0.62]
   const rows: KoRow[] = rowYs.map((y) => {
     const flag1 = engine.addEntity()
-    Transform.createOrReplace(flag1, { position: Vector3.create(-0.86, y, BG_Z), scale: Vector3.create(0.34, 0.23, 1), parent: root })
+    Transform.createOrReplace(flag1, { position: Vector3.create(-0.86, y, BG_Z), scale: Vector3.create(0.46, 0.31, 1), parent: root })
     const flag2 = engine.addEntity()
-    Transform.createOrReplace(flag2, { position: Vector3.create(0.86, y, BG_Z), scale: Vector3.create(0.34, 0.23, 1), parent: root })
+    Transform.createOrReplace(flag2, { position: Vector3.create(0.86, y, BG_Z), scale: Vector3.create(0.46, 0.31, 1), parent: root })
     const teams = engine.addEntity()
     Transform.createOrReplace(teams, { position: Vector3.create(0, y, FRONT_Z), parent: root })
-    TextShape.createOrReplace(teams, { text: '', fontSize: 0.6, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    TextShape.createOrReplace(teams, { text: '', fontSize: 0.8, textColor: Color4.create(0, 0, 0, 1), textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
     const status = engine.addEntity()
     Transform.createOrReplace(status, { position: Vector3.create(0, y - 0.22, FRONT_Z), parent: root })
-    TextShape.createOrReplace(status, { text: '', fontSize: 0.5, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    TextShape.createOrReplace(status, { text: '', fontSize: 0.65, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
     return { flag1, flag2, teams, status }
   })
 
@@ -440,12 +445,12 @@ export function addKnockoutPanel(
       const status = TextShape.getMutable(row.status)
       if (!fx) {
         setFlag(row.flag1, null); setFlag(row.flag2, null)
-        teams.text = 'A DEFINIR'; teams.textColor = GRAY
-        status.text = 'PRÓXIMAMENTE'; status.textColor = MUTED
+        teams.text = 'TBD'; teams.textColor = Color4.create(0, 0, 0, 1)
+        status.text = 'COMING SOON'; status.textColor = Color4.create(0, 0, 0, 1)
         return
       }
       setFlag(row.flag1, flagFor(fx.team1)); setFlag(row.flag2, flagFor(fx.team2))
-      teams.text = `${abbr(fx.team1)}  vs  ${abbr(fx.team2)}`; teams.textColor = WHITE
+      teams.text = `${abbr(fx.team1)}  vs  ${abbr(fx.team2)}`; teams.textColor = Color4.create(0, 0, 0, 1)
       const r = koResults.get(fx.id)
       if (r) { status.text = `${r.score1} - ${r.score2}`; status.textColor = ACCENT }
       else { status.text = ''; status.textColor = MUTED }

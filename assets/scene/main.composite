@@ -1668,20 +1668,20 @@
         "587": {
           "json": {
             "position": {
-              "x": 86.5,
+              "x": 82.75,
               "y": 0,
-              "z": 47.5
+              "z": 70
             },
             "scale": {
-              "x": 10,
-              "y": 10,
-              "z": 10
+              "x": 1,
+              "y": 1,
+              "z": 1
             },
             "rotation": {
               "x": 0,
-              "y": 0,
+              "y": 1,
               "z": 0,
-              "w": 1
+              "w": 0
             },
             "parent": 0
           }
@@ -1731,9 +1731,9 @@
         "590": {
           "json": {
             "position": {
-              "x": 84,
+              "x": 91.5,
               "y": 0,
-              "z": 70.75
+              "z": 70
             },
             "scale": {
               "x": 1,
@@ -1744,28 +1744,7 @@
               "x": 0,
               "y": 1,
               "z": 0,
-              "w": 6.123234262925839e-17
-            },
-            "parent": 0
-          }
-        },
-        "591": {
-          "json": {
-            "position": {
-              "x": 89.5,
-              "y": 0,
-              "z": 70.75
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 1,
-              "z": 0,
-              "w": 6.123234262925839e-17
+              "w": 0
             },
             "parent": 0
           }
@@ -1810,6 +1789,321 @@
               "w": 1
             },
             "parent": 0
+          }
+        },
+        "595": {
+          "json": {
+            "position": {
+              "x": 87.25,
+              "y": 0,
+              "z": 68
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 1,
+              "z": 0,
+              "w": 0
+            },
+            "parent": 0
+          }
+        },
+        "597": {
+          "json": {
+            "position": {
+              "x": 86.5,
+              "y": 0,
+              "z": 47.5
+            },
+            "scale": {
+              "x": 10,
+              "y": 10,
+              "z": 10
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
+        "598": {
+          "json": {
+            "position": {
+              "x": 10,
+              "y": 0.5,
+              "z": 23.5
+            },
+            "scale": {
+              "x": 2,
+              "y": 2,
+              "z": 2
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
+        },
+        "599": {
+          "json": {
+            "position": {
+              "x": 13.25,
+              "y": 0.800000011920929,
+              "z": 31.25
+            },
+            "scale": {
+              "x": 0.019999999552965164,
+              "y": 0.019999999552965164,
+              "z": 0.019999999552965164
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
+        "600": {
+          "json": {
+            "position": {
+              "x": 8.5,
+              "y": 0.800000011920929,
+              "z": 31.25
+            },
+            "scale": {
+              "x": 0.019999999552965164,
+              "y": 0.019999999552965164,
+              "z": 0.019999999552965164
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
+        "601": {
+          "json": {
+            "position": {
+              "x": 4,
+              "y": 0.800000011920929,
+              "z": 31.25
+            },
+            "scale": {
+              "x": 0.019999999552965164,
+              "y": 0.019999999552965164,
+              "z": 0.019999999552965164
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
+        "602": {
+          "json": {
+            "position": {
+              "x": 20,
+              "y": 0,
+              "z": 15.75
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
+        },
+        "603": {
+          "json": {
+            "position": {
+              "x": 1.141469141430207e-10,
+              "y": 0,
+              "z": -3
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 602
+          }
+        },
+        "604": {
+          "json": {
+            "position": {
+              "x": 3.424425187859015e-10,
+              "y": 0,
+              "z": -9
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 602
+          }
+        },
+        "605": {
+          "json": {
+            "position": {
+              "x": 2.282956046428808e-10,
+              "y": 0,
+              "z": -6
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 602
+          }
+        },
+        "606": {
+          "json": {
+            "position": {
+              "x": 4.565912092857616e-10,
+              "y": 0,
+              "z": -12
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 602
+          }
+        },
+        "608": {
+          "json": {
+            "position": {
+              "x": 6.848868139286424e-10,
+              "y": 0,
+              "z": -18
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 602
+          }
+        },
+        "609": {
+          "json": {
+            "position": {
+              "x": 5.707398997856217e-10,
+              "y": 0,
+              "z": -15
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 602
+          }
+        },
+        "610": {
+          "json": {
+            "position": {
+              "x": 1.141469141430207e-10,
+              "y": 0,
+              "z": -3
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 670
+          }
+        },
+        "611": {
+          "json": {
+            "position": {
+              "x": 3.424425187859015e-10,
+              "y": 0,
+              "z": -9
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 670
           }
         },
         "612": {
@@ -2356,6 +2650,27 @@
               "w": 0.7071067690849304
             },
             "parent": 0
+          }
+        },
+        "638": {
+          "json": {
+            "position": {
+              "x": 2.282956046428808e-10,
+              "y": 0,
+              "z": -6
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 670
           }
         },
         "639": {
@@ -2945,6 +3260,90 @@
             },
             "parent": 0
           }
+        },
+        "667": {
+          "json": {
+            "position": {
+              "x": 4.565912092857616e-10,
+              "y": 0,
+              "z": -12
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 670
+          }
+        },
+        "668": {
+          "json": {
+            "position": {
+              "x": 6.848868139286424e-10,
+              "y": 0,
+              "z": -18
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 670
+          }
+        },
+        "669": {
+          "json": {
+            "position": {
+              "x": 5.707398997856217e-10,
+              "y": 0,
+              "z": -15
+            },
+            "scale": {
+              "x": 0.9999999403953552,
+              "y": 1,
+              "z": 0.9999999403953552
+            },
+            "rotation": {
+              "x": 0,
+              "y": -1.7133295671101223e-8,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 670
+          }
+        },
+        "670": {
+          "json": {
+            "position": {
+              "x": 20,
+              "y": 0,
+              "z": 72.5
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
         }
       }
     },
@@ -3039,28 +3438,6 @@
               },
               {
                 "clip": "Dispenser_gownAction",
-                "playing": false,
-                "weight": 1,
-                "speed": 1,
-                "loop": false,
-                "shouldReset": false
-              }
-            ]
-          }
-        },
-        "587": {
-          "json": {
-            "states": [
-              {
-                "clip": "Attendee_Of_Month_Avatar",
-                "playing": false,
-                "weight": 1,
-                "speed": 1,
-                "loop": false,
-                "shouldReset": false
-              },
-              {
-                "clip": "Attendee_Of_Month_Prop",
                 "playing": false,
                 "weight": 1,
                 "speed": 1,
@@ -3545,28 +3922,161 @@
         },
         "587": {
           "json": {
-            "src": "assets/scene/Models/attendee-of-month-emote_emote/attendee-of-month-emote_emote.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
+            "src": "assets/scene/Models/PodiumKickoff01_gray/PodiumKickoff01_gray.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
           }
         },
         "590": {
           "json": {
-            "src": "assets/scene/Models/Podium01/Podium01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "591": {
-          "json": {
-            "src": "assets/scene/Models/Podium01/Podium01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
+            "src": "assets/scene/Models/PodiumKickoff01_purple/PodiumKickoff01_purple.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
           }
         },
         "592": {
           "json": {
             "src": "assets/scene/Models/kapu/kapu.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "595": {
+          "json": {
+            "src": "assets/scene/Models/PodiumMAXKickoff01.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "597": {
+          "json": {
+            "src": "assets/scene/Models/TrophyKickoff01.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "598": {
+          "json": {
+            "src": "assets/scene/Models/Foodtruck.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "599": {
+          "json": {
+            "src": "assets/scene/Models/bench.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "600": {
+          "json": {
+            "src": "assets/scene/Models/bench.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "601": {
+          "json": {
+            "src": "assets/scene/Models/bench.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "602": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "603": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "604": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "605": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "606": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "608": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "609": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "610": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "611": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "638": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "667": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "668": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "669": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "670": {
+          "json": {
+            "src": "assets/asset-packs/construction_metal_fence/ConstructionFence_02/ConstructionFence_02.glb",
             "visibleMeshesCollisionMask": 0,
             "invisibleMeshesCollisionMask": 3
           }
@@ -5396,7 +5906,7 @@
         },
         "587": {
           "json": {
-            "value": "attendee-of-month-emote_emote.glb"
+            "value": "PodiumKickoff01_gray.glb"
           }
         },
         "588": {
@@ -5411,12 +5921,7 @@
         },
         "590": {
           "json": {
-            "value": "Podium01.glb"
-          }
-        },
-        "591": {
-          "json": {
-            "value": "Podium01.glb_2"
+            "value": "PodiumKickoff01_purple.glb"
           }
         },
         "592": {
@@ -5427,6 +5932,81 @@
         "593": {
           "json": {
             "value": "safe_area_ball"
+          }
+        },
+        "595": {
+          "json": {
+            "value": "PodiumMAXKickoff01.glb"
+          }
+        },
+        "597": {
+          "json": {
+            "value": "TrophyKickoff01.glb"
+          }
+        },
+        "598": {
+          "json": {
+            "value": "Foodtruck.glb"
+          }
+        },
+        "599": {
+          "json": {
+            "value": "bench.glb"
+          }
+        },
+        "600": {
+          "json": {
+            "value": "bench.glb_2"
+          }
+        },
+        "601": {
+          "json": {
+            "value": "bench.glb_3"
+          }
+        },
+        "602": {
+          "json": {
+            "value": "Construction Metal Fence"
+          }
+        },
+        "603": {
+          "json": {
+            "value": "Construction Metal Fence_2"
+          }
+        },
+        "604": {
+          "json": {
+            "value": "Construction Metal Fence_3"
+          }
+        },
+        "605": {
+          "json": {
+            "value": "Construction Metal Fence_4"
+          }
+        },
+        "606": {
+          "json": {
+            "value": "Construction Metal Fence_5"
+          }
+        },
+        "608": {
+          "json": {
+            "value": "Construction Metal Fence_7"
+          }
+        },
+        "609": {
+          "json": {
+            "value": "Construction Metal Fence_8"
+          }
+        },
+        "610": {
+          "json": {
+            "value": "Construction Metal Fence_9"
+          }
+        },
+        "611": {
+          "json": {
+            "value": "Construction Metal Fence_9"
           }
         },
         "612": {
@@ -5557,6 +6137,11 @@
         "637": {
           "json": {
             "value": "large_brackets_L"
+          }
+        },
+        "638": {
+          "json": {
+            "value": "Construction Metal Fence_9"
           }
         },
         "639": {
@@ -5698,6 +6283,26 @@
           "json": {
             "value": "small_brackets_8_R"
           }
+        },
+        "667": {
+          "json": {
+            "value": "Construction Metal Fence_9"
+          }
+        },
+        "668": {
+          "json": {
+            "value": "Construction Metal Fence_9"
+          }
+        },
+        "669": {
+          "json": {
+            "value": "Construction Metal Fence_9"
+          }
+        },
+        "670": {
+          "json": {
+            "value": "Construction Metal Fence_9"
+          }
         }
       }
     },
@@ -5776,7 +6381,7 @@
         "serializationType": "map"
       },
       "data": {
-        "593": {
+        "587": {
           "json": {
             "gizmo": 0
           }
@@ -5853,11 +6458,18 @@
                   633,
                   637,
                   589,
-                  587,
-                  590,
-                  591,
                   592,
-                  593
+                  593,
+                  595,
+                  597,
+                  598,
+                  599,
+                  600,
+                  601,
+                  602,
+                  670,
+                  587,
+                  590
                 ]
               },
               {
@@ -6517,23 +7129,113 @@
                 "children": []
               },
               {
-                "entity": 587,
-                "children": []
-              },
-              {
-                "entity": 590,
-                "children": []
-              },
-              {
-                "entity": 591,
-                "children": []
-              },
-              {
                 "entity": 592,
                 "children": []
               },
               {
                 "entity": 593,
+                "children": []
+              },
+              {
+                "entity": 595,
+                "children": []
+              },
+              {
+                "entity": 597,
+                "children": []
+              },
+              {
+                "entity": 598,
+                "children": []
+              },
+              {
+                "entity": 599,
+                "children": []
+              },
+              {
+                "entity": 600,
+                "children": []
+              },
+              {
+                "entity": 601,
+                "children": []
+              },
+              {
+                "entity": 602,
+                "children": [
+                  604,
+                  605,
+                  603,
+                  606,
+                  608,
+                  609
+                ]
+              },
+              {
+                "entity": 603,
+                "children": []
+              },
+              {
+                "entity": 604,
+                "children": []
+              },
+              {
+                "entity": 605,
+                "children": []
+              },
+              {
+                "entity": 606,
+                "children": []
+              },
+              {
+                "entity": 608,
+                "children": []
+              },
+              {
+                "entity": 609,
+                "children": []
+              },
+              {
+                "entity": 670,
+                "children": [
+                  669,
+                  668,
+                  667,
+                  638,
+                  611,
+                  610
+                ]
+              },
+              {
+                "entity": 669,
+                "children": []
+              },
+              {
+                "entity": 668,
+                "children": []
+              },
+              {
+                "entity": 667,
+                "children": []
+              },
+              {
+                "entity": 638,
+                "children": []
+              },
+              {
+                "entity": 611,
+                "children": []
+              },
+              {
+                "entity": 610,
+                "children": []
+              },
+              {
+                "entity": 587,
+                "children": []
+              },
+              {
+                "entity": 590,
                 "children": []
               }
             ]
@@ -6615,13 +7317,55 @@
         "590": {
           "json": {}
         },
-        "591": {
-          "json": {}
-        },
         "592": {
           "json": {}
         },
         "593": {
+          "json": {}
+        },
+        "595": {
+          "json": {}
+        },
+        "597": {
+          "json": {}
+        },
+        "598": {
+          "json": {}
+        },
+        "599": {
+          "json": {}
+        },
+        "600": {
+          "json": {}
+        },
+        "601": {
+          "json": {}
+        },
+        "602": {
+          "json": {}
+        },
+        "603": {
+          "json": {}
+        },
+        "604": {
+          "json": {}
+        },
+        "605": {
+          "json": {}
+        },
+        "606": {
+          "json": {}
+        },
+        "608": {
+          "json": {}
+        },
+        "609": {
+          "json": {}
+        },
+        "610": {
+          "json": {}
+        },
+        "611": {
           "json": {}
         },
         "612": {
@@ -6700,6 +7444,9 @@
           "json": {}
         },
         "637": {
+          "json": {}
+        },
+        "638": {
           "json": {}
         },
         "639": {
@@ -6784,6 +7531,18 @@
           "json": {}
         },
         "666": {
+          "json": {}
+        },
+        "667": {
+          "json": {}
+        },
+        "668": {
+          "json": {}
+        },
+        "669": {
+          "json": {}
+        },
+        "670": {
           "json": {}
         }
       }
