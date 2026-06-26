@@ -99,6 +99,9 @@ function f(team: string): FlagRef {
   return { src: `images/flags/atlas_${letter}.png`, uvs: CELL_UVS[pos] }
 }
 
+// Public flag lookup by team name (used by the knockout panels, fed from the API).
+export function flagFor(team: string): FlagRef { return f(team) }
+
 // ── Match builder ────────────────────────────────────
 let _id = 0
 const mk = (group: string, t1: string, t2: string): Match => ({

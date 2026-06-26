@@ -5,7 +5,8 @@ import {
   GltfContainer, TransformTypeWithOptionals
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
-import { GROUPS, predictions, isGroupComplete, abbr, getResult } from './prodeData'
+import { GROUPS, predictions, isGroupComplete, abbr, getResult, flagFor } from './prodeData'
+import { koFixtures, koResults } from './knockoutData'
 import { getMatchDate, fmtDate, isMatchLocked } from './matchDates'
 import { openGroupForm } from './prodeUi'
 import { playClick } from '../client/sfx'
@@ -370,15 +371,22 @@ const panelRefreshers: (() => void)[] = []
 export function refreshAllPanels() { for (const r of panelRefreshers) r() }
 
 // ── Knockout placeholder panel (no interaction, teams TBD) ────────────────────
-export function addKnockoutPanel(roundLabel: string, transform: TransformTypeWithOptionals) {
+// Knockout panel — shows 2 crosses of a round, DATA-DRIVEN from the live `koFixtures`
+// cache (fed from the API). Each (round, slot) resolves to the Nth fixture of that
+// round (sorted by kickoff). Fills in automatically as the API defines crosses;
+// refreshed on every snapshot. `round = ''` keeps it as a static placeholder.
+// NOTE: positions are approximate — the designer refines the visual layout.
+const KO_PLACEHOLDER = Color4.fromHexString('#2a2a4aff')
+
+export function addKnockoutPanel(
+  roundLabel: string, round: string, slot0: number, transform: TransformTypeWithOptionals
+) {
   const root = engine.addEntity()
   Transform.createOrReplace(root, transform)
 
   const panel = engine.addEntity()
   Transform.createOrReplace(panel, {
-    position: PANEL_OFFSET,
-    scale: Vector3.create(PANEL_CS, PANEL_CS, PANEL_CS),
-    parent: root
+    position: PANEL_OFFSET, scale: Vector3.create(PANEL_CS, PANEL_CS, PANEL_CS), parent: root
   })
   GltfContainer.create(panel, {
     src: PANEL_MODEL,
@@ -388,67 +396,62 @@ export function addKnockoutPanel(roundLabel: string, transform: TransformTypeWit
 
   // Round label header
   const hdrBg = engine.addEntity()
-  Transform.createOrReplace(hdrBg, {
-    position: Vector3.create(0, 0.44, BG_Z),
-    scale: Vector3.create(2.48, 0.16, 1),
-    parent: root
-  })
+  Transform.createOrReplace(hdrBg, { position: Vector3.create(0, 0.44, BG_Z), scale: Vector3.create(2.48, 0.16, 1), parent: root })
   MeshRenderer.setPlane(hdrBg)
   Material.setBasicMaterial(hdrBg, { diffuseColor: PROG_HEADER })
-
   const hdrLbl = engine.addEntity()
   Transform.createOrReplace(hdrLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
-  TextShape.createOrReplace(hdrLbl, {
-    text: roundLabel, fontSize: 0.85, textColor: WHITE,
-    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  TextShape.createOrReplace(hdrLbl, { text: roundLabel, fontSize: 0.8, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  // Two match rows; keep entity refs so we can update them on refresh.
+  type KoRow = { flag1: Entity; flag2: Entity; teams: Entity; status: Entity }
+  const rowYs = [0.16, -0.46]
+  const rows: KoRow[] = rowYs.map((y) => {
+    const flag1 = engine.addEntity()
+    Transform.createOrReplace(flag1, { position: Vector3.create(-0.86, y, BG_Z), scale: Vector3.create(0.34, 0.23, 1), parent: root })
+    const flag2 = engine.addEntity()
+    Transform.createOrReplace(flag2, { position: Vector3.create(0.86, y, BG_Z), scale: Vector3.create(0.34, 0.23, 1), parent: root })
+    const teams = engine.addEntity()
+    Transform.createOrReplace(teams, { position: Vector3.create(0, y, FRONT_Z), parent: root })
+    TextShape.createOrReplace(teams, { text: '', fontSize: 0.6, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    const status = engine.addEntity()
+    Transform.createOrReplace(status, { position: Vector3.create(0, y - 0.22, FRONT_Z), parent: root })
+    TextShape.createOrReplace(status, { text: '', fontSize: 0.5, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    return { flag1, flag2, teams, status }
   })
 
-  // Flag placeholders (gray boxes with "?")
-  const mkPlaceholder = (x: number) => {
-    const bg = engine.addEntity()
-    Transform.createOrReplace(bg, {
-      position: Vector3.create(x, 0.10, BG_Z),
-      scale: Vector3.create(0.40, 0.28, 1),
-      parent: root
-    })
-    MeshRenderer.setPlane(bg)
-    Material.setBasicMaterial(bg, { diffuseColor: Color4.fromHexString('#2a2a4aff') })
+  const setFlag = (e: Entity, fr: { src: string; uvs: number[] } | null) => {
+    if (fr) {
+      MeshRenderer.setPlane(e, fr.uvs)
+      Material.setBasicMaterial(e, { texture: Material.Texture.Common({ src: fr.src }) })
+    } else {
+      MeshRenderer.setPlane(e)
+      Material.setBasicMaterial(e, { diffuseColor: KO_PLACEHOLDER })
+    }
+  }
 
-    const qmark = engine.addEntity()
-    Transform.createOrReplace(qmark, { position: Vector3.create(x, 0.10, FRONT_Z), parent: root })
-    TextShape.createOrReplace(qmark, {
-      text: '?', fontSize: 1.1, textColor: GRAY,
-      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  const refresh = () => {
+    const inRound = round
+      ? koFixtures.filter(f => f.round === round).sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
+      : []
+    rows.forEach((row, i) => {
+      const fx = inRound[slot0 + i]
+      const teams = TextShape.getMutable(row.teams)
+      const status = TextShape.getMutable(row.status)
+      if (!fx) {
+        setFlag(row.flag1, null); setFlag(row.flag2, null)
+        teams.text = 'A DEFINIR'; teams.textColor = GRAY
+        status.text = 'PRÓXIMAMENTE'; status.textColor = MUTED
+        return
+      }
+      setFlag(row.flag1, flagFor(fx.team1)); setFlag(row.flag2, flagFor(fx.team2))
+      teams.text = `${abbr(fx.team1)}  vs  ${abbr(fx.team2)}`; teams.textColor = WHITE
+      const r = koResults.get(fx.id)
+      if (r) { status.text = `${r.score1} - ${r.score2}`; status.textColor = ACCENT }
+      else { status.text = ''; status.textColor = MUTED }
     })
   }
-  mkPlaceholder(-0.55)
-  mkPlaceholder(0.55)
 
-  // "vs" center
-  const vsLbl = engine.addEntity()
-  Transform.createOrReplace(vsLbl, { position: Vector3.create(0, 0.10, FRONT_Z), parent: root })
-  TextShape.createOrReplace(vsLbl, {
-    text: 'vs', fontSize: 0.75, textColor: MUTED,
-    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
-  })
-
-  // Team name placeholders
-  const mkTeamLbl = (x: number) => {
-    const e = engine.addEntity()
-    Transform.createOrReplace(e, { position: Vector3.create(x, -0.22, FRONT_Z), parent: root })
-    TextShape.createOrReplace(e, {
-      text: 'A DEFINIR', fontSize: 0.58, textColor: GRAY,
-      textAlign: TextAlignMode.TAM_MIDDLE_CENTER
-    })
-  }
-  mkTeamLbl(-0.55)
-  mkTeamLbl(0.55)
-
-  // Status
-  const statusLbl = engine.addEntity()
-  Transform.createOrReplace(statusLbl, { position: Vector3.create(0, -0.70, FRONT_Z), parent: root })
-  TextShape.createOrReplace(statusLbl, {
-    text: 'PRÓXIMAMENTE', fontSize: 0.55, textColor: MUTED,
-    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
-  })
+  refresh()
+  panelRefreshers.push(refresh)
 }

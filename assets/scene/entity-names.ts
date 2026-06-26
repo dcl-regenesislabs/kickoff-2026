@@ -95,6 +95,7 @@ export enum EntityNames {
   collider_right = "collider_right",
   dispenser_1_glb = "dispenser_1.glb",
   dispenser_1_glb_2 = "dispenser_1.glb_2",
+  knockout01_glb = "knockout01.glb",
   large_brackets_2_R = "large_brackets_2_R",
   large_brackets_L = "large_brackets_L",
   leaderboard = "leaderboard",
