@@ -6,6 +6,7 @@ import {
   MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
 } from './prodeData'
+import { koFixtures, koPredictions } from './knockoutData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
@@ -441,6 +442,13 @@ const MOBILE_KO_QF_Y = [139, 307]
 const MOBILE_KO_FINAL_Y = 181
 const MOBILE_KO_THIRD_Y = 265
 const MOBILE_KO_SF_Y = 223
+const KO_ROUND_SLOTS = [
+  { round: '32', count: 16 },
+  { round: '16', count: 8 },
+  { round: '8', count: 4 },
+  { round: '4', count: 2 },
+  { round: '2', count: 2 }
+]
 
 type KnockoutBoardProgress = {
   completed: number
@@ -458,8 +466,19 @@ type KnockoutBoardProgress = {
 }
 
 function getKnockoutPredictionSlots(): boolean[] {
-  const extraPredictions = predictions.slice(MATCHES.length, MATCHES.length + KNOCKOUT_TOTAL_MATCHES)
-  return Array.from({ length: KNOCKOUT_TOTAL_MATCHES }, (_, i) => extraPredictions[i]?.submitted ?? false)
+  const submittedByFixtureId = new Map(koPredictions.map((prediction) => [prediction.fixtureId, prediction.submitted]))
+  const orderedSlots = KO_ROUND_SLOTS.flatMap(({ round, count }) => {
+    const fixturesInRound = koFixtures
+      .filter((fixture) => fixture.round === round)
+      .sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
+
+    return Array.from({ length: count }, (_, i) => {
+      const fixture = fixturesInRound[i]
+      return fixture ? (submittedByFixtureId.get(fixture.id) ?? false) : false
+    })
+  })
+
+  return Array.from({ length: KNOCKOUT_TOTAL_MATCHES }, (_, i) => orderedSlots[i] ?? false)
 }
 
 function getKnockoutBoardProgress(): KnockoutBoardProgress {
@@ -587,73 +606,6 @@ const PredictionChip = (props: {
   )
 }
 
-const PanelTabBar = (props: {
-  active: 'knockout' | 'group'
-  mob: boolean
-  onSwitch: (t: 'knockout' | 'group') => void
-  onMinimize: () => void
-}) => {
-  const { mob, active } = props
-  const uiScale = mob ? 1.3 : 1
-
-  const tab = (id: 'knockout' | 'group', label: string) => {
-    const isActive = active === id
-    const accent = id === 'knockout' ? ACCENT_KO : ACCENT_GS
-    return (
-      <UiEntity
-        key={id}
-        uiTransform={{
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: { top: S(10 * uiScale), bottom: 0, left: S((mob ? 18 : 20) * uiScale), right: S((mob ? 18 : 20) * uiScale) },
-          pointerFilter: 'block'
-        }}
-        onMouseDown={() => { if (!isActive) { playClick(); props.onSwitch(id) } }}
-      >
-        <Label value={label} fontSize={F((mob ? 13 : 14) * uiScale)}
-          color={isActive ? Color4.White() : TAB_INACTIVE}
-          uiTransform={{ height: S((mob ? 17 : 18) * uiScale), margin: `0 0 ${S(6 * uiScale)}px 0` }} />
-        <UiEntity
-          uiTransform={{ width: '100%', height: S(3 * uiScale), borderRadius: S(2 * uiScale) }}
-          uiBackground={{ color: isActive ? accent : Color4.create(0, 0, 0, 0) }}
-        />
-      </UiEntity>
-    )
-  }
-
-  return (
-    <UiEntity
-      uiTransform={{
-        width: '100%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: { top: S(4 * uiScale), bottom: 0, left: S(8 * uiScale), right: S(8 * uiScale) }
-      }}
-    >
-      <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-        {tab('knockout', 'KNOCKOUT')}
-        {tab('group', 'GROUP STAGE')}
-      </UiEntity>
-      <UiEntity
-        uiTransform={{
-          width: S((mob ? 34 : 30) * uiScale),
-          height: S((mob ? 34 : 30) * uiScale),
-          borderRadius: S(8 * uiScale),
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: `0 ${S(6 * uiScale)}px ${S(4 * uiScale)}px 0`,
-          pointerFilter: 'block'
-        }}
-        uiBackground={{ color: Color4.create(0.18, 0.14, 0.28, 1) }}
-        onMouseDown={props.onMinimize}
-      >
-        <Label value="×" fontSize={F((mob ? 20 : 18) * uiScale)} color={MUTED} />
-      </UiEntity>
-    </UiEntity>
-  )
-}
-
 const Divider = (props: { mob: boolean }) => (
   <UiEntity
     uiTransform={{ width: '96%', height: S(1), margin: `0 0 ${S(props.mob ? 10 : 8)}px 0` }}
@@ -694,8 +646,7 @@ const MatchChecklist = () => {
   const chipWidth = mob ? mobileChipWidth : desktopChipWidth
   const hidden =
     welcomeState.visible ||
-    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
-    (mob && getCompletedCount() === MATCHES.length)
+    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible
 
   const switchTab = (panel: 'knockout' | 'group') => {
     playClick()
@@ -773,7 +724,7 @@ const MatchChecklist = () => {
           <MobilePanelHeader title={predictionPanelState.expanded === 'knockout' ? 'KNOCKOUT STAGE' : 'GROUP STAGE'} />
           <Divider mob={mob} />
           {predictionPanelState.expanded === 'knockout' && (
-            <KnockoutChecklistPanel mob={mob} k={k} onMinimize={minimize} />
+            <KnockoutChecklistPanel mob={mob} k={k} />
           )}
           {predictionPanelState.expanded === 'group' && (
             <GroupStageChecklistPanel mob={mob} k={k} />
@@ -863,44 +814,7 @@ const GroupStageChecklistPanel = (props: { mob: boolean; k: number }) => {
   )
 }
 
-const PanelHeader = (props: { title: string; subtitle: string; mob: boolean; onMinimize: () => void }) => (
-  <UiEntity
-    uiTransform={{
-      width: '100%',
-      height: S(props.mob ? 48 : 40),
-      margin: `0 0 ${S(8)}px 0`,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between'
-    }}
-  >
-    <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-      <Label value={props.title} fontSize={F(props.mob ? 16 : 18)} color={Color4.White()}
-        uiTransform={{ height: S(props.mob ? 18 : 20) }} />
-      <Label value={props.subtitle} fontSize={F(props.mob ? 11 : 12)} color={MUTED}
-        uiTransform={{ height: S(props.mob ? 14 : 14), margin: `${S(2)}px 0 0 0` }} />
-    </UiEntity>
-    <UiEntity
-      uiTransform={{
-        width: S(props.mob ? 46 : 42),
-        height: S(props.mob ? 46 : 42),
-        borderRadius: S(12),
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerFilter: 'block'
-      }}
-      uiBackground={{ color: Color4.create(0.12, 0.12, 0.18, 1) }}
-      onMouseDown={props.onMinimize}
-    >
-      <Label value="−" fontSize={F(props.mob ? 32 : 28)} color={Color4.White()}
-        uiTransform={{ height: '100%', width: '100%' }} />
-    </UiEntity>
-  </UiEntity>
-)
-
-
-
-const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: () => void }) => {
+const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
   const progress = getKnockoutBoardProgress()
   const panelScale = props.k / 1.55
   const labelColor = Color4.White()
@@ -1681,4 +1595,5 @@ const AdminForm = () => {
     </UiEntity>
   )
 }
+
 
