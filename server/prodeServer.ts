@@ -119,6 +119,7 @@ export function startProdeServer() {
     if (!ctx) return
     const board = await buildLeaderboard()
     room.send('leaderboardSnapshot', { json: JSON.stringify(board) }, { to: [ctx.from] })
+    room.send('kickoffLeaderboardSnapshot', { json: JSON.stringify(await computeKickoffLeaderboard()) }, { to: [ctx.from] })
   })
 
   // ── Knockout stage (parallel to the group handlers above) ───────────────────────
@@ -495,6 +496,34 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
 async function broadcastLeaderboard(results: OfficialResult[]) {
   const board = await computeLeaderboard(results)
   room.send('leaderboardSnapshot', { json: JSON.stringify(board) })
+  room.send('kickoffLeaderboardSnapshot', { json: JSON.stringify(await computeKickoffLeaderboard()) })
+}
+
+// Kickoff (group-stage) ranking — by group points only. Drives the "KICKOFF WINNERS"
+// slide on the leaderboard TV.
+async function computeKickoffLeaderboard(): Promise<LeaderboardRow[]> {
+  loadResultsCache(await loadResults())
+  const rows: LeaderboardRow[] = []
+  let offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await Storage.getValues({ prefix: PLAYER_PREFIX, offset })
+    for (const { key, value } of page.data) {
+      const e = value as PlayerMirror | null
+      if (!e?.predictions) continue
+      const address = key.slice(PLAYER_PREFIX.length)
+      rows.push({
+        name:  e.name || address.slice(0, 8),
+        address,
+        value: totalPoints(e.predictions),
+        exact: exactScoreCount(e.predictions)
+      })
+    }
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.pagination.total) break
+  }
+  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
+  return rows.slice(0, LEADERBOARD_SIZE)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────────

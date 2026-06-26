@@ -24,6 +24,10 @@ export type LeaderboardRow = { name: string; address: string; value: number }
 let leaderboard: LeaderboardRow[] = []
 export function getLeaderboard(): LeaderboardRow[] { return leaderboard }
 
+// Kickoff (group-stage) standings — for the "KICKOFF WINNERS" leaderboard slide.
+let kickoffLeaderboard: LeaderboardRow[] = []
+export function getKickoffLeaderboard(): LeaderboardRow[] { return kickoffLeaderboard }
+
 type AckReason = 'locked' | 'error' | 'disconnected'
 let onPredictionAck: ((matchId: number, ok: boolean, reason: AckReason | '') => void) | null = null
 export function setOnPredictionAck(cb: (matchId: number, ok: boolean, reason: AckReason | '') => void) { onPredictionAck = cb }
@@ -97,6 +101,12 @@ export function startProdeClient(onSnapshot: () => void) {
     try {
       leaderboard = JSON.parse(data.json) as LeaderboardRow[]
     } catch (e) { console.log('[Client] bad leaderboard snapshot', e) }
+  })
+
+  room.onMessage('kickoffLeaderboardSnapshot', (data) => {
+    try {
+      kickoffLeaderboard = JSON.parse(data.json) as LeaderboardRow[]
+    } catch (e) { console.log('[Client] bad kickoff leaderboard snapshot', e) }
   })
 
   room.onMessage('predictionSaved', (data) => {

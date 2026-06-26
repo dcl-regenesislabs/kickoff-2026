@@ -3,7 +3,7 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/re
 import { getPlayer } from '@dcl/sdk/players'
 import { engine } from '@dcl/sdk/ecs'
 import {
-  MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
+  MATCHES, GROUPS, Match, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
   isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef, flagFor
 } from './prodeData'
 import {
@@ -61,7 +61,19 @@ const groupState = {
   dirty:          false,
   onChange:       null as (() => void) | null,
   saving:         false,                        // true while waiting for server ack
-  pendingAdvance: null as (() => void) | null   // queued navigation after successful save
+  pendingAdvance: null as (() => void) | null,  // queued navigation after successful save
+  matchIds:       null as number[] | null,      // custom match list (pending-matches mode); null = a real group
+  title:          null as string | null         // header override when matchIds is set
+}
+
+// The matches the form is currently stepping through (a real group, or a custom list).
+function currentFormMatches(): Match[] {
+  if (groupState.matchIds) {
+    return groupState.matchIds
+      .map(id => MATCHES.find(m => m.id === id))
+      .filter((m): m is Match => m !== undefined)
+  }
+  return GROUPS[groupState.groupIndex]?.matches ?? []
 }
 
 // Admin form state — iterates the flat MATCHES list to load official results.
@@ -146,6 +158,8 @@ const ImgButton = (props: { src: string; width: number; height: number; onMouseD
 )
 
 export function openGroupForm(groupIndex: number, onChange: () => void) {
+  groupState.matchIds   = null
+  groupState.title      = null
   groupState.groupIndex = groupIndex
   groupState.matchIndex = 0
   groupState.onChange   = onChange
@@ -153,10 +167,26 @@ export function openGroupForm(groupIndex: number, onChange: () => void) {
   groupState.visible    = true
 }
 
+// Open the form over the still-open group-stage matches (not locked, no result yet).
+export function openPendingForm(onChange: () => void) {
+  const ids = MATCHES.filter(m => !hasResult(m.id) && !isMatchLocked(m.team1, m.team2)).map(m => m.id)
+  if (ids.length === 0) return
+  groupState.matchIds   = ids
+  groupState.title      = 'OPEN MATCHES'
+  groupState.matchIndex = 0
+  groupState.onChange   = onChange
+  loadGroupMatch()
+  groupState.visible    = true
+}
+
+// Count of still-open group-stage matches (for the pending board badge).
+export function pendingMatchCount(): number {
+  return MATCHES.filter(m => !hasResult(m.id) && !isMatchLocked(m.team1, m.team2)).length
+}
+
 // Load the currently-selected match's saved score into the form.
 function loadGroupMatch() {
-  const g = GROUPS[groupState.groupIndex]
-  const match = g?.matches[groupState.matchIndex]
+  const match = currentFormMatches()[groupState.matchIndex]
   const pred = match ? predictions.find(p => p.matchId === match.id) : undefined
   groupState.score1 = pred?.score1 ?? 0
   groupState.score2 = pred?.score2 ?? 0
@@ -966,19 +996,19 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
 // ── Group prediction form — step through a group's matches and set scores ──────
 const GroupForm = () => {
   if (!groupState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
-  const g = GROUPS[groupState.groupIndex]
-  if (!g) return <UiEntity uiTransform={{ display: 'none' }} />
-  const match = g.matches[groupState.matchIndex]
+  const matches = currentFormMatches()
+  const match = matches[groupState.matchIndex]
   if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
 
-  const total  = g.matches.length
+  const headerTitle = groupState.title ?? GROUPS[groupState.groupIndex]?.name ?? ''
+  const total  = matches.length
   const connected  = isServerReady()
   const finished   = hasResult(match.id)
   const timeLocked = isMatchLocked(match.team1, match.team2)
   const locked = finished || timeLocked     // can't edit a finished or about-to-start match
   const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
-  const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
-  const complete = total > 0 && g.matches.every(isMatchDone)
+  const done   = matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
+  const complete = total > 0 && matches.every(isMatchDone)
   const canPrev = groupState.matchIndex > 0
   const canNext = groupState.matchIndex < total - 1
 
@@ -996,11 +1026,11 @@ const GroupForm = () => {
   // otherwise (nav/close) we only save if it was actually edited.
   const commit = (force: boolean) => {
     if (!locked && connected && (force || groupState.dirty)) {
-      const wasComplete = isGroupComplete(groupState.groupIndex)
+      // Group-complete sound only makes sense in real-group mode (not the pending list).
+      const wasComplete = groupState.matchIds === null && isGroupComplete(groupState.groupIndex)
       savePrediction(match.id, inferred, groupState.score1, groupState.score2)
       groupState.onChange?.()
-      // Group just got completed (but not the whole prode) → play the complete sound.
-      if (!wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
+      if (groupState.matchIds === null && !wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
         playComplete()
       }
       maybeCelebrate()
@@ -1076,7 +1106,7 @@ const GroupForm = () => {
       >
         {/* Header: group name + completion badge */}
         <UiEntity uiTransform={{ width: '100%', height: S(64), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
-          <Label value={g.name} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
+          <Label value={headerTitle} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
           <UiEntity uiTransform={{ height: S(52), alignItems: 'center', justifyContent: 'center', padding: `0 ${S(22)}px 0 ${S(22)}px`, borderRadius: S(26) }}
             uiBackground={ complete ? { color: VIOLET } : undefined }>
             <Label value={complete ? 'GROUP COMPLETE' : `${done} / ${total} predicted`}
