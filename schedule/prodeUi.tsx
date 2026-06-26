@@ -3,10 +3,13 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/re
 import { getPlayer } from '@dcl/sdk/players'
 import { engine } from '@dcl/sdk/ecs'
 import {
-  MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
-  isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
+  MATCHES, GROUPS, Match, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
+  isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef, flagFor
 } from './prodeData'
-import { koFixtures, koPredictions, koResults, myKoPoints, scoreKoPrediction } from './knockoutData'
+import {
+  koFixtures, koPredictions, koResults, getKoFixture, saveKoPrediction, isKoFixtureLocked,
+  myKoPoints, scoreKoPrediction
+} from './knockoutData'
 import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
@@ -59,7 +62,19 @@ const groupState = {
   dirty:          false,
   onChange:       null as (() => void) | null,
   saving:         false,                        // true while waiting for server ack
-  pendingAdvance: null as (() => void) | null   // queued navigation after successful save
+  pendingAdvance: null as (() => void) | null,  // queued navigation after successful save
+  matchIds:       null as number[] | null,      // custom match list (pending-matches mode); null = a real group
+  title:          null as string | null         // header override when matchIds is set
+}
+
+// The matches the form is currently stepping through (a real group, or a custom list).
+function currentFormMatches(): Match[] {
+  if (groupState.matchIds) {
+    return groupState.matchIds
+      .map(id => MATCHES.find(m => m.id === id))
+      .filter((m): m is Match => m !== undefined)
+  }
+  return GROUPS[groupState.groupIndex]?.matches ?? []
 }
 
 // Admin form state — iterates the flat MATCHES list to load official results.
@@ -147,6 +162,8 @@ const ImgButton = (props: { src: string; width: number; height: number; onMouseD
 )
 
 export function openGroupForm(groupIndex: number, onChange: () => void) {
+  groupState.matchIds   = null
+  groupState.title      = null
   groupState.groupIndex = groupIndex
   groupState.matchIndex = 0
   groupState.onChange   = onChange
@@ -154,14 +171,61 @@ export function openGroupForm(groupIndex: number, onChange: () => void) {
   groupState.visible    = true
 }
 
+// Open the form over the still-open group-stage matches (not locked, no result yet).
+export function openPendingForm(onChange: () => void) {
+  const ids = MATCHES.filter(m => !hasResult(m.id) && !isMatchLocked(m.team1, m.team2)).map(m => m.id)
+  if (ids.length === 0) return
+  groupState.matchIds   = ids
+  groupState.title      = 'OPEN MATCHES'
+  groupState.matchIndex = 0
+  groupState.onChange   = onChange
+  loadGroupMatch()
+  groupState.visible    = true
+}
+
+// Count of still-open group-stage matches (for the pending board badge).
+export function pendingMatchCount(): number {
+  return MATCHES.filter(m => !hasResult(m.id) && !isMatchLocked(m.team1, m.team2)).length
+}
+
 // Load the currently-selected match's saved score into the form.
 function loadGroupMatch() {
-  const g = GROUPS[groupState.groupIndex]
-  const match = g?.matches[groupState.matchIndex]
+  const match = currentFormMatches()[groupState.matchIndex]
   const pred = match ? predictions.find(p => p.matchId === match.id) : undefined
   groupState.score1 = pred?.score1 ?? 0
   groupState.score2 = pred?.score2 ?? 0
   groupState.dirty  = false
+}
+
+// ── Knockout prediction form (mirrors the group form, keyed by fixture) ─────────
+const koFormState = {
+  visible:    false,
+  fixtureIds: [] as number[],   // the fixtures of the clicked panel (1-2)
+  index:      0,
+  score1:     0,
+  score2:     0,
+  dirty:      false,
+  onChange:   null as (() => void) | null
+}
+const KO_ROUND_LABELS: Record<string, string> = {
+  '32': 'ROUND OF 32', '16': 'ROUND OF 16', '8': 'QUARTER FINAL', '4': 'SEMI FINAL', '2': 'FINAL', '1': 'FINAL'
+}
+
+export function openKoForm(fixtureIds: number[], onChange: () => void) {
+  if (fixtureIds.length === 0) return
+  koFormState.fixtureIds = fixtureIds
+  koFormState.index      = 0
+  koFormState.onChange   = onChange
+  loadKoFixtureForm()
+  koFormState.visible    = true
+}
+
+function loadKoFixtureForm() {
+  const fid = koFormState.fixtureIds[koFormState.index]
+  const pred = koPredictions.find(p => p.fixtureId === fid)
+  koFormState.score1 = pred?.score1 ?? 0
+  koFormState.score2 = pred?.score2 ?? 0
+  koFormState.dirty  = false
 }
 
 function openAdminForm(index: number) {
@@ -274,6 +338,9 @@ const ProdeUi = () => {
       <MobileKickButton />
       <DesktopKickHint />
       <GroupForm />
+
+      {/* ── Knockout prediction form overlay ─────────────────────────────────── */}
+      <KoForm />
 
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
       <AdminForm />
@@ -636,7 +703,8 @@ const MatchChecklist = () => {
   const chipWidth = mob ? mobileChipWidth : desktopChipWidth
   const hidden =
     welcomeState.visible ||
-    groupState.visible || adminState.visible || infoState.visible || celebrateState.visible
+    groupState.visible || koFormState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
+    (mob && getCompletedCount() === MATCHES.length)
 
   const switchTab = (panel: 'knockout' | 'group') => {
     playClick()
@@ -950,19 +1018,19 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
 // ── Group prediction form — step through a group's matches and set scores ──────
 const GroupForm = () => {
   if (!groupState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
-  const g = GROUPS[groupState.groupIndex]
-  if (!g) return <UiEntity uiTransform={{ display: 'none' }} />
-  const match = g.matches[groupState.matchIndex]
+  const matches = currentFormMatches()
+  const match = matches[groupState.matchIndex]
   if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
 
-  const total  = g.matches.length
+  const headerTitle = groupState.title ?? GROUPS[groupState.groupIndex]?.name ?? ''
+  const total  = matches.length
   const connected  = isServerReady()
   const finished   = hasResult(match.id)
   const timeLocked = isMatchLocked(match.team1, match.team2)
   const locked = finished || timeLocked     // can't edit a finished or about-to-start match
   const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
-  const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
-  const complete = total > 0 && g.matches.every(isMatchDone)
+  const done   = matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
+  const complete = total > 0 && matches.every(isMatchDone)
   const canPrev = groupState.matchIndex > 0
   const canNext = groupState.matchIndex < total - 1
 
@@ -980,11 +1048,11 @@ const GroupForm = () => {
   // otherwise (nav/close) we only save if it was actually edited.
   const commit = (force: boolean) => {
     if (!locked && connected && (force || groupState.dirty)) {
-      const wasComplete = isGroupComplete(groupState.groupIndex)
+      // Group-complete sound only makes sense in real-group mode (not the pending list).
+      const wasComplete = groupState.matchIds === null && isGroupComplete(groupState.groupIndex)
       savePrediction(match.id, inferred, groupState.score1, groupState.score2)
       groupState.onChange?.()
-      // Group just got completed (but not the whole prode) → play the complete sound.
-      if (!wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
+      if (groupState.matchIds === null && !wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
         playComplete()
       }
       maybeCelebrate()
@@ -1060,7 +1128,7 @@ const GroupForm = () => {
       >
         {/* Header: group name + completion badge */}
         <UiEntity uiTransform={{ width: '100%', height: S(64), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
-          <Label value={g.name} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
+          <Label value={headerTitle} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
           <UiEntity uiTransform={{ height: S(52), alignItems: 'center', justifyContent: 'center', padding: `0 ${S(22)}px 0 ${S(22)}px`, borderRadius: S(26) }}
             uiBackground={ complete ? { color: VIOLET } : undefined }>
             <Label value={complete ? 'GROUP COMPLETE' : `${done} / ${total} predicted`}
@@ -1116,6 +1184,152 @@ const GroupForm = () => {
             : <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
                 width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
                 tint={(groupState.saving || !connected) ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+                onMouseDown={saveNext} />}
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Knockout prediction form — same UX as the group form, keyed by fixture ──────
+const KoForm = () => {
+  if (!koFormState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const fid = koFormState.fixtureIds[koFormState.index]
+  const fx = getKoFixture(fid)
+  if (!fx) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const total = koFormState.fixtureIds.length
+  const connected  = isServerReady()
+  const finished   = koResults.has(fid)
+  const timeLocked = isKoFixtureLocked(fid)
+  const locked = finished || timeLocked
+  const done   = koFormState.fixtureIds.filter(id => koPredictions.find(p => p.fixtureId === id)?.submitted ?? false).length
+  const canPrev = koFormState.index > 0
+  const canNext = koFormState.index < total - 1
+
+  const mob = isMobile()
+  const stepH = mob ? 112 : 84
+  const actH  = mob ? 116 : 96
+  const teamsH = mob ? 470 : 440
+  const inferred = impliedWinner(koFormState.score1, koFormState.score2)
+  const resultText =
+    inferred === 'draw'  ? 'Draw' :
+    inferred === 'team1' ? `${fx.team1} wins` :
+                           `${fx.team2} wins`
+  const roundLabel = KO_ROUND_LABELS[fx.round] ?? 'KNOCKOUT'
+
+  const commit = (force: boolean) => {
+    if (!locked && connected && (force || koFormState.dirty)) {
+      saveKoPrediction(fid, inferred, koFormState.score1, koFormState.score2)
+      koFormState.onChange?.()
+      koFormState.dirty = false
+    }
+  }
+  const go = (delta: number) => {
+    const next = koFormState.index + delta
+    if (next < 0 || next >= total) return
+    commit(false)
+    koFormState.index = next
+    loadKoFixtureForm()
+  }
+  const close = () => { commit(false); koFormState.visible = false }
+  const saveNext = () => {
+    if (locked || !connected) return
+    commit(true)
+    if (canNext) { koFormState.index += 1; loadKoFixtureForm() }
+    else koFormState.visible = false
+  }
+
+  const teamCol = (
+    name: string, flag: FlagRef, score: number, win: boolean,
+    dec: () => void, inc: () => void
+  ) => (
+    <UiEntity
+      uiTransform={{
+        width: S(510), height: S(teamsH), padding: S(22),
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: S(28)
+      }}
+      uiBackground={{ color: win ? TEAL : DARK_BTN }}
+    >
+      <UiEntity uiTransform={{ width: S(240), height: S(160) }}
+        uiBackground={{ texture: { src: flag.src }, textureMode: 'stretch', uvs: flag.uvs }} />
+      <Label value={name} fontSize={F(32)} color={Color4.White()} uiTransform={{ width: '100%', height: S(56) }} />
+      <Label value={String(score)} fontSize={F(92)} color={Color4.White()} uiTransform={{ width: '100%', height: S(110) }} />
+      <UiEntity uiTransform={{ width: '100%', height: S(stepH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <ImgButton src="images/buttons/-.png"
+          width={S(stepH * 1.116)} height={S(stepH)}
+          tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+          onMouseDown={() => { if (!locked && score > 0) dec() }} />
+        <ImgButton src="images/buttons/+.png"
+          width={S(stepH * 1.144)} height={S(stepH)}
+          tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+          onMouseDown={() => { if (!locked) inc() }} />
+      </UiEntity>
+    </UiEntity>
+  )
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%',
+        positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(1360), height: S(mob ? 1040 : 900), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
+          borderRadius: S(40)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        {/* Header: round + progress */}
+        <UiEntity uiTransform={{ width: '100%', height: S(64), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
+          <Label value={roundLabel} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
+          <Label value={`${done} / ${total} predicted`} fontSize={F(30)} color={TEAL} uiTransform={{ height: S(52) }} />
+        </UiEntity>
+
+        {/* Teams */}
+        <UiEntity uiTransform={{ width: '100%', height: S(teamsH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(10)}px 0` }}>
+          {teamCol(fx.team1, flagFor(fx.team1), koFormState.score1, inferred === 'team1',
+            () => { koFormState.score1--; koFormState.dirty = true }, () => { koFormState.score1++; koFormState.dirty = true })}
+          <Label value="VS" fontSize={F(44)} color={Color4.create(0.55, 0.55, 0.55, 1)} uiTransform={{ width: S(110), height: S(teamsH) }} />
+          {teamCol(fx.team2, flagFor(fx.team2), koFormState.score2, inferred === 'team2',
+            () => { koFormState.score2--; koFormState.dirty = true }, () => { koFormState.score2++; koFormState.dirty = true })}
+        </UiEntity>
+
+        {/* Inferred result / lock status / connection warning */}
+        <Label
+          value={!connected ? 'Server not connected — predictions disabled'
+            : finished ? 'Match finished - predictions are locked'
+            : timeLocked ? 'Voting closed - kickoff is near'
+            : resultText}
+          fontSize={F(36)} color={!connected ? RED : locked ? RED : GOLD}
+          uiTransform={{ width: '100%', height: S(52), margin: `0 0 ${S(mob ? 26 : 18)}px 0` }}
+        />
+
+        {/* Actions */}
+        <UiEntity uiTransform={{ width: '100%', height: S(actH + 6), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <ImgButton src="images/buttons/close.png"
+            width={S(actH * 2.27)} height={S(actH)}
+            onMouseDown={close} />
+          <ImgButton src="images/buttons/prev.png"
+            width={S(actH * 2.18)} height={S(actH)}
+            tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
+            onMouseDown={() => { if (canPrev) go(-1) }} />
+          {locked
+            ? (canNext
+                ? <ImgButton src="images/buttons/Next-primary.png"
+                    width={S(actH * 2.356)} height={S(actH)}
+                    onMouseDown={() => go(1)} />
+                : <UiEntity uiTransform={{ width: S(actH * 2.356), height: S(actH) }} />)
+            : <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
+                width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
+                tint={!connected ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
                 onMouseDown={saveNext} />}
         </UiEntity>
       </UiEntity>

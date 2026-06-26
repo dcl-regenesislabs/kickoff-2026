@@ -8,7 +8,7 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 import { GROUPS, predictions, isGroupComplete, abbr, getResult, flagFor } from './prodeData'
 import { koFixtures, koResults } from './knockoutData'
 import { getMatchDate, fmtDate, isMatchLocked } from './matchDates'
-import { openGroupForm } from './prodeUi'
+import { openGroupForm, openKoForm, openPendingForm, pendingMatchCount } from './prodeUi'
 import { playClick } from '../client/sfx'
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -459,4 +459,69 @@ export function addKnockoutPanel(
 
   refresh()
   panelRefreshers.push(refresh)
+
+  // Click surface → open the KO prediction form for this panel's defined fixtures.
+  const clicker = engine.addEntity()
+  Transform.createOrReplace(clicker, { position: Vector3.create(0, 0, FRONT_Z), scale: Vector3.create(2.6, 2.3, 1), parent: root })
+  MeshCollider.setPlane(clicker, ColliderLayer.CL_POINTER)
+  pointerEventsSystem.onPointerDown(
+    { entity: clicker, opts: { button: InputAction.IA_POINTER, hoverText: `Open ${roundLabel}`, showHighlight: false } },
+    () => {
+      playClick()
+      const inRound = round
+        ? koFixtures.filter(f => f.round === round).sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
+        : []
+      const ids = [inRound[slot0]?.id, inRound[slot0 + 1]?.id].filter((x): x is number => x !== undefined)
+      if (ids.length > 0) openKoForm(ids, () => refresh())
+    }
+  )
+}
+
+// ── Pending group-stage matches board ───────────────────────────────────────────
+// A single clickable stand (used while the group boards are hidden behind the
+// knockout layout) that opens the form over the still-open group matches.
+export function addPendingMatchesPanel(transform: TransformTypeWithOptionals) {
+  const root = engine.addEntity()
+  Transform.createOrReplace(root, transform)
+
+  const panel = engine.addEntity()
+  Transform.createOrReplace(panel, {
+    position: PANEL_OFFSET, scale: Vector3.create(PANEL_CS, PANEL_CS, PANEL_CS), parent: root
+  })
+  GltfContainer.create(panel, {
+    src: PANEL_MODEL,
+    visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS,
+    invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
+  })
+
+  const hdrBg = engine.addEntity()
+  Transform.createOrReplace(hdrBg, { position: Vector3.create(0, 0.44, BG_Z), scale: Vector3.create(2.48, 0.16, 1), parent: root })
+  MeshRenderer.setPlane(hdrBg)
+  Material.setBasicMaterial(hdrBg, { diffuseColor: PROG_HEADER })
+  const hdrLbl = engine.addEntity()
+  Transform.createOrReplace(hdrLbl, { position: Vector3.create(0, 0.44, FRONT_Z), parent: root })
+  TextShape.createOrReplace(hdrLbl, { text: 'GROUP STAGE', fontSize: 0.8, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  const sub = engine.addEntity()
+  Transform.createOrReplace(sub, { position: Vector3.create(0, 0.12, FRONT_Z), parent: root })
+  TextShape.createOrReplace(sub, { text: 'VOTE OPEN MATCHES', fontSize: 0.62, textColor: Color4.Black(), textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  const countLbl = engine.addEntity()
+  Transform.createOrReplace(countLbl, { position: Vector3.create(0, -0.34, FRONT_Z), parent: root })
+  TextShape.createOrReplace(countLbl, { text: '', fontSize: 0.55, textColor: Color4.Black(), textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  const refresh = () => {
+    const n = pendingMatchCount()
+    TextShape.getMutable(countLbl).text = n > 0 ? `${n} matches open` : 'no open matches'
+  }
+  refresh()
+  panelRefreshers.push(refresh)
+
+  const clicker = engine.addEntity()
+  Transform.createOrReplace(clicker, { position: Vector3.create(0, 0, FRONT_Z), scale: Vector3.create(2.6, 2.3, 1), parent: root })
+  MeshCollider.setPlane(clicker, ColliderLayer.CL_POINTER)
+  pointerEventsSystem.onPointerDown(
+    { entity: clicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Vote open group matches', showHighlight: false } },
+    () => { playClick(); openPendingForm(() => refresh()) }
+  )
 }

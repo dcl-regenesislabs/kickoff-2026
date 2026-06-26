@@ -1,4 +1,4 @@
-import { addProdePanel, addKnockoutPanel, refreshAllPanels } from '../schedule/prodePanel'
+import { addProdePanel, addKnockoutPanel, addPendingMatchesPanel, refreshAllPanels } from '../schedule/prodePanel'
 import { setupProdeUi, openProdeInfo } from '../schedule/prodeUi'
 import { GROUPS } from '../schedule/prodeData'
 import { startProdeClient } from '../client/prodeClient'
@@ -146,6 +146,14 @@ function buildWorld() {
   // }
 
   buildKnockoutPanels()
+
+  // Single board to vote the still-open group-stage matches, placed before the first
+  // bracket line, on the lateral facing the field. TUNABLE — adjust pos/rotation.
+  addPendingMatchesPanel({
+    position: Vector3.create(50, 3, 77),
+    rotation: Quaternion.fromEulerDegrees(0, 0, 0),   // perpendicular to the bracket boards (face -Z)
+    scale: Vector3.create(2.2, 2.2, 2.2)
+  })
 }
 
 function buildKnockoutPanels() {

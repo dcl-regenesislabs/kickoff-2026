@@ -15,6 +15,9 @@ import { isMatchLocked, LOCK_LEAD_MS } from '../schedule/matchDates'
 import { isAdmin, LEADERBOARD_SIZE } from '../schedule/prodeConfig'
 import { startResultsSync } from './resultsSync'
 import { setupBall } from './ball'
+import { PodiumAvatarsServer, WinnerEntry } from './podiumAvatarsServer'
+import { engine } from '@dcl/sdk/ecs'
+import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 // ── Authoritative server ──────────────────────────────────────────────────────
 // Storage.player    → each player's own predictions (their snapshot).
@@ -116,6 +119,7 @@ export function startProdeServer() {
     if (!ctx) return
     const board = await buildLeaderboard()
     room.send('leaderboardSnapshot', { json: JSON.stringify(board) }, { to: [ctx.from] })
+    room.send('kickoffLeaderboardSnapshot', { json: JSON.stringify(await computeKickoffLeaderboard()) }, { to: [ctx.from] })
   })
 
   // ── Knockout stage (parallel to the group handlers above) ───────────────────────
@@ -180,6 +184,106 @@ export function startProdeServer() {
     loadKoResults: loadKoResultsSrv,
     applyKoResults
   })
+
+  // ── Winner podiums (shown at tournament end) ────────────────────────────────────
+  setupPodiums()
+}
+
+// ── Winner podiums ────────────────────────────────────────────────────────────────
+// At a configured moment (tournament end) we read the leaderboards and display the
+// top-3 of each ranking as live avatars on the in-scene podiums.
+const TOURNAMENT_END_UTC = '2026-07-20T03:00:00Z'   // after the WC 2026 final (tunable)
+const PODIUM_TEST_SHOW = false                       // set true to show NOW with current standings (testing)
+
+// 3 step positions for a podium placed at `base` (TUNABLE — tweak to sit on the model's steps).
+function podiumSlots(base: Vector3): Vector3[] {
+  return [
+    Vector3.create(base.x,       base.y + 2.20, base.z),   // 1st
+    Vector3.create(base.x - 0.7, base.y + 1.90, base.z),   // 2nd
+    Vector3.create(base.x + 0.7, base.y + 1.65, base.z)    // 3rd
+  ]
+}
+
+function setupPodiums() {
+  const ROT = Quaternion.fromEulerDegrees(0, 180, 0)
+  // Podium01 = kickoff (group) winners; Podium01_2 = knockout winners.
+  const kickoffPodium  = new PodiumAvatarsServer(podiumSlots(Vector3.create(84.0,  0, 70.75)), ROT, ROT, 'kickoff',  5000)
+  const knockoutPodium = new PodiumAvatarsServer(podiumSlots(Vector3.create(89.5,  0, 70.75)), ROT, ROT, 'knockout', 5010)
+
+  const endTs = Date.parse(TOURNAMENT_END_UTC)
+  let shown = false
+  let working = false
+  let acc = 0
+  engine.addSystem((dt: number) => {
+    if (shown || working) return
+    acc += dt
+    if (acc < 5) return
+    acc = 0
+    if (!(PODIUM_TEST_SHOW || Date.now() >= endTs)) return
+    working = true
+    void (async () => {
+      try {
+        const w = await computeWinners()
+        kickoffPodium.showWinners(w.group)
+        knockoutPodium.showWinners(w.ko)
+        console.log(`[Podium] shown — kickoff #1: ${w.group[0]?.name ?? '-'} | knockout #1: ${w.ko[0]?.name ?? '-'} | total #1: ${w.total[0]?.name ?? '-'}`)
+        shown = true
+      } catch (e) {
+        console.log('[Podium] failed:', e)
+      } finally { working = false }
+    })()
+  }, undefined, 'podium-trigger')
+}
+
+// Top-3 winners for each ranking (group / knockout / total), read from the mirrors.
+async function computeWinners(): Promise<{ group: WinnerEntry[]; ko: WinnerEntry[]; total: WinnerEntry[] }> {
+  loadResultsCache(await loadResults())
+  loadKoResultsCache(await loadKoResultsSrv())
+
+  const map = new Map<string, { name: string; group?: Prediction[]; ko?: KoPrediction[] }>()
+  let offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await Storage.getValues({ prefix: PLAYER_PREFIX, offset })
+    for (const { key, value } of page.data) {
+      const e = value as PlayerMirror | null
+      const address = key.slice(PLAYER_PREFIX.length)
+      const cur = map.get(address) ?? { name: '' }
+      if (e?.name) cur.name = e.name
+      if (e?.predictions) cur.group = e.predictions
+      map.set(address, cur)
+    }
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.pagination.total) break
+  }
+  offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await Storage.getValues({ prefix: KO_PLAYER_PREFIX, offset })
+    for (const { key, value } of page.data) {
+      const e = value as KoMirror | null
+      const address = key.slice(KO_PLAYER_PREFIX.length)
+      const cur = map.get(address) ?? { name: '' }
+      if (e?.name && !cur.name) cur.name = e.name
+      if (e?.predictions) cur.ko = e.predictions
+      map.set(address, cur)
+    }
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.pagination.total) break
+  }
+
+  type Row = { address: string; name: string; group: number; ko: number; total: number }
+  const rows: Row[] = []
+  for (const [address, v] of map) {
+    const g = v.group ? totalPoints(v.group) : 0
+    const k = v.ko ? koTotalPoints(v.ko) : 0
+    rows.push({ address, name: v.name || address.slice(0, 8), group: g, ko: k, total: g + k })
+  }
+  const top3 = (metric: 'group' | 'ko' | 'total'): WinnerEntry[] =>
+    rows.slice().sort((a, b) => b[metric] - a[metric]).slice(0, 3)
+      .map((r, i) => ({ address: r.address, rank: i + 1, name: r.name, points: r[metric] }))
+
+  return { group: top3('group'), ko: top3('ko'), total: top3('total') }
 }
 
 // Seed scene-scoped list keys to [] if they don't exist yet (one-time per fresh
@@ -392,6 +496,34 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
 async function broadcastLeaderboard(results: OfficialResult[]) {
   const board = await computeLeaderboard(results)
   room.send('leaderboardSnapshot', { json: JSON.stringify(board) })
+  room.send('kickoffLeaderboardSnapshot', { json: JSON.stringify(await computeKickoffLeaderboard()) })
+}
+
+// Kickoff (group-stage) ranking — by group points only. Drives the "KICKOFF WINNERS"
+// slide on the leaderboard TV.
+async function computeKickoffLeaderboard(): Promise<LeaderboardRow[]> {
+  loadResultsCache(await loadResults())
+  const rows: LeaderboardRow[] = []
+  let offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await Storage.getValues({ prefix: PLAYER_PREFIX, offset })
+    for (const { key, value } of page.data) {
+      const e = value as PlayerMirror | null
+      if (!e?.predictions) continue
+      const address = key.slice(PLAYER_PREFIX.length)
+      rows.push({
+        name:  e.name || address.slice(0, 8),
+        address,
+        value: totalPoints(e.predictions),
+        exact: exactScoreCount(e.predictions)
+      })
+    }
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.pagination.total) break
+  }
+  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
+  return rows.slice(0, LEADERBOARD_SIZE)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────────

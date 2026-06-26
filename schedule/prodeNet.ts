@@ -54,6 +54,10 @@ export const ProdeMessages = {
   leaderboardSnapshot: Schemas.Map({
     json: Schemas.String       // JSON.stringify({name,address,value}[])
   }),
+  // Server → Client: kickoff (group-stage) standings — for the "KICKOFF WINNERS" slide
+  kickoffLeaderboardSnapshot: Schemas.Map({
+    json: Schemas.String
+  }),
 
   // ── Knockout stage (parallel to the group messages above) ───────────────────
   // Client → Server: upsert one knockout prediction
