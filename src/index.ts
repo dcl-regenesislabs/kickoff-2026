@@ -151,37 +151,41 @@ function buildKnockoutPanels() {
   const L = Quaternion.fromEulerDegrees(0, 90, 0)   // left side — face east
   const R = Quaternion.fromEulerDegrees(0, 270, 0)  // right side — face west
 
-  // ── R16 — LEFT (small brackets, x=61) ─────────────────────────────────────
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(61.05, Y, 70.65), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(61.05, Y, 55.55), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(61.05, Y, 39.55), rotation: L, scale: S })
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(61.05, Y, 24.45), rotation: L, scale: S })
+  // Labels are shifted one round (real bracket starts at R32) and each panel holds
+  // 2 crosses. API round codes: R32='32' (confirmed). R16/QF/SF guessed by the
+  // power-of-2 pattern ('16'/'8'/'4') — verify when the API defines those rounds.
 
-  // ── QF — LEFT (medium brackets, x=69) ─────────────────────────────────────
-  addKnockoutPanel('QUARTER FINAL', { position: Vector3.create(69.05, Y, 63.15), rotation: L, scale: S })
-  addKnockoutPanel('QUARTER FINAL', { position: Vector3.create(69.15, Y, 32.05), rotation: L, scale: S })
+  // ── ROUND OF 32 — LEFT (slots 0,2,4,6) ────────────────────────────────────
+  addKnockoutPanel('ROUND OF 32', '32', 0, { position: Vector3.create(61.05, Y, 70.65), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', '32', 2, { position: Vector3.create(61.05, Y, 55.55), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', '32', 4, { position: Vector3.create(61.05, Y, 39.55), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 32', '32', 6, { position: Vector3.create(61.05, Y, 24.45), rotation: L, scale: S })
 
-  // ── SF — LEFT (large bracket, x=76) ───────────────────────────────────────
-  addKnockoutPanel('SEMI FINAL', { position: Vector3.create(76.15, Y, 48.05), rotation: L, scale: S })
+  // ── ROUND OF 16 — LEFT (slots 0,2) ────────────────────────────────────────
+  addKnockoutPanel('ROUND OF 16', '16', 0, { position: Vector3.create(69.05, Y, 63.15), rotation: L, scale: S })
+  addKnockoutPanel('ROUND OF 16', '16', 2, { position: Vector3.create(69.15, Y, 32.05), rotation: L, scale: S })
 
-  // ── FINAL — center (double-sided, perpendicular to rest) ─────────────────
+  // ── QUARTER FINAL — LEFT (slot 0) ─────────────────────────────────────────
+  addKnockoutPanel('QUARTER FINAL', '8', 0, { position: Vector3.create(76.15, Y, 48.05), rotation: L, scale: S })
+
+  // ── SEMI FINAL (2 crosses) + FINAL/3RD placeholder — center ───────────────
   const FINAL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
   const THIRD_PLACE_ROT = Quaternion.fromEulerDegrees(0, 0, 0)
   const FINAL_POS = Vector3.create(86.46, Y, 55.10)
   const THIRD_PLACE_POS = Vector3.create(86.46, Y, 39.78)
-  addKnockoutPanel('FINAL', { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
-  addKnockoutPanel('THIRD PLACE', { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
+  addKnockoutPanel('SEMI FINAL', '4', 0, { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
+  addKnockoutPanel('FINAL / 3RD', '', 0, { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
 
-  // ── SF — RIGHT (large bracket, x=97) ──────────────────────────────────────
-  addKnockoutPanel('SEMI FINAL', { position: Vector3.create(96.76, Y, 47.22), rotation: R, scale: S })
+  // ── QUARTER FINAL — RIGHT (slot 2) ────────────────────────────────────────
+  addKnockoutPanel('QUARTER FINAL', '8', 2, { position: Vector3.create(96.76, Y, 47.22), rotation: R, scale: S })
 
-  // ── QF — RIGHT (medium brackets, x=104) ───────────────────────────────────
-  addKnockoutPanel('QUARTER FINAL', { position: Vector3.create(103.86, Y, 63.00), rotation: R, scale: S })
-  addKnockoutPanel('QUARTER FINAL', { position: Vector3.create(103.86, Y, 32.12), rotation: R, scale: S })
+  // ── ROUND OF 16 — RIGHT (slots 4,6) ───────────────────────────────────────
+  addKnockoutPanel('ROUND OF 16', '16', 4, { position: Vector3.create(103.86, Y, 63.00), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 16', '16', 6, { position: Vector3.create(103.86, Y, 32.12), rotation: R, scale: S })
 
-  // ── R16 — RIGHT (small brackets, x=112) ───────────────────────────────────
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(111.86, Y, 70.82), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(111.86, Y, 55.72), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(111.86, Y, 39.72), rotation: R, scale: S })
-  addKnockoutPanel('ROUND OF 16', { position: Vector3.create(111.86, Y, 24.62), rotation: R, scale: S })
+  // ── ROUND OF 32 — RIGHT (slots 8,10,12,14) ────────────────────────────────
+  addKnockoutPanel('ROUND OF 32', '32', 8,  { position: Vector3.create(111.86, Y, 70.82), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', '32', 10, { position: Vector3.create(111.86, Y, 55.72), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', '32', 12, { position: Vector3.create(111.86, Y, 39.72), rotation: R, scale: S })
+  addKnockoutPanel('ROUND OF 32', '32', 14, { position: Vector3.create(111.86, Y, 24.62), rotation: R, scale: S })
 }
