@@ -139,6 +139,7 @@ function syncOnConnect() {
   room.send('requestLeaderboard', {})
   room.send('requestKoFixtures', {})
   room.send('requestKoPredictions', {})
+  room.send('requestBallState', {})
 }
 
 // Ask the server for a fresh leaderboard (e.g. when the panel comes into view).

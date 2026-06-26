@@ -14,6 +14,7 @@ import {
 import { isMatchLocked, LOCK_LEAD_MS } from '../schedule/matchDates'
 import { isAdmin, LEADERBOARD_SIZE } from '../schedule/prodeConfig'
 import { startResultsSync } from './resultsSync'
+import { setupBall } from './ball'
 
 // ── Authoritative server ──────────────────────────────────────────────────────
 // Storage.player    → each player's own predictions (their snapshot).
@@ -22,6 +23,8 @@ import { startResultsSync } from './resultsSync'
 //                                            leaderboard aggregation.
 export function startProdeServer() {
   console.log('[Server] prode authoritative server ready')
+
+  setupBall()
 
   // ── Player identity (for leaderboard display names) ─────────────────────────
   room.onMessage('identify', async (data, ctx) => {

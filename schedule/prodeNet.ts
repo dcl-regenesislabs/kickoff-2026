@@ -79,6 +79,39 @@ export const ProdeMessages = {
   }),
   koResultsSnapshot: Schemas.Map({
     json: Schemas.String         // JSON.stringify(KoResult[])
+  }),
+
+  // ── Ball physics ────────────────────────────────────────────────────────────
+  // Server → All clients: ball position + velocity (cuando está libre)
+  ballState: Schemas.Map({
+    x:  Schemas.Float,
+    y:  Schemas.Float,
+    z:  Schemas.Float,
+    vx: Schemas.Float,
+    vy: Schemas.Float,
+    vz: Schemas.Float
+  }),
+
+  // Server → All clients: quién tiene la pelota ('' = libre)
+  ballOwned: Schemas.Map({
+    ownerId: Schemas.String
+  }),
+
+  // Client → Server: patear con dirección y potencia
+  kickBall: Schemas.Map({
+    dirX:  Schemas.Float,
+    dirZ:  Schemas.Float,
+    power: Schemas.Float
+  }),
+
+  // Client → Server: pedir snapshot actual de la pelota al conectar
+  requestBallState: Schemas.Map({
+  }),
+
+  // Server → Kicker: punto de aterrizaje autoritativo post-kick (Point B)
+  kickLand: Schemas.Map({
+    x: Schemas.Float,
+    z: Schemas.Float
   })
 }
 

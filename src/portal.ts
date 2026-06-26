@@ -102,7 +102,7 @@ export class Portal {
       scale: Vector3.One(),
       parent: this.portalBody
     })
-    GltfContainer.create(frame, { src: FRAME_SRC })
+    GltfContainer.create(frame, { src: FRAME_SRC, invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS, visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS })
 
     const frameArrows = engine.addEntity()
     Transform.create(frameArrows, {
@@ -131,7 +131,7 @@ export class Portal {
       scale: Vector3.One(),
       parent: this.portalBody
     })
-    GltfContainer.create(this.doorLeft, { src: DOOR_SRC })
+    GltfContainer.create(this.doorLeft, { src: DOOR_SRC, invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS, visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS })
 
     Transform.create(this.doorRight, {
       position: Vector3.create(DOOR_SEPARATION, DOOR_Y, DOOR_Z),
@@ -139,7 +139,7 @@ export class Portal {
       scale: Vector3.create(-1, 1, 1),
       parent: this.portalBody
     })
-    GltfContainer.create(this.doorRight, { src: DOOR_SRC })
+    GltfContainer.create(this.doorRight, { src: DOOR_SRC, invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS, visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS })
 
     const portalLight = engine.addEntity()
     Transform.create(portalLight, {

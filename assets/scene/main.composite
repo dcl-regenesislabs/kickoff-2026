@@ -1770,6 +1770,48 @@
             "parent": 0
           }
         },
+        "592": {
+          "json": {
+            "position": {
+              "x": 124.25,
+              "y": 0,
+              "z": 48
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": -0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
+        },
+        "593": {
+          "json": {
+            "position": {
+              "x": 81.75,
+              "y": 1.25,
+              "z": 48
+            },
+            "scale": {
+              "x": 95.69999694824219,
+              "y": 3,
+              "z": 65.30000305175781
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "parent": 0
+          }
+        },
         "612": {
           "json": {
             "position": {
@@ -3518,6 +3560,13 @@
         "591": {
           "json": {
             "src": "assets/scene/Models/Podium01/Podium01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "592": {
+          "json": {
+            "src": "assets/scene/Models/kapu/kapu.glb",
             "visibleMeshesCollisionMask": 0,
             "invisibleMeshesCollisionMask": 3
           }
@@ -5370,6 +5419,16 @@
             "value": "Podium01.glb_2"
           }
         },
+        "592": {
+          "json": {
+            "value": "kapu.glb"
+          }
+        },
+        "593": {
+          "json": {
+            "value": "safe_area_ball"
+          }
+        },
         "612": {
           "json": {
             "value": "Plane_4"
@@ -5717,9 +5776,9 @@
         "serializationType": "map"
       },
       "data": {
-        "0": {
+        "593": {
           "json": {
-            "gizmo": 3
+            "gizmo": 0
           }
         }
       }
@@ -5796,7 +5855,9 @@
                   589,
                   587,
                   590,
-                  591
+                  591,
+                  592,
+                  593
                 ]
               },
               {
@@ -6466,6 +6527,14 @@
               {
                 "entity": 591,
                 "children": []
+              },
+              {
+                "entity": 592,
+                "children": []
+              },
+              {
+                "entity": 593,
+                "children": []
               }
             ]
           }
@@ -6550,6 +6619,9 @@
           "json": {}
         },
         "592": {
+          "json": {}
+        },
+        "593": {
           "json": {}
         },
         "612": {
