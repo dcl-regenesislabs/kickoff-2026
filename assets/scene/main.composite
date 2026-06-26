@@ -1665,6 +1665,27 @@
             "parent": 0
           }
         },
+        "587": {
+          "json": {
+            "position": {
+              "x": 82.75,
+              "y": 0,
+              "z": 70
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 1,
+              "z": 0,
+              "w": 0
+            },
+            "parent": 0
+          }
+        },
         "588": {
           "json": {
             "position": {
@@ -1703,6 +1724,27 @@
               "y": -1.2077649234635731e-17,
               "z": 2.0411200687123947e-15,
               "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
+        },
+        "590": {
+          "json": {
+            "position": {
+              "x": 91.5,
+              "y": 0,
+              "z": 70
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 1,
+              "z": 0,
+              "w": 0
             },
             "parent": 0
           }
@@ -1749,54 +1791,12 @@
             "parent": 0
           }
         },
-        "594": {
-          "json": {
-            "position": {
-              "x": 82.75,
-              "y": 0,
-              "z": 70
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 1,
-              "z": 0,
-              "w": 0
-            },
-            "parent": 0
-          }
-        },
         "595": {
           "json": {
             "position": {
               "x": 87.25,
               "y": 0,
               "z": 68
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 1,
-              "z": 0,
-              "w": 0
-            },
-            "parent": 0
-          }
-        },
-        "596": {
-          "json": {
-            "position": {
-              "x": 91.5,
-              "y": 0,
-              "z": 70
             },
             "scale": {
               "x": 1,
@@ -3920,6 +3920,20 @@
             "invisibleMeshesCollisionMask": 2
           }
         },
+        "587": {
+          "json": {
+            "src": "assets/scene/Models/PodiumKickoff01_gray/PodiumKickoff01_gray.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "590": {
+          "json": {
+            "src": "assets/scene/Models/PodiumKickoff01_purple/PodiumKickoff01_purple.glb",
+            "visibleMeshesCollisionMask": 2,
+            "invisibleMeshesCollisionMask": 2
+          }
+        },
         "592": {
           "json": {
             "src": "assets/scene/Models/kapu/kapu.glb",
@@ -3927,23 +3941,9 @@
             "invisibleMeshesCollisionMask": 3
           }
         },
-        "594": {
-          "json": {
-            "src": "assets/scene/Models/PodiumKickoff01.glb",
-            "visibleMeshesCollisionMask": 2,
-            "invisibleMeshesCollisionMask": 2
-          }
-        },
         "595": {
           "json": {
             "src": "assets/scene/Models/PodiumMAXKickoff01.glb",
-            "visibleMeshesCollisionMask": 2,
-            "invisibleMeshesCollisionMask": 2
-          }
-        },
-        "596": {
-          "json": {
-            "src": "assets/scene/Models/PodiumKickoff01.glb",
             "visibleMeshesCollisionMask": 2,
             "invisibleMeshesCollisionMask": 2
           }
@@ -5904,6 +5904,11 @@
             "value": "collider_right"
           }
         },
+        "587": {
+          "json": {
+            "value": "PodiumKickoff01_gray.glb"
+          }
+        },
         "588": {
           "json": {
             "value": "Plane_2"
@@ -5912,6 +5917,11 @@
         "589": {
           "json": {
             "value": "small_brackets_L"
+          }
+        },
+        "590": {
+          "json": {
+            "value": "PodiumKickoff01_purple.glb"
           }
         },
         "592": {
@@ -5924,19 +5934,9 @@
             "value": "safe_area_ball"
           }
         },
-        "594": {
-          "json": {
-            "value": "PodiumKickoff01.glb"
-          }
-        },
         "595": {
           "json": {
             "value": "PodiumMAXKickoff01.glb"
-          }
-        },
-        "596": {
-          "json": {
-            "value": "PodiumKickoff01.glb_2"
           }
         },
         "597": {
@@ -6381,7 +6381,7 @@
         "serializationType": "map"
       },
       "data": {
-        "0": {
+        "587": {
           "json": {
             "gizmo": 0
           }
@@ -6460,8 +6460,6 @@
                   589,
                   592,
                   593,
-                  594,
-                  596,
                   595,
                   597,
                   598,
@@ -6469,7 +6467,9 @@
                   600,
                   601,
                   602,
-                  670
+                  670,
+                  587,
+                  590
                 ]
               },
               {
@@ -7137,15 +7137,7 @@
                 "children": []
               },
               {
-                "entity": 594,
-                "children": []
-              },
-              {
                 "entity": 595,
-                "children": []
-              },
-              {
-                "entity": 596,
                 "children": []
               },
               {
@@ -7237,6 +7229,14 @@
               {
                 "entity": 610,
                 "children": []
+              },
+              {
+                "entity": 587,
+                "children": []
+              },
+              {
+                "entity": 590,
+                "children": []
               }
             ]
           }
@@ -7305,10 +7305,16 @@
         "586": {
           "json": {}
         },
+        "587": {
+          "json": {}
+        },
         "588": {
           "json": {}
         },
         "589": {
+          "json": {}
+        },
+        "590": {
           "json": {}
         },
         "592": {
@@ -7317,13 +7323,7 @@
         "593": {
           "json": {}
         },
-        "594": {
-          "json": {}
-        },
         "595": {
-          "json": {}
-        },
-        "596": {
           "json": {}
         },
         "597": {
