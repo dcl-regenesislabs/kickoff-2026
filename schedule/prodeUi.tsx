@@ -77,7 +77,10 @@ export function openProdeInfo() { infoState.visible = true }
 
 // Player stats overlay ("MY SCORE").
 const scoreState = { visible: false, tab: 'total' as 'total' | 'group' | 'knockout' }
-export function openScorePanel() { scoreState.visible = true; scoreState.tab = 'total' }
+export function openScorePanel() {
+  if (scoreState.visible) { scoreState.visible = false; return }
+  scoreState.visible = true; scoreState.tab = 'total'
+}
 
 // Welcome overlay shown on entry; 3 steps, dismissed with "Join the Challenge".
 const welcomeState = { visible: true, step: 0 }
@@ -633,7 +636,7 @@ const MatchChecklist = () => {
   const chipWidth = mob ? mobileChipWidth : desktopChipWidth
   const hidden =
     welcomeState.visible ||
-    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible
+    groupState.visible || adminState.visible || infoState.visible || celebrateState.visible
 
   const switchTab = (panel: 'knockout' | 'group') => {
     playClick()
