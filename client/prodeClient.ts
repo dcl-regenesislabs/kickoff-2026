@@ -32,6 +32,9 @@ type AckReason = 'locked' | 'error' | 'disconnected'
 let onPredictionAck: ((matchId: number, ok: boolean, reason: AckReason | '') => void) | null = null
 export function setOnPredictionAck(cb: (matchId: number, ok: boolean, reason: AckReason | '') => void) { onPredictionAck = cb }
 
+let onKoPredictionAck: ((fixtureId: number, ok: boolean, reason: AckReason | '') => void) | null = null
+export function setOnKoPredictionAck(cb: (fixtureId: number, ok: boolean, reason: AckReason | '') => void) { onKoPredictionAck = cb }
+
 const SEND_TIMEOUT_MS = 8000  // safety net only — disconnected case is handled instantly
 const pendingAcks = new Map<number, ReturnType<typeof setTimeout>>()
 let serverReady = false
@@ -134,6 +137,7 @@ export function startProdeClient(onSnapshot: () => void) {
   })
   room.onMessage('koPredictionSaved', (data) => {
     if (!data.ok) console.log('[Client] server rejected KO prediction', data.fixtureId, data.reason)
+    onKoPredictionAck?.(data.fixtureId, data.ok, (data.reason as AckReason) || '')
   })
 
   // 3. Initial sync. Room auto-queues until ready; re-send on (re)connect.

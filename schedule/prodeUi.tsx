@@ -10,7 +10,7 @@ import {
   koFixtures, koPredictions, koResults, getKoFixture, saveKoPrediction, isKoFixtureLocked,
   myKoPoints, scoreKoPrediction
 } from './knockoutData'
-import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
+import { getLeaderboard, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
@@ -199,13 +199,15 @@ function loadGroupMatch() {
 
 // ── Knockout prediction form (mirrors the group form, keyed by fixture) ─────────
 const koFormState = {
-  visible:    false,
-  fixtureIds: [] as number[],   // the fixtures of the clicked panel (1-2)
-  index:      0,
-  score1:     0,
-  score2:     0,
-  dirty:      false,
-  onChange:   null as (() => void) | null
+  visible:        false,
+  fixtureIds:     [] as number[],   // the fixtures of the clicked panel (1-2)
+  index:          0,
+  score1:         0,
+  score2:         0,
+  dirty:          false,
+  saving:         false,
+  pendingAdvance: null as (() => void) | null,
+  onChange:       null as (() => void) | null
 }
 const KO_ROUND_LABELS: Record<string, string> = {
   '32': 'ROUND OF 32', '16': 'ROUND OF 16', '8': 'QUARTER FINAL', '4': 'SEMI FINAL', '2': 'FINAL', '1': 'FINAL'
@@ -267,6 +269,16 @@ export function setupProdeUi() {
       if (wasExplicit) showRejectionToast(reason === 'locked' ? 'locked' : reason === 'disconnected' ? 'disconnected' : 'error')
     }
     groupState.pendingAdvance = null
+  })
+  setOnKoPredictionAck((_fixtureId, ok, reason) => {
+    const wasExplicit = koFormState.pendingAdvance !== null
+    koFormState.saving = false
+    if (ok) {
+      koFormState.pendingAdvance?.()
+    } else {
+      if (wasExplicit) showRejectionToast(reason === 'locked' ? 'locked' : reason === 'disconnected' ? 'disconnected' : 'error')
+    }
+    koFormState.pendingAdvance = null
   })
   ReactEcsRenderer.setUiRenderer(ProdeUi)
 }
@@ -1234,10 +1246,13 @@ const KoForm = () => {
   }
   const close = () => { commit(false); koFormState.visible = false }
   const saveNext = () => {
-    if (locked || !connected) return
+    if (koFormState.saving || locked || !connected) return
+    koFormState.saving = true
+    koFormState.pendingAdvance = () => {
+      if (canNext) { koFormState.index += 1; loadKoFixtureForm() }
+      else koFormState.visible = false
+    }
     commit(true)
-    if (canNext) { koFormState.index += 1; loadKoFixtureForm() }
-    else koFormState.visible = false
   }
 
   const teamCol = (
@@ -1329,7 +1344,7 @@ const KoForm = () => {
                 : <UiEntity uiTransform={{ width: S(actH * 2.356), height: S(actH) }} />)
             : <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
                 width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
-                tint={!connected ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+                tint={(koFormState.saving || !connected) ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
                 onMouseDown={saveNext} />}
         </UiEntity>
       </UiEntity>
