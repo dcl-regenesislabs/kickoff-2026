@@ -173,8 +173,8 @@ function buildKnockoutPanels() {
   const THIRD_PLACE_ROT = Quaternion.fromEulerDegrees(0, 0, 0)
   const FINAL_POS = Vector3.create(86.46, Y, 55.10)
   const THIRD_PLACE_POS = Vector3.create(86.46, Y, 39.78)
-  addKnockoutPanel('SEMI FINAL', '4', 0, { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
-  addKnockoutPanel('FINAL / 3RD', '', 0, { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
+  addKnockoutPanel('FINAL / 3RD', '', 0, { position: FINAL_POS, rotation: FINAL_ROT, scale: S })
+  addKnockoutPanel('SEMI FINAL', '4', 0, { position: THIRD_PLACE_POS, rotation: THIRD_PLACE_ROT, scale: S })
 
   // ── QUARTER FINAL — RIGHT (slot 2) ────────────────────────────────────────
   addKnockoutPanel('QUARTER FINAL', '8', 2, { position: Vector3.create(96.76, Y, 47.22), rotation: R, scale: S })
