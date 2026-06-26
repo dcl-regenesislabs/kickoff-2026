@@ -489,20 +489,39 @@ type MobileKnockoutSlot = {
   y: number
   active: boolean
   color: Color4
+  idleColor: Color4
 }
 
 function getMobileKnockoutSlots(progress: KnockoutBoardProgress): MobileKnockoutSlot[] {
+  const roundColors = (values: boolean[]) => {
+    const done = values.filter(Boolean).length
+    const total = values.length
+    const complete = total > 0 && done === total
+    const partial = done > 0 && done < total
+    return {
+      active: complete ? CHECKLIST_COMPLETE : CHECKLIST_PARTIAL,
+      idle: done === 0 ? VIOLET : CELL_EMPTY,
+      marker: complete ? CHECKLIST_COMPLETE : partial ? CHECKLIST_PARTIAL : VIOLET
+    }
+  }
+
+  const r32 = roundColors([...progress.r32Left, ...progress.r32Right])
+  const r16 = roundColors([...progress.r16Left, ...progress.r16Right])
+  const qf = roundColors([...progress.qfLeft, ...progress.qfRight])
+  const sf = roundColors([progress.sfLeft, progress.sfRight])
+  const finals = roundColors([progress.final, progress.third])
+
   return [
-    ...progress.r32Left.map((active, i) => ({ key: `r32l-${i}`, x: MOBILE_KO_X.r32L, y: MOBILE_KO_R32_Y[i], active, color: ACCENT_KO })),
-    ...progress.r32Right.map((active, i) => ({ key: `r32r-${i}`, x: MOBILE_KO_X.r32R, y: MOBILE_KO_R32_Y[i], active, color: ACCENT_KO })),
-    ...progress.r16Left.map((active, i) => ({ key: `r16l-${i}`, x: MOBILE_KO_X.r16L, y: MOBILE_KO_R16_Y[i], active, color: ACCENT_KO })),
-    ...progress.r16Right.map((active, i) => ({ key: `r16r-${i}`, x: MOBILE_KO_X.r16R, y: MOBILE_KO_R16_Y[i], active, color: ACCENT_KO })),
-    ...progress.qfLeft.map((active, i) => ({ key: `qfl-${i}`, x: MOBILE_KO_X.qfL, y: MOBILE_KO_QF_Y[i], active, color: ACCENT_KO })),
-    ...progress.qfRight.map((active, i) => ({ key: `qfr-${i}`, x: MOBILE_KO_X.qfR, y: MOBILE_KO_QF_Y[i], active, color: ACCENT_KO })),
-    { key: 'sfl', x: MOBILE_KO_X.sfL, y: MOBILE_KO_SF_Y, active: progress.sfLeft, color: ACCENT_KO },
-    { key: 'sfr', x: MOBILE_KO_X.sfR, y: MOBILE_KO_SF_Y, active: progress.sfRight, color: ACCENT_KO },
-    { key: 'final', x: MOBILE_KO_X.final, y: MOBILE_KO_FINAL_Y, active: progress.final, color: GOLD },
-    { key: 'third', x: MOBILE_KO_X.final, y: MOBILE_KO_THIRD_Y, active: progress.third, color: GOLD }
+    ...progress.r32Left.map((active, i) => ({ key: `r32l-${i}`, x: MOBILE_KO_X.r32L, y: MOBILE_KO_R32_Y[i], active, color: r32.active, idleColor: r32.idle })),
+    ...progress.r32Right.map((active, i) => ({ key: `r32r-${i}`, x: MOBILE_KO_X.r32R, y: MOBILE_KO_R32_Y[i], active, color: r32.active, idleColor: r32.idle })),
+    ...progress.r16Left.map((active, i) => ({ key: `r16l-${i}`, x: MOBILE_KO_X.r16L, y: MOBILE_KO_R16_Y[i], active, color: r16.active, idleColor: r16.idle })),
+    ...progress.r16Right.map((active, i) => ({ key: `r16r-${i}`, x: MOBILE_KO_X.r16R, y: MOBILE_KO_R16_Y[i], active, color: r16.active, idleColor: r16.idle })),
+    ...progress.qfLeft.map((active, i) => ({ key: `qfl-${i}`, x: MOBILE_KO_X.qfL, y: MOBILE_KO_QF_Y[i], active, color: qf.active, idleColor: qf.idle })),
+    ...progress.qfRight.map((active, i) => ({ key: `qfr-${i}`, x: MOBILE_KO_X.qfR, y: MOBILE_KO_QF_Y[i], active, color: qf.active, idleColor: qf.idle })),
+    { key: 'sfl', x: MOBILE_KO_X.sfL, y: MOBILE_KO_SF_Y, active: progress.sfLeft, color: sf.active, idleColor: sf.idle },
+    { key: 'sfr', x: MOBILE_KO_X.sfR, y: MOBILE_KO_SF_Y, active: progress.sfRight, color: sf.active, idleColor: sf.idle },
+    { key: 'final', x: MOBILE_KO_X.final, y: MOBILE_KO_FINAL_Y, active: progress.final, color: finals.active, idleColor: finals.idle },
+    { key: 'third', x: MOBILE_KO_X.final, y: MOBILE_KO_THIRD_Y, active: progress.third, color: finals.active, idleColor: finals.idle }
   ]
 }
 
@@ -945,6 +964,12 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
     const boardH = Math.round(boardW * MOBILE_KO_BASE_H / MOBILE_KO_BASE_W)
     const boxW = Math.round(boardW * MOBILE_KO_BOX_W / MOBILE_KO_BASE_W)
     const boxH = Math.round(boardH * MOBILE_KO_BOX_H / MOBILE_KO_BASE_H)
+    const slotCoreW = Math.round(boxW * 0.7)
+    const slotCoreH = Math.round(boxH * 0.58)
+    const slotCoreRadius = Math.max(4, Math.round(boxH * 0.18))
+    const slotMarker = Math.max(8, Math.round(boxH * 0.28))
+    const slotMarkerRadius = Math.max(3, Math.round(slotMarker * 0.3))
+    const slotCoreColor = Color4.fromHexString('#1b2437ff')
     const slots = getMobileKnockoutSlots(progress)
 
     return (
@@ -1007,10 +1032,30 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
                   left: Math.round(boardW * slot.x / MOBILE_KO_BASE_W),
                   top: Math.round(boardH * slot.y / MOBILE_KO_BASE_H)
                 },
-                borderRadius: S(8)
+                borderRadius: S(8),
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
-              uiBackground={{ color: slot.active ? slot.color : boxIdle }}
-            />
+              uiBackground={{ color: slot.active ? slot.color : slot.idleColor }}
+            >
+              <UiEntity
+                uiTransform={{
+                  width: slotCoreW,
+                  height: slotCoreH,
+                  borderRadius: slotCoreRadius
+                }}
+                uiBackground={{ color: slot.active ? Color4.create(0, 0, 0, 0.18) : (slot.idleColor === VIOLET ? Color4.create(0, 0, 0, 0.14) : slotCoreColor) }}
+              />
+              <UiEntity
+                uiTransform={{
+                  width: slotMarker,
+                  height: slotMarker,
+                  borderRadius: slotMarkerRadius,
+                  positionType: 'absolute'
+                }}
+                uiBackground={{ color: slot.active ? Color4.White() : (slot.idleColor === VIOLET ? Color4.White() : Color4.create(1, 1, 1, 0.36)) }}
+              />
+            </UiEntity>
           ))}
         </UiEntity>
       </UiEntity>
