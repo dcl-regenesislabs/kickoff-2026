@@ -8,7 +8,7 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 import { GROUPS, predictions, isGroupComplete, abbr, getResult, flagFor } from './prodeData'
 import { koFixtures, koResults } from './knockoutData'
 import { getMatchDate, fmtDate, isMatchLocked } from './matchDates'
-import { openGroupForm } from './prodeUi'
+import { openGroupForm, openKoForm } from './prodeUi'
 import { playClick } from '../client/sfx'
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -454,4 +454,20 @@ export function addKnockoutPanel(
 
   refresh()
   panelRefreshers.push(refresh)
+
+  // Click surface → open the KO prediction form for this panel's defined fixtures.
+  const clicker = engine.addEntity()
+  Transform.createOrReplace(clicker, { position: Vector3.create(0, 0, FRONT_Z), scale: Vector3.create(2.6, 2.3, 1), parent: root })
+  MeshCollider.setPlane(clicker, ColliderLayer.CL_POINTER)
+  pointerEventsSystem.onPointerDown(
+    { entity: clicker, opts: { button: InputAction.IA_POINTER, hoverText: `Open ${roundLabel}`, showHighlight: false } },
+    () => {
+      playClick()
+      const inRound = round
+        ? koFixtures.filter(f => f.round === round).sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
+        : []
+      const ids = [inRound[slot0]?.id, inRound[slot0 + 1]?.id].filter((x): x is number => x !== undefined)
+      if (ids.length > 0) openKoForm(ids, () => refresh())
+    }
+  )
 }
