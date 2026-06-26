@@ -566,7 +566,7 @@ const PredictionChip = (props: {
           padding: { top: S(10 * uiScale), bottom: S(10 * uiScale), left: S(14 * uiScale), right: S(10 * uiScale) }
         }}
       >
-        <Label value={label} fontSize={F((mob ? 13 : 12) * uiScale)} color={MUTED}
+        <Label value={label} fontSize={F((mob ? 13 : 12) * uiScale)} color={Color4.White()}
           uiTransform={{ height: S((mob ? 16 : 15) * uiScale) }} />
         <Label value={`${completed} / ${total}`} fontSize={F((mob ? 22 : 21) * uiScale)} color={Color4.White()}
           uiTransform={{ height: S((mob ? 26 : 24) * uiScale), margin: `${S(2 * uiScale)}px 0 0 0` }} />
@@ -872,22 +872,15 @@ const GroupStageChecklistPanel = (props: { mob: boolean; k: number }) => {
           flexDirection: 'row',
           alignItems: 'center',
           width: '100%',
-          justifyContent: 'space-between',
           margin: `0 0 ${S(props.mob ? 14 : 10)}px 0`
         }}
       >
-        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Label value="MATCHES PREDICTED" fontSize={F(props.mob ? 10 : 9)} color={MUTED}
-            uiTransform={{ height: S(props.mob ? 12 : 11) }} />
-          <Label value={`${getCompletedCount()} / ${MATCHES.length}`} fontSize={F(props.mob ? 20 : 18)} color={Color4.White()}
-            uiTransform={{ height: S(props.mob ? 24 : 22), margin: `${S(2)}px 0 0 0` }} />
-        </UiEntity>
-        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-          <Label value="POINTS" fontSize={F(props.mob ? 10 : 9)} color={MUTED}
-            uiTransform={{ height: S(props.mob ? 12 : 11) }} />
-          <Label value={`${myPoints()} pts`} fontSize={F(props.mob ? 20 : 18)} color={ACCENT_GS}
-            uiTransform={{ height: S(props.mob ? 24 : 22), margin: `${S(2)}px 0 0 0` }} />
-        </UiEntity>
+        <Label
+          value={`MATCHES PREDICTED ${getCompletedCount()} / ${MATCHES.length}`}
+          fontSize={F(props.mob ? 19 : 15)}
+          color={Color4.White()}
+          uiTransform={{ height: S(props.mob ? 24 : 18) }}
+        />
       </UiEntity>
       <UiEntity
         uiTransform={{
@@ -960,7 +953,8 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
   const labelColor = props.mob ? Color4.White() : MUTED
 
   if (props.mob) {
-    const boardW = S(760)
+    const koMobileScale = 1.1
+    const boardW = S(760 * koMobileScale)
     const boardH = Math.round(boardW * MOBILE_KO_BASE_H / MOBILE_KO_BASE_W)
     const boxW = Math.round(boardW * MOBILE_KO_BOX_W / MOBILE_KO_BASE_W)
     const boxH = Math.round(boardH * MOBILE_KO_BOX_H / MOBILE_KO_BASE_H)
@@ -975,10 +969,15 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
     return (
       <UiEntity
         uiTransform={{
-          padding: { top: S(4 * props.k), bottom: S(14 * props.k), left: S(20 * props.k), right: S(20 * props.k) },
+          padding: {
+            top: S(4 * props.k * koMobileScale),
+            bottom: S(14 * props.k * koMobileScale),
+            left: S(20 * props.k * koMobileScale),
+            right: S(20 * props.k * koMobileScale)
+          },
           flexDirection: 'column',
-          alignItems: 'center',
-          alignSelf: 'center'
+          alignItems: 'flex-start',
+          alignSelf: 'flex-start'
         }}
       >
         <UiEntity
@@ -987,23 +986,23 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            margin: `0 0 ${S((props.mob ? 8 : 6) * mobileBoost)}px 0`
+            margin: `0 0 ${S((props.mob ? 8 : 6) * mobileBoost * koMobileScale)}px 0`
           }}
         >
           <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-            <Label value="MATCHES PREDICTED" fontSize={F(15)} color={labelColor}
-              uiTransform={{ height: S(18) }} />
-            <Label value={`${progress.completed} / ${progress.total}`} fontSize={F(34)} color={Color4.White()}
-              uiTransform={{ height: S(40), margin: `${S(4)}px 0 0 0` }} />
+            <Label value="MATCHES PREDICTED" fontSize={F(15 * koMobileScale)} color={labelColor}
+              uiTransform={{ height: S(18 * koMobileScale) }} />
+            <Label value={`${progress.completed} / ${progress.total}`} fontSize={F(34 * koMobileScale)} color={Color4.White()}
+              uiTransform={{ height: S(40 * koMobileScale), margin: `${S(4 * koMobileScale)}px 0 0 0` }} />
           </UiEntity>
           <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-            <Label value="BRACKET STATUS" fontSize={F(15)} color={labelColor}
-              uiTransform={{ height: S(18) }} />
+            <Label value="BRACKET STATUS" fontSize={F(15 * koMobileScale)} color={labelColor}
+              uiTransform={{ height: S(18 * koMobileScale) }} />
             <Label
               value={progress.completed === progress.total ? 'COMPLETE' : `${Math.round(progress.completed / progress.total * 100)}%`}
-              fontSize={F(34)}
+              fontSize={F(34 * koMobileScale)}
               color={ACCENT_KO}
-              uiTransform={{ height: S(40), margin: `${S(4)}px 0 0 0` }}
+              uiTransform={{ height: S(40 * koMobileScale), margin: `${S(4 * koMobileScale)}px 0 0 0` }}
             />
           </UiEntity>
         </UiEntity>
@@ -1013,7 +1012,7 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
             width: boardW,
             height: boardH,
             positionType: 'relative',
-            margin: `${S(6)}px 0 0 0`
+            margin: `${S(6 * koMobileScale)}px 0 0 0`
           }}
         >
           <UiEntity
@@ -1032,7 +1031,7 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
                   left: Math.round(boardW * slot.x / MOBILE_KO_BASE_W),
                   top: Math.round(boardH * slot.y / MOBILE_KO_BASE_H)
                 },
-                borderRadius: S(8),
+                borderRadius: S(8 * koMobileScale),
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
