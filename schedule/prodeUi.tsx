@@ -219,7 +219,7 @@ const VIOLET    = Color4.fromHexString('#9f78e7ff')
 const MUTED     = Color4.create(0.6, 0.6, 0.7, 1)
 const PANEL_BG      = Color4.create(0.05, 0.04, 0.11, 0.97)
 const ACCENT_KO     = Color4.fromHexString('#9f78e7ff')
-const ACCENT_GS     = Color4.fromHexString('#18A187ff')
+const ACCENT_GS     = Color4.fromHexString('#F28C28ff')
 const TAB_INACTIVE  = Color4.create(0.45, 0.44, 0.55, 1)
 const CHIP_HOVER    = Color4.create(0.09, 0.08, 0.18, 1)
 const CHECKLIST_PARTIAL  = Color4.fromHexString('#7a1f31ff')
@@ -532,7 +532,7 @@ const PredictionChip = (props: {
   onOpen: () => void
 }) => {
   const { mob, type } = props
-  const uiScale = mob ? 1.3 : 1
+  const uiScale = mob ? 1.3 : 0.9
   const accent = type === 'knockout' ? ACCENT_KO : ACCENT_GS
   const label = type === 'knockout' ? 'KNOCKOUT' : 'GROUP STAGE'
   const isActive = props.active ?? false
@@ -679,10 +679,19 @@ const MatchChecklist = () => {
   const mob = isMobile()
   const mobileUiScale = mob ? 1.3 : 1
   const k = mob ? 1.55 * mobileUiScale : 1
+  const desktopChipScale = 0.9
   const mobileButtonsLeft = S(184)
   const mobileButtonsTop = '21%'
   const mobileGap = S(24)
   const mobileChipWidth = S(248 * 1.3)
+  const desktopButtonsLeft = S(64)
+  const desktopButtonsTop = '29%'
+  const desktopGap = S(28)
+  const desktopChipWidth = S(232 * desktopChipScale)
+  const buttonsLeft = mob ? mobileButtonsLeft : desktopButtonsLeft
+  const buttonsTop = mob ? mobileButtonsTop : desktopButtonsTop
+  const panelGap = mob ? mobileGap : desktopGap
+  const chipWidth = mob ? mobileChipWidth : desktopChipWidth
   const hidden =
     welcomeState.visible ||
     groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
@@ -710,51 +719,34 @@ const MatchChecklist = () => {
         display: hidden ? 'none' : 'flex'
       }}
     >
-      {mob && (
-        <UiEntity
-          uiTransform={{
-            positionType: 'absolute',
-            position: { top: mobileButtonsTop, left: mobileButtonsLeft },
-            width: 'auto',
-            flexDirection: 'column',
-            alignItems: 'flex-start'
-          }}
-        >
-          <PredictionChip
-            type="knockout"
-            mob={mob}
-            active={predictionPanelState.expanded === 'knockout'}
-            onOpen={() => switchTab('knockout')}
-          />
-          <PredictionChip
-            type="group"
-            mob={mob}
-            active={predictionPanelState.expanded === 'group'}
-            onOpen={() => switchTab('group')}
-          />
-        </UiEntity>
-      )}
+      <UiEntity
+        uiTransform={{
+          positionType: 'absolute',
+          position: { top: buttonsTop, left: buttonsLeft },
+          width: 'auto',
+          flexDirection: 'column',
+          alignItems: 'flex-start'
+        }}
+      >
+        <PredictionChip
+          type="knockout"
+          mob={mob}
+          active={predictionPanelState.expanded === 'knockout'}
+          onOpen={() => switchTab('knockout')}
+        />
+        <PredictionChip
+          type="group"
+          mob={mob}
+          active={predictionPanelState.expanded === 'group'}
+          onOpen={() => switchTab('group')}
+        />
+      </UiEntity>
 
-      {!mob && predictionPanelState.expanded === null && (
+      {predictionPanelState.expanded !== null && (
         <UiEntity
           uiTransform={{
             positionType: 'absolute',
-            position: { top: '36%', left: S(64) },
-            width: 'auto',
-            flexDirection: 'column',
-            alignItems: 'flex-start'
-          }}
-        >
-          <PredictionChip type="knockout" mob={mob} onOpen={() => switchTab('knockout')} />
-          <PredictionChip type="group" mob={mob} onOpen={() => switchTab('group')} />
-        </UiEntity>
-      )}
-
-      {mob && predictionPanelState.expanded !== null && (
-        <UiEntity
-          uiTransform={{
-            positionType: 'absolute',
-            position: { top: mobileButtonsTop, left: mobileButtonsLeft + mobileChipWidth + mobileGap },
+            position: { top: buttonsTop, left: buttonsLeft + chipWidth + panelGap },
             flexDirection: 'column',
             alignItems: 'center',
             borderRadius: S(24),
@@ -765,10 +757,10 @@ const MatchChecklist = () => {
           <UiEntity
             uiTransform={{
               positionType: 'absolute',
-              position: { top: S(10), right: S(10) },
-              width: S(58),
-              height: S(58),
-              borderRadius: S(14),
+              position: { top: S(mob ? 10 : 12), right: S(mob ? 10 : 12) },
+              width: S(mob ? 58 : 29),
+              height: S(mob ? 58 : 29),
+              borderRadius: S(mob ? 14 : 7),
               alignItems: 'center',
               justifyContent: 'center',
               pointerFilter: 'block'
@@ -776,7 +768,7 @@ const MatchChecklist = () => {
             uiBackground={{ color: Color4.create(0.18, 0.14, 0.28, 1) }}
             onMouseDown={minimize}
           >
-            <Label value="×" fontSize={F(36)} color={Color4.White()} />
+            <Label value="×" fontSize={F(mob ? 36 : 18)} color={Color4.White()} />
           </UiEntity>
           <MobilePanelHeader title={predictionPanelState.expanded === 'knockout' ? 'KNOCKOUT STAGE' : 'GROUP STAGE'} />
           <Divider mob={mob} />
@@ -789,42 +781,6 @@ const MatchChecklist = () => {
         </UiEntity>
       )}
 
-      {!mob && predictionPanelState.expanded !== null && (
-        <UiEntity
-          uiTransform={{
-            width: '100%',
-            height: '100%',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <UiEntity
-            uiTransform={{
-              flexDirection: 'column',
-              alignItems: 'center',
-              alignSelf: 'center',
-              borderRadius: S((mob ? 24 : 18) * mobileUiScale),
-              padding: { top: S(4 * mobileUiScale), bottom: S(14 * mobileUiScale), left: 0, right: 0 },
-              overflow: 'hidden'
-            }}
-            uiBackground={{ color: mob ? Color4.create(0.015, 0.02, 0.06, 0.995) : PANEL_BG }}
-          >
-            <PanelTabBar
-              active={predictionPanelState.expanded}
-              mob={mob}
-              onSwitch={switchTab}
-              onMinimize={minimize}
-            />
-            <Divider mob={mob} />
-            {predictionPanelState.expanded === 'knockout' && (
-              <KnockoutChecklistPanel mob={mob} k={k} onMinimize={minimize} />
-            )}
-            {predictionPanelState.expanded === 'group' && (
-              <GroupStageChecklistPanel mob={mob} k={k} />
-            )}
-          </UiEntity>
-        </UiEntity>
-      )}
     </UiEntity>
   )
 }
@@ -946,323 +902,33 @@ const PanelHeader = (props: { title: string; subtitle: string; mob: boolean; onM
 
 const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: () => void }) => {
   const progress = getKnockoutBoardProgress()
-  const mobileBoost = props.mob ? props.k / 1.55 : 1
-  const boxIdle = props.mob ? Color4.fromHexString('#3a4b69ff') : Color4.create(0.12, 0.14, 0.20, 0.92)
-  const accentColor = props.mob ? Color4.fromHexString('#b78bffff') : ACCENT_KO
-  const centerColor = props.mob ? Color4.fromHexString('#ffd44dff') : GOLD
-  const labelColor = props.mob ? Color4.White() : MUTED
-
-  if (props.mob) {
-    const koMobileScale = 1.1
-    const boardW = S(760 * koMobileScale)
-    const boardH = Math.round(boardW * MOBILE_KO_BASE_H / MOBILE_KO_BASE_W)
-    const boxW = Math.round(boardW * MOBILE_KO_BOX_W / MOBILE_KO_BASE_W)
-    const boxH = Math.round(boardH * MOBILE_KO_BOX_H / MOBILE_KO_BASE_H)
-    const slotCoreW = Math.round(boxW * 0.7)
-    const slotCoreH = Math.round(boxH * 0.58)
-    const slotCoreRadius = Math.max(4, Math.round(boxH * 0.18))
-    const slotMarker = Math.max(8, Math.round(boxH * 0.28))
-    const slotMarkerRadius = Math.max(3, Math.round(slotMarker * 0.3))
-    const slotCoreColor = Color4.fromHexString('#1b2437ff')
-    const slots = getMobileKnockoutSlots(progress)
-
-    return (
-      <UiEntity
-        uiTransform={{
-          padding: {
-            top: S(4 * props.k * koMobileScale),
-            bottom: S(14 * props.k * koMobileScale),
-            left: S(20 * props.k * koMobileScale),
-            right: S(20 * props.k * koMobileScale)
-          },
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          alignSelf: 'flex-start'
-        }}
-      >
-        <UiEntity
-          uiTransform={{
-            width: '100%',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            margin: `0 0 ${S((props.mob ? 8 : 6) * mobileBoost * koMobileScale)}px 0`
-          }}
-        >
-          <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-            <Label value="MATCHES PREDICTED" fontSize={F(15 * koMobileScale)} color={labelColor}
-              uiTransform={{ height: S(18 * koMobileScale) }} />
-            <Label value={`${progress.completed} / ${progress.total}`} fontSize={F(34 * koMobileScale)} color={Color4.White()}
-              uiTransform={{ height: S(40 * koMobileScale), margin: `${S(4 * koMobileScale)}px 0 0 0` }} />
-          </UiEntity>
-          <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-            <Label value="BRACKET STATUS" fontSize={F(15 * koMobileScale)} color={labelColor}
-              uiTransform={{ height: S(18 * koMobileScale) }} />
-            <Label
-              value={progress.completed === progress.total ? 'COMPLETE' : `${Math.round(progress.completed / progress.total * 100)}%`}
-              fontSize={F(34 * koMobileScale)}
-              color={ACCENT_KO}
-              uiTransform={{ height: S(40 * koMobileScale), margin: `${S(4 * koMobileScale)}px 0 0 0` }}
-            />
-          </UiEntity>
-        </UiEntity>
-
-        <UiEntity
-          uiTransform={{
-            width: boardW,
-            height: boardH,
-            positionType: 'relative',
-            margin: `${S(6 * koMobileScale)}px 0 0 0`
-          }}
-        >
-          <UiEntity
-            uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { left: 0, top: 0 } }}
-            uiBackground={{ texture: { src: MOBILE_KO_BOARD_SRC }, textureMode: 'stretch' }}
-          />
-
-          {slots.map((slot) => (
-            <UiEntity
-              key={slot.key}
-              uiTransform={{
-                width: boxW,
-                height: boxH,
-                positionType: 'absolute',
-                position: {
-                  left: Math.round(boardW * slot.x / MOBILE_KO_BASE_W),
-                  top: Math.round(boardH * slot.y / MOBILE_KO_BASE_H)
-                },
-                borderRadius: S(8 * koMobileScale),
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              uiBackground={{ color: slot.active ? slot.color : slot.idleColor }}
-            >
-              <UiEntity
-                uiTransform={{
-                  width: slotCoreW,
-                  height: slotCoreH,
-                  borderRadius: slotCoreRadius
-                }}
-                uiBackground={{ color: slot.active ? Color4.create(0, 0, 0, 0.18) : (slot.idleColor === VIOLET ? Color4.create(0, 0, 0, 0.14) : slotCoreColor) }}
-              />
-              <UiEntity
-                uiTransform={{
-                  width: slotMarker,
-                  height: slotMarker,
-                  borderRadius: slotMarkerRadius,
-                  positionType: 'absolute'
-                }}
-                uiBackground={{ color: slot.active ? Color4.White() : (slot.idleColor === VIOLET ? Color4.White() : Color4.create(1, 1, 1, 0.36)) }}
-              />
-            </UiEntity>
-          ))}
-        </UiEntity>
-      </UiEntity>
-    )
-  }
-
-  const U = (mobileValue: number, desktopValue: number) =>
-    S(props.mob ? mobileValue * props.k : desktopValue * 0.94)
-
-  const bW = U(60, 74)
-  const bH = U(26, 26)
-  const boardPadX = U(14, 20)
-  const topLabelH = U(24, 26)
-  const rowStep = U(38, 40)
-  const colGap = U(24, 30)
-  const centerGap = U(30, 38)
-  const innerTop = U(10, 10)
-  const labelTop = innerTop + U(3, 2)
-  const boardInnerTop = labelTop + topLabelH + U(10, 10)
-  const lineColor = Color4.create(1, 1, 1, 0.28)
-  const boxCore = Color4.create(0, 0, 0, 0)
-  const boxStroke = Color4.create(1, 1, 1, 0.08)
-  const pitchTint = Color4.create(0.05, 0.10, 0.09, 0.45)
-  const lineW = Math.max(3, U(3, 2))
-
-  const x32L = boardPadX
-  const x16L = x32L + bW + colGap
-  const xQFL = x16L + bW + colGap
-  const xSFL = xQFL + bW + colGap
-  const xFinal = xSFL + bW + centerGap
-  const xSFR = xFinal + bW + centerGap
-  const xQFR = xSFR + bW + colGap
-  const x16R = xQFR + bW + colGap
-  const x32R = x16R + bW + colGap
-  const boardW = x32R + bW + boardPadX
-
-  const r32Centers = Array.from({ length: 8 }, (_, i) => boardInnerTop + bH / 2 + i * rowStep)
-  const pairMidpoints = (values: number[]) =>
-    Array.from({ length: Math.floor(values.length / 2) }, (_, i) => (values[i * 2] + values[i * 2 + 1]) / 2)
-
-  const r16Centers = pairMidpoints(r32Centers)
-  const qfCenters = pairMidpoints(r16Centers)
-  const sfCenter = pairMidpoints(qfCenters)[0]
-  const finalCenter = sfCenter - rowStep
-  const thirdCenter = sfCenter + rowStep
-  const y = (center: number) => center - bH / 2
-  const maxCenter = Math.max(
-    r32Centers[r32Centers.length - 1],
-    r16Centers[r16Centers.length - 1],
-    qfCenters[qfCenters.length - 1],
-    sfCenter,
-    finalCenter,
-    thirdCenter
-  )
-  const boardH = y(maxCenter) + bH + U(18, 34)
-
-  const hLine = (key: string, left: number, top: number, width: number) => (
-    <UiEntity key={key}
-      uiTransform={{ width, height: lineW, positionType: 'absolute', position: { left, top } }}
-      uiBackground={{ color: lineColor }} />
-  )
-  const vLine = (key: string, left: number, top: number, height: number) => (
-    <UiEntity key={key}
-      uiTransform={{ width: lineW, height, positionType: 'absolute', position: { left, top } }}
-      uiBackground={{ color: lineColor }} />
-  )
-  const columnLabel = (key: string, x: number, text: string, width = bW, offset = 0) => (
-    <Label key={key} value={text} fontSize={F(props.mob ? 20 : 14)} color={labelColor} textAlign="middle-center"
-      uiTransform={{ width, height: topLabelH, positionType: 'absolute', position: { left: x + offset, top: labelTop } }} />
-  )
-  const matchBox = (key: string, x: number, center: number, active: boolean, color = accentColor) => (
-    <UiEntity key={key}
-      uiTransform={{
-        width: bW,
-        height: bH,
-        positionType: 'absolute',
-        position: { left: x, top: y(center) },
-        borderRadius: U(4, 7),
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      uiBackground={{ color: active ? color : boxIdle }}
-    >
-      <UiEntity
-        uiTransform={{
-          width: '88%',
-          height: '70%',
-          borderRadius: U(4, 6)
-        }}
-        uiBackground={{ color: props.mob ? (active ? Color4.create(0, 0, 0, 0.18) : boxCore) : Color4.create(0, 0, 0, 0) }}
-      />
-      <UiEntity
-        uiTransform={{
-          width: U(8, 10),
-          height: U(8, 10),
-          borderRadius: U(3, 3),
-          positionType: 'absolute'
-        }}
-        uiBackground={{ color: active ? Color4.White() : boxStroke }}
-      />
-    </UiEntity>
-  )
-
-  const connectLeftPair = (key: string, fromX: number, toX: number, topCenter: number, bottomCenter: number, targetCenter: number) => {
-    const startX = fromX + bW
-    const joinX = startX + (toX - startX) / 2
-    return [
-      hLine(`${key}-ht`, startX, topCenter, joinX - startX),
-      hLine(`${key}-hb`, startX, bottomCenter, joinX - startX),
-      vLine(`${key}-v`, joinX, topCenter, bottomCenter - topCenter),
-      hLine(`${key}-hc`, joinX, targetCenter, toX - joinX)
-    ]
-  }
-  const connectRightPair = (key: string, fromX: number, toX: number, topCenter: number, bottomCenter: number, targetCenter: number) => {
-    const startX = toX + bW
-    const joinX = startX + (fromX - startX) / 2
-    return [
-      hLine(`${key}-ht`, joinX, topCenter, fromX - joinX),
-      hLine(`${key}-hb`, joinX, bottomCenter, fromX - joinX),
-      vLine(`${key}-v`, joinX, topCenter, bottomCenter - topCenter),
-      hLine(`${key}-hc`, startX, targetCenter, joinX - startX)
-    ]
-  }
-
-  const centerJoinLeft = xSFL + bW + (xFinal - (xSFL + bW)) / 2
-  const centerJoinRight = xFinal + bW + (xSFR - (xFinal + bW)) / 2
-
-  const bracketBoard = (
-    <UiEntity
-      uiTransform={{
-        width: boardW,
-        height: boardH,
-        positionType: 'relative',
-        margin: `${S(6)}px 0 0 0`,
-        borderRadius: U(10, 18),
-        overflow: 'hidden'
-      }}
-      uiBackground={{ color: pitchTint }}
-    >
-      <UiEntity
-        uiTransform={{
-          width: boardW - U(10, 20),
-          height: boardH - U(10, 18),
-          positionType: 'absolute',
-          position: { left: U(5, 10), top: innerTop },
-          borderRadius: U(8, 16)
-        }}
-        uiBackground={{ color: props.mob ? Color4.fromHexString('#141d2dff') : Color4.create(1, 1, 1, 0.02) }}
-      />
-
-      {columnLabel('r32-left', x32L, '32')}
-      {columnLabel('r16-left', x16L, '16')}
-      {columnLabel('qf-left', xQFL, 'QUARTERS', bW + U(10, 18), -U(5, 9))}
-      {columnLabel('sf-left', xSFL, 'SEMIS', bW + U(6, 10), -U(3, 5))}
-      {columnLabel('finals', xFinal, 'FINAL / 3RD', bW + U(20, 36), -U(10, 18))}
-      {columnLabel('sf-right', xSFR, 'SEMIS', bW + U(6, 10), -U(3, 5))}
-      {columnLabel('qf-right', xQFR, 'QUARTERS', bW + U(10, 18), -U(5, 9))}
-      {columnLabel('r16-right', x16R, '16')}
-      {columnLabel('r32-right', x32R, '32')}
-
-      {progress.r32Left.map((active, i) => matchBox(`r32-left-${i}`, x32L, r32Centers[i], active))}
-      {progress.r32Right.map((active, i) => matchBox(`r32-right-${i}`, x32R, r32Centers[i], active))}
-      {progress.r16Left.map((active, i) => matchBox(`r16-left-${i}`, x16L, r16Centers[i], active))}
-      {progress.r16Right.map((active, i) => matchBox(`r16-right-${i}`, x16R, r16Centers[i], active))}
-      {progress.qfLeft.map((active, i) => matchBox(`qf-left-${i}`, xQFL, qfCenters[i], active))}
-      {progress.qfRight.map((active, i) => matchBox(`qf-right-${i}`, xQFR, qfCenters[i], active))}
-      {matchBox('sf-left', xSFL, sfCenter, progress.sfLeft)}
-      {matchBox('sf-right', xSFR, sfCenter, progress.sfRight)}
-      {matchBox('final', xFinal, finalCenter, progress.final, centerColor)}
-      {matchBox('third', xFinal, thirdCenter, progress.third, centerColor)}
-
-      {connectLeftPair('l32-0', x32L, x16L, r32Centers[0], r32Centers[1], r16Centers[0])}
-      {connectLeftPair('l32-1', x32L, x16L, r32Centers[2], r32Centers[3], r16Centers[1])}
-      {connectLeftPair('l32-2', x32L, x16L, r32Centers[4], r32Centers[5], r16Centers[2])}
-      {connectLeftPair('l32-3', x32L, x16L, r32Centers[6], r32Centers[7], r16Centers[3])}
-
-      {connectRightPair('r32-0', x32R, x16R, r32Centers[0], r32Centers[1], r16Centers[0])}
-      {connectRightPair('r32-1', x32R, x16R, r32Centers[2], r32Centers[3], r16Centers[1])}
-      {connectRightPair('r32-2', x32R, x16R, r32Centers[4], r32Centers[5], r16Centers[2])}
-      {connectRightPair('r32-3', x32R, x16R, r32Centers[6], r32Centers[7], r16Centers[3])}
-
-      {connectLeftPair('l16-0', x16L, xQFL, r16Centers[0], r16Centers[1], qfCenters[0])}
-      {connectLeftPair('l16-1', x16L, xQFL, r16Centers[2], r16Centers[3], qfCenters[1])}
-      {connectRightPair('r16-0', x16R, xQFR, r16Centers[0], r16Centers[1], qfCenters[0])}
-      {connectRightPair('r16-1', x16R, xQFR, r16Centers[2], r16Centers[3], qfCenters[1])}
-
-      {connectLeftPair('lqf', xQFL, xSFL, qfCenters[0], qfCenters[1], sfCenter)}
-      {connectRightPair('rqf', xQFR, xSFR, qfCenters[0], qfCenters[1], sfCenter)}
-
-      {hLine('left-semi-join', xSFL + bW, sfCenter, centerJoinLeft - (xSFL + bW))}
-      {vLine('left-finals-split', centerJoinLeft, finalCenter, thirdCenter - finalCenter)}
-      {hLine('left-final-line', centerJoinLeft, finalCenter, xFinal - centerJoinLeft)}
-      {hLine('left-third-line', centerJoinLeft, thirdCenter, xFinal - centerJoinLeft)}
-
-      {hLine('right-semi-join', xFinal + bW, finalCenter, centerJoinRight - (xFinal + bW))}
-      {hLine('right-third-join', xFinal + bW, thirdCenter, centerJoinRight - (xFinal + bW))}
-      {vLine('right-finals-split', centerJoinRight, finalCenter, thirdCenter - finalCenter)}
-      {hLine('right-semi-line', centerJoinRight, sfCenter, xSFR - centerJoinRight)}
-    </UiEntity>
-  )
+  const panelScale = props.k / 1.55
+  const labelColor = Color4.White()
+  const compactScale = 1.1
+  const boardW = S(760 * compactScale)
+  const boardH = Math.round(boardW * MOBILE_KO_BASE_H / MOBILE_KO_BASE_W)
+  const boxW = Math.round(boardW * MOBILE_KO_BOX_W / MOBILE_KO_BASE_W)
+  const boxH = Math.round(boardH * MOBILE_KO_BOX_H / MOBILE_KO_BASE_H)
+  const slotCoreW = Math.round(boxW * 0.7)
+  const slotCoreH = Math.round(boxH * 0.58)
+  const slotCoreRadius = Math.max(4, Math.round(boxH * 0.18))
+  const slotMarker = Math.max(8, Math.round(boxH * 0.28))
+  const slotMarkerRadius = Math.max(3, Math.round(slotMarker * 0.3))
+  const slotCoreColor = Color4.fromHexString('#1b2437ff')
+  const slots = getMobileKnockoutSlots(progress)
 
   return (
     <UiEntity
       uiTransform={{
-        padding: { top: S(4 * props.k), bottom: S(14 * props.k), left: S(20 * props.k), right: S(20 * props.k) },
+        padding: {
+          top: S(4 * panelScale * compactScale),
+          bottom: S(14 * panelScale * compactScale),
+          left: S(20 * panelScale * compactScale),
+          right: S(20 * panelScale * compactScale)
+        },
         flexDirection: 'column',
-        alignItems: 'center',
-        alignSelf: 'center'
+        alignItems: 'flex-start',
+        alignSelf: 'flex-start'
       }}
     >
       <UiEntity
@@ -1271,27 +937,77 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number; onMinimize: ()
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          margin: `0 0 ${S((props.mob ? 8 : 6) * mobileBoost)}px 0`
+          margin: `0 0 ${S(8 * panelScale * compactScale)}px 0`
         }}
       >
         <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Label value="MATCHES PREDICTED" fontSize={F(props.mob ? 15 : 9)} color={labelColor}
-            uiTransform={{ height: S(props.mob ? 18 : 11) }} />
-          <Label value={`${progress.completed} / ${progress.total}`} fontSize={F(props.mob ? 34 : 18)} color={Color4.White()}
-            uiTransform={{ height: S(props.mob ? 40 : 22), margin: `${S(props.mob ? 4 : 2)}px 0 0 0` }} />
+          <Label value="MATCHES PREDICTED" fontSize={F(15 * compactScale)} color={labelColor}
+            uiTransform={{ height: S(18 * compactScale) }} />
+          <Label value={`${progress.completed} / ${progress.total}`} fontSize={F(34 * compactScale)} color={Color4.White()}
+            uiTransform={{ height: S(40 * compactScale), margin: `${S(4 * compactScale)}px 0 0 0` }} />
         </UiEntity>
         <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-          <Label value="BRACKET STATUS" fontSize={F(props.mob ? 15 : 9)} color={labelColor}
-            uiTransform={{ height: S(props.mob ? 18 : 11) }} />
+          <Label value="BRACKET STATUS" fontSize={F(15 * compactScale)} color={labelColor}
+            uiTransform={{ height: S(18 * compactScale) }} />
           <Label
             value={progress.completed === progress.total ? 'COMPLETE' : `${Math.round(progress.completed / progress.total * 100)}%`}
-            fontSize={F(props.mob ? 34 : 18)}
+            fontSize={F(34 * compactScale)}
             color={ACCENT_KO}
-            uiTransform={{ height: S(props.mob ? 40 : 22), margin: `${S(props.mob ? 4 : 2)}px 0 0 0` }}
+            uiTransform={{ height: S(40 * compactScale), margin: `${S(4 * compactScale)}px 0 0 0` }}
           />
         </UiEntity>
       </UiEntity>
-      {bracketBoard}
+
+      <UiEntity
+        uiTransform={{
+          width: boardW,
+          height: boardH,
+          positionType: 'relative',
+          margin: `${S(6 * compactScale)}px 0 0 0`
+        }}
+      >
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { left: 0, top: 0 } }}
+          uiBackground={{ texture: { src: MOBILE_KO_BOARD_SRC }, textureMode: 'stretch' }}
+        />
+
+        {slots.map((slot) => (
+          <UiEntity
+            key={slot.key}
+            uiTransform={{
+              width: boxW,
+              height: boxH,
+              positionType: 'absolute',
+              position: {
+                left: Math.round(boardW * slot.x / MOBILE_KO_BASE_W),
+                top: Math.round(boardH * slot.y / MOBILE_KO_BASE_H)
+              },
+              borderRadius: S(8 * compactScale),
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            uiBackground={{ color: slot.active ? slot.color : slot.idleColor }}
+          >
+            <UiEntity
+              uiTransform={{
+                width: slotCoreW,
+                height: slotCoreH,
+                borderRadius: slotCoreRadius
+              }}
+              uiBackground={{ color: slot.active ? Color4.create(0, 0, 0, 0.18) : (slot.idleColor === VIOLET ? Color4.create(0, 0, 0, 0.14) : slotCoreColor) }}
+            />
+            <UiEntity
+              uiTransform={{
+                width: slotMarker,
+                height: slotMarker,
+                borderRadius: slotMarkerRadius,
+                positionType: 'absolute'
+              }}
+              uiBackground={{ color: slot.active ? Color4.White() : (slot.idleColor === VIOLET ? Color4.White() : Color4.create(1, 1, 1, 0.36)) }}
+            />
+          </UiEntity>
+        ))}
+      </UiEntity>
     </UiEntity>
   )
 }
