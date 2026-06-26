@@ -84,6 +84,16 @@ export function koTotalPoints(preds: KoPrediction[]): number {
   return total
 }
 
+// Count of exact-score knockout hits (feeds the tournament-wide leaderboard tiebreaker).
+export function koExactCount(preds: KoPrediction[]): number {
+  let n = 0
+  for (const p of preds) {
+    const r = koResults.get(p.fixtureId)
+    if (r && p.submitted && p.score1 === r.score1 && p.score2 === r.score2) n++
+  }
+  return n
+}
+
 // The local player's knockout points (uses the in-memory caches).
 export function myKoPoints(): number {
   return koTotalPoints(koPredictions)

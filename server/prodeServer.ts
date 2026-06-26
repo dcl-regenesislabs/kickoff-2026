@@ -9,7 +9,7 @@ import {
 } from '../schedule/prodeData'
 import {
   KoFixture, KoPrediction, KoResult,
-  loadKoResults as loadKoResultsCache, koTotalPoints
+  loadKoResults as loadKoResultsCache, koTotalPoints, koExactCount
 } from '../schedule/knockoutData'
 import { isMatchLocked, LOCK_LEAD_MS } from '../schedule/matchDates'
 import { isAdmin, LEADERBOARD_SIZE } from '../schedule/prodeConfig'
@@ -29,7 +29,9 @@ export function startProdeServer() {
   // ── Player identity (for leaderboard display names) ─────────────────────────
   room.onMessage('identify', async (data, ctx) => {
     if (!ctx) return
-    await mirrorPlayer(ctx.from, { name: (data.name ?? '').slice(0, 40) })
+    const name = (data.name ?? '').slice(0, 40)
+    await mirrorPlayer(ctx.from, { name })
+    await mirrorKoPlayer(ctx.from, { name })   // keep the KO mirror self-sufficient for names
   })
 
   // ── Predictions ─────────────────────────────────────────────────────────────
@@ -374,11 +376,12 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
     if (!v.group && !v.ko) continue
     const groupPts = v.group ? totalPoints(v.group) : 0
     const koPts    = v.ko ? koTotalPoints(v.ko) : 0
+    const exact = (v.group ? exactScoreCount(v.group) : 0) + (v.ko ? koExactCount(v.ko) : 0)
     rows.push({
       name:  v.name || address.slice(0, 8),
       address,
       value: groupPts + koPts,                          // TOTAL
-      exact: v.group ? exactScoreCount(v.group) : 0     // tiebreaker
+      exact                                             // tiebreaker (group + knockout)
     })
   }
 
