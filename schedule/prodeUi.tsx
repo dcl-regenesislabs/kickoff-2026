@@ -627,7 +627,7 @@ const MatchChecklist = () => {
   const mobileGap = S(24)
   const mobileChipWidth = S(248 * 1.3)
   const desktopButtonsLeft = S(64)
-  const desktopButtonsTop = '29%'
+  const desktopButtonsTop = '22%'
   const desktopGap = S(28)
   const desktopChipWidth = S(232 * desktopChipScale)
   const buttonsLeft = mob ? mobileButtonsLeft : desktopButtonsLeft
