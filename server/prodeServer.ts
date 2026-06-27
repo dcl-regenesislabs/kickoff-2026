@@ -118,8 +118,9 @@ export function startProdeServer() {
   room.onMessage('requestLeaderboard', async (_data, ctx) => {
     if (!ctx) return
     const board = await buildLeaderboard()
-    room.send('leaderboardSnapshot', { json: JSON.stringify(board) }, { to: [ctx.from] })
-    room.send('kickoffLeaderboardSnapshot', { json: JSON.stringify(await computeKickoffLeaderboard()) }, { to: [ctx.from] })
+    room.send('leaderboardSnapshot',         { json: JSON.stringify(board) }, { to: [ctx.from] })
+    room.send('kickoffLeaderboardSnapshot',  { json: JSON.stringify(await computeKickoffLeaderboard()) },  { to: [ctx.from] })
+    room.send('knockoutLeaderboardSnapshot', { json: JSON.stringify(await computeKnockoutLeaderboard()) }, { to: [ctx.from] })
   })
 
   // ── Knockout stage (parallel to the group handlers above) ───────────────────────
@@ -496,7 +497,8 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
 async function broadcastLeaderboard(results: OfficialResult[]) {
   const board = await computeLeaderboard(results)
   room.send('leaderboardSnapshot', { json: JSON.stringify(board) })
-  room.send('kickoffLeaderboardSnapshot', { json: JSON.stringify(await computeKickoffLeaderboard()) })
+  room.send('kickoffLeaderboardSnapshot',  { json: JSON.stringify(await computeKickoffLeaderboard()) })
+  room.send('knockoutLeaderboardSnapshot', { json: JSON.stringify(await computeKnockoutLeaderboard()) })
 }
 
 // Kickoff (group-stage) ranking — by group points only. Drives the "KICKOFF WINNERS"
@@ -522,6 +524,55 @@ async function computeKickoffLeaderboard(): Promise<LeaderboardRow[]> {
     offset += page.data.length
     if (page.data.length === 0 || offset >= page.pagination.total) break
   }
+  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
+  return rows.slice(0, LEADERBOARD_SIZE)
+}
+
+// Knockout ranking — by KO points only. Uses PLAYER_PREFIX as the base list so
+// everyone appears (with 0 pts) even before submitting KO predictions.
+async function computeKnockoutLeaderboard(): Promise<LeaderboardRow[]> {
+  loadKoResultsCache(await loadKoResultsSrv())
+
+  // Build KO-points map from the KO mirror.
+  const koMap = new Map<string, { name: string; pts: number; exact: number }>()
+  let offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await Storage.getValues({ prefix: KO_PLAYER_PREFIX, offset })
+    for (const { key, value } of page.data) {
+      const e = value as KoMirror | null
+      const address = key.slice(KO_PLAYER_PREFIX.length)
+      koMap.set(address, {
+        name:  e?.name || '',
+        pts:   e?.predictions ? koTotalPoints(e.predictions) : 0,
+        exact: e?.predictions ? koExactCount(e.predictions)  : 0
+      })
+    }
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.pagination.total) break
+  }
+
+  // Use the group-stage mirror as the base (everyone who ever joined).
+  const rows: LeaderboardRow[] = []
+  offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const page = await Storage.getValues({ prefix: PLAYER_PREFIX, offset })
+    for (const { key, value } of page.data) {
+      const e = value as PlayerMirror | null
+      const address = key.slice(PLAYER_PREFIX.length)
+      const ko = koMap.get(address)
+      rows.push({
+        name:    e?.name || ko?.name || address.slice(0, 8),
+        address,
+        value:   ko?.pts   ?? 0,
+        exact:   ko?.exact ?? 0
+      })
+    }
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.pagination.total) break
+  }
+
   rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
   return rows.slice(0, LEADERBOARD_SIZE)
 }

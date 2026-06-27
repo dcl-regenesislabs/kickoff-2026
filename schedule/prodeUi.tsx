@@ -10,7 +10,7 @@ import {
   koFixtures, koPredictions, koResults, getKoFixture, saveKoPrediction, isKoFixtureLocked,
   myKoPoints, scoreKoPrediction
 } from './knockoutData'
-import { getLeaderboard, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
+import { getKickoffLeaderboard, getKnockoutLeaderboard, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
@@ -1388,6 +1388,24 @@ const CompletionOverlay = () => {
   )
 }
 
+// ── Rank badge used inside each My Score tab: shows "your position / total" ───
+type LBRow = { name: string; address: string; value: number }
+const RankBadge = ({ rows, accent }: { rows: LBRow[]; accent: Color4 }) => {
+  const mob = isMobile()
+  const me = getPlayer()?.userId?.toLowerCase()
+  const total = rows.length
+  if (total === 0) return <UiEntity uiTransform={{ display: 'none' }} />
+  const idx = rows.findIndex(r => r.address?.toLowerCase() === me)
+  const rankText = idx >= 0 ? `#${idx + 1} / ${total}` : `- / ${total}`
+  return (
+    <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: `${S(12)}px 0 0 0`, padding: S(16), borderRadius: S(20) }}
+      uiBackground={{ color: Color4.create(1, 1, 1, 0.04) }}>
+      <Label value="YOUR RANK" fontSize={F(mob ? 22 : 20)} color={MUTED} uiTransform={{ height: S(32) }} />
+      <Label value={rankText} fontSize={F(mob ? 28 : 26)} color={accent} uiTransform={{ height: S(40) }} />
+    </UiEntity>
+  )
+}
+
 // ── My Score — player stats (points + rank, hits breakdown, accuracy) ──────────
 const ScorePanel = () => {
   if (!scoreState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
@@ -1441,12 +1459,6 @@ const ScorePanel = () => {
   const koPoints = myKoPoints()
   const totalPoints = groupPoints + koPoints
 
-  // Rank from the cached leaderboard (sorted desc by points), matched by wallet.
-  const lb   = getLeaderboard()
-  const me   = getPlayer()?.userId?.toLowerCase()
-  const idx  = me ? lb.findIndex(r => r.address?.toLowerCase() === me) : -1
-  const rank = idx >= 0 ? `#${idx + 1} / ${lb.length}` : 'Unranked'
-
   const statBlock = (label: string, value: string, color: Color4, bg: Color4, compact = false) => (
     <UiEntity
       uiTransform={{
@@ -1471,31 +1483,13 @@ const ScorePanel = () => {
     </UiEntity>
   )
 
-  const totalStatGrid = () => {
-    if (!mob) {
-      return (
-        <UiEntity uiTransform={{ width: '100%', height: S(84), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(20)}px 0` }}>
-          {statBlock('Group stage', `${groupPoints}`, Color4.White(), totalGroupCardBg, true)}
-          {statBlock('Knockout stage', `${koPoints}`, knockoutAccentSoft, totalKnockoutCardBg, true)}
-          {statBlock('Total points', `${totalPoints}`, totalAccent, cardBg, true)}
-          {statBlock('Leaderboard', rank, totalAccentSoft, cardBg, true)}
-        </UiEntity>
-      )
-    }
-
-    return (
-      <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch', margin: `0 0 ${S(20)}px 0` }}>
-        <UiEntity uiTransform={{ width: '100%', height: S(104), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
-          {statBlock('Group stage', `${groupPoints}`, Color4.White(), totalGroupCardBg, true)}
-          {statBlock('Knockout stage', `${koPoints}`, knockoutAccentSoft, totalKnockoutCardBg, true)}
-        </UiEntity>
-        <UiEntity uiTransform={{ width: '100%', height: S(104), flexDirection: 'row', justifyContent: 'space-between' }}>
-          {statBlock('Total points', `${totalPoints}`, totalAccent, cardBg, true)}
-          {statBlock('Leaderboard', rank, totalAccentSoft, cardBg, true)}
-        </UiEntity>
-      </UiEntity>
-    )
-  }
+  const totalStatGrid = () => (
+    <UiEntity uiTransform={{ width: '100%', height: S(mob ? 104 : 84), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(20)}px 0` }}>
+      {statBlock('Group stage', `${groupPoints}`, Color4.White(), totalGroupCardBg, true)}
+      {statBlock('Knockout stage', `${koPoints}`, knockoutAccentSoft, totalKnockoutCardBg, true)}
+      {statBlock('Total points', `${totalPoints}`, totalAccent, cardBg, true)}
+    </UiEntity>
+  )
 
   const tabButton = (id: 'total' | 'group' | 'knockout', label: string, accent: Color4) => {
     const active = activeTab === id
@@ -1660,36 +1654,18 @@ const ScorePanel = () => {
             </UiEntity>
           )}
 
-          {activeTab === 'group' && breakdownSection(
-            'Group Stage Results',
-            groupAccent,
-            groupAccentSoft,
-            groupAccent,
-            groupAccentDim,
-            groupExact,
-            groupWinner,
-            groupMissed,
-            groupPending,
-            groupPlayed,
-            groupAccuracy,
-            predictions.filter(p => p.submitted).length,
-            MATCHES.length
+          {activeTab === 'group' && (
+            <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
+              {breakdownSection('Group Stage Results', groupAccent, groupAccentSoft, groupAccent, groupAccentDim, groupExact, groupWinner, groupMissed, groupPending, groupPlayed, groupAccuracy, getCompletedCount(), MATCHES.length)}
+              <RankBadge rows={getKickoffLeaderboard()} accent={groupAccent} />
+            </UiEntity>
           )}
 
-          {activeTab === 'knockout' && breakdownSection(
-            'Knockout Stage Results',
-            knockoutAccent,
-            knockoutAccentSoft,
-            knockoutAccent,
-            knockoutAccentDim,
-            koExact,
-            koWinner,
-            koMissed,
-            koPending,
-            koPlayed,
-            koAccuracy,
-            koPredictions.filter(p => p.submitted).length,
-            koFixtures.length
+          {activeTab === 'knockout' && (
+            <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
+              {breakdownSection('Knockout Stage Results', knockoutAccent, knockoutAccentSoft, knockoutAccent, knockoutAccentDim, koExact, koWinner, koMissed, koPending, koPlayed, koAccuracy, koPredictions.filter(p => p.submitted).length, koFixtures.length)}
+              <RankBadge rows={getKnockoutLeaderboard()} accent={knockoutAccent} />
+            </UiEntity>
           )}
         </UiEntity>
 

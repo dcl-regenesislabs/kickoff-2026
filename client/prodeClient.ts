@@ -24,9 +24,13 @@ export type LeaderboardRow = { name: string; address: string; value: number }
 let leaderboard: LeaderboardRow[] = []
 export function getLeaderboard(): LeaderboardRow[] { return leaderboard }
 
-// Kickoff (group-stage) standings — for the "KICKOFF WINNERS" leaderboard slide.
+// Kickoff (group-stage) standings — for the "GROUP STAGE WINNERS" leaderboard slide.
 let kickoffLeaderboard: LeaderboardRow[] = []
 export function getKickoffLeaderboard(): LeaderboardRow[] { return kickoffLeaderboard }
+
+// Knockout-only standings — for the "KNOCKOUT WINNERS" leaderboard slide.
+let knockoutLeaderboard: LeaderboardRow[] = []
+export function getKnockoutLeaderboard(): LeaderboardRow[] { return knockoutLeaderboard }
 
 type AckReason = 'locked' | 'error' | 'disconnected'
 let onPredictionAck: ((matchId: number, ok: boolean, reason: AckReason | '') => void) | null = null
@@ -107,9 +111,12 @@ export function startProdeClient(onSnapshot: () => void) {
   })
 
   room.onMessage('kickoffLeaderboardSnapshot', (data) => {
-    try {
-      kickoffLeaderboard = JSON.parse(data.json) as LeaderboardRow[]
-    } catch (e) { console.log('[Client] bad kickoff leaderboard snapshot', e) }
+    try { kickoffLeaderboard = JSON.parse(data.json) as LeaderboardRow[] }
+    catch (e) { console.log('[Client] bad kickoff leaderboard snapshot', e) }
+  })
+  room.onMessage('knockoutLeaderboardSnapshot', (data) => {
+    try { knockoutLeaderboard = JSON.parse(data.json) as LeaderboardRow[] }
+    catch (e) { console.log('[Client] bad knockout leaderboard snapshot', e) }
   })
 
   room.onMessage('predictionSaved', (data) => {

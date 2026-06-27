@@ -1,7 +1,7 @@
 import { engine, Entity, Transform, MeshRenderer, Material, TextShape } from '@dcl/sdk/ecs'
 import { Quaternion, Vector3 } from '@dcl/sdk/math'
 import { createLeaderboardPanel, LeaderboardPanelEntry } from '../src/LeaderboardPanel'
-import { getLeaderboard, getKickoffLeaderboard, refreshLeaderboard } from './prodeClient'
+import { getLeaderboard, getKickoffLeaderboard, getKnockoutLeaderboard, refreshLeaderboard } from './prodeClient'
 import { EntityNames } from '../assets/scene/entity-names'
 
 const REQUEST_INTERVAL = 10.0
@@ -10,15 +10,15 @@ const LEADERBOARD_PLANES = [EntityNames.leaderboard, EntityNames.leaderboard_2] 
 const TRANSITION_DURATION = 0.35
 const CHAR_DELAY = 0.04
 
-// The TV rotates through 3 slides: the live total LEADERBOARD, the KICKOFF WINNERS
-// (group-stage top-3), and the existing image.
-type TVSlide = 'leaderboard' | 'kickoff' | 'image'
+// The TV rotates through 3 slides: GROUP STAGE WINNERS (top-3 by group pts),
+// KNOCKOUT WINNERS (top-3 by KO pts), and the existing image.
+type TVSlide = 'kickoff' | 'knockout' | 'image'
 type TVPhase = 'showing' | 'out' | 'in'
 
-const SLIDE_DURATIONS: Record<TVSlide, number> = { leaderboard: 12, kickoff: 10, image: 8 }
-const SLIDE_TITLES: Record<TVSlide, string> = { leaderboard: 'LEADERBOARD', kickoff: 'GROUP STAGE WINNERS', image: '' }
+const SLIDE_DURATIONS: Record<TVSlide, number> = { kickoff: 10, knockout: 10, image: 8 }
+const SLIDE_TITLES: Record<TVSlide, string> = { kickoff: 'GROUP STAGE LEADERBOARD', knockout: 'KNOCKOUT LEADERBOARD', image: '' }
 function nextSlide(s: TVSlide): TVSlide {
-  return s === 'leaderboard' ? 'kickoff' : s === 'kickoff' ? 'image' : 'leaderboard'
+  return s === 'kickoff' ? 'knockout' : s === 'knockout' ? 'image' : 'kickoff'
 }
 
 type TVPanel = {
@@ -34,6 +34,7 @@ type TVPanel = {
   twChar: number
   twTimer: number
   twData: LeaderboardPanelEntry[]
+  titleFontSize: number
 }
 
 function formatLeaderboardName(name: string, address: string): string {
@@ -45,11 +46,11 @@ function formatLeaderboardName(name: string, address: string): string {
 
 // Rows shown for each content slide (the image slide has none).
 function dataForSlide(slide: TVSlide): LeaderboardPanelEntry[] {
-  if (slide === 'leaderboard') {
-    return getLeaderboard().slice(0, 10).map((r) => ({ name: formatLeaderboardName(r.name, r.address), value: String(r.value) }))
-  }
   if (slide === 'kickoff') {
     return getKickoffLeaderboard().slice(0, 3).map((r) => ({ name: formatLeaderboardName(r.name, r.address), value: String(r.value) }))
+  }
+  if (slide === 'knockout') {
+    return getKnockoutLeaderboard().slice(0, 3).map((r) => ({ name: formatLeaderboardName(r.name, r.address), value: String(r.value) }))
   }
   return []
 }
@@ -148,7 +149,10 @@ function enterSlide(tv: TVPanel, slide: TVSlide) {
   }
   Transform.getMutable(tv.imageEntity).scale = Vector3.Zero()
   Transform.getMutable(tv.panel.contentRoot).scale = Vector3.One()
-  TextShape.getMutable(tv.panel.titleEntity).text = SLIDE_TITLES[slide]
+  const title = SLIDE_TITLES[slide]
+  const ts = TextShape.getMutable(tv.panel.titleEntity)
+  ts.text = title
+  ts.fontSize = title.length > 16 ? tv.titleFontSize * 0.68 : tv.titleFontSize
   tv.twData = dataForSlide(slide)
   startTypewriter(tv)
 }
@@ -173,15 +177,16 @@ export function initProdeLeaderboard(transform?: {
 
     return {
       panel, imageEntity, imageScale,
-      slide: 'leaderboard' as TVSlide,
+      slide: 'kickoff' as TVSlide,
       phase: 'showing' as TVPhase,
       slideTimer: 0, transitionTimer: 0,
-      twActive: false, twRow: 0, twChar: 0, twTimer: 0, twData: []
+      twActive: false, twRow: 0, twChar: 0, twTimer: 0, twData: [],
+      titleFontSize: TextShape.get(panel.titleEntity).fontSize ?? 9
     }
   })
 
-  // Prime the first (leaderboard) slide.
-  for (const tv of tvPanels) enterSlide(tv, 'leaderboard')
+  // Prime the first slide.
+  for (const tv of tvPanels) enterSlide(tv, 'kickoff')
 
   let reqAcc = 0
   engine.addSystem((dt: number) => {

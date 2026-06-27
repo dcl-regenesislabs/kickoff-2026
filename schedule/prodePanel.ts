@@ -663,6 +663,25 @@ export function addPendingMatchesPanel(transform: TransformTypeWithOptionals) {
   MeshCollider.setPlane(nextClicker, ColliderLayer.CL_POINTER)
   mkHide(nextClicker)
 
+  // ── Bottom PREV / NEXT navigation (aligned with the badge row) ───────────
+  const prevBtmTxt = engine.addEntity()
+  Transform.createOrReplace(prevBtmTxt, { position: Vector3.create(-1.05, -1.01, FRONT_Z), parent: root })
+  TextShape.createOrReplace(prevBtmTxt, { text: '‹ prev', fontSize: 0.72, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  const nextBtmTxt = engine.addEntity()
+  Transform.createOrReplace(nextBtmTxt, { position: Vector3.create(1.05, -1.01, FRONT_Z), parent: root })
+  TextShape.createOrReplace(nextBtmTxt, { text: 'next ›', fontSize: 0.72, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+
+  const prevBtmClicker = engine.addEntity()
+  Transform.createOrReplace(prevBtmClicker, { position: Vector3.create(-1.05, -1.01, ARROW_Z), scale: Vector3.create(0.36, 0.18, 1), parent: root })
+  MeshCollider.setPlane(prevBtmClicker, ColliderLayer.CL_POINTER)
+  mkHide(prevBtmClicker)
+
+  const nextBtmClicker = engine.addEntity()
+  Transform.createOrReplace(nextBtmClicker, { position: Vector3.create(1.05, -1.01, ARROW_Z), scale: Vector3.create(0.36, 0.18, 1), parent: root })
+  MeshCollider.setPlane(nextBtmClicker, ColliderLayer.CL_POINTER)
+  mkHide(nextBtmClicker)
+
   // ── Column headers ────────────────────────────────────────────────────────
   const colHdrBg = mkBg(0.28, 0.14, TBL_COL_HDR, root)
   VisibilityComponent.createOrReplace(colHdrBg, { visible: true })
@@ -772,6 +791,14 @@ export function addPendingMatchesPanel(transform: TransformTypeWithOptionals) {
   )
   pointerEventsSystem.onPointerDown(
     { entity: nextClicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Next group', showHighlight: false } },
+    () => { playClick(); groupIdx = (groupIdx + 1) % total; refresh() }
+  )
+  pointerEventsSystem.onPointerDown(
+    { entity: prevBtmClicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Previous group', showHighlight: false } },
+    () => { playClick(); groupIdx = (groupIdx - 1 + total) % total; refresh() }
+  )
+  pointerEventsSystem.onPointerDown(
+    { entity: nextBtmClicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Next group', showHighlight: false } },
     () => { playClick(); groupIdx = (groupIdx + 1) % total; refresh() }
   )
 
