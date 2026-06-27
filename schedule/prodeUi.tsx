@@ -715,8 +715,7 @@ const MatchChecklist = () => {
   const chipWidth = mob ? mobileChipWidth : desktopChipWidth
   const hidden =
     welcomeState.visible ||
-    groupState.visible || koFormState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
-    (mob && getCompletedCount() === MATCHES.length)
+    groupState.visible || koFormState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible
 
   const switchTab = (panel: 'knockout' | 'group') => {
     playClick()
@@ -1622,9 +1621,9 @@ const ScorePanel = () => {
         </UiEntity>
 
         <UiEntity uiTransform={{ width: '100%', height: S(mob ? 80 : 44), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `0 0 ${S(20)}px 0` }}>
-          {tabButton('total', 'TOTAL SCORE', totalAccent)}
-          {tabButton('group', 'GROUP STAGE', groupAccent)}
-          {tabButton('knockout', 'KNOCKOUT STAGE', knockoutAccent)}
+          {tabButton('total',    mob ? 'TOTAL'    : 'TOTAL SCORE',    totalAccent)}
+          {tabButton('group',    mob ? 'GROUP'    : 'GROUP STAGE',    groupAccent)}
+          {tabButton('knockout', mob ? 'KNOCKOUT' : 'KNOCKOUT STAGE', knockoutAccent)}
         </UiEntity>
 
         <UiEntity uiTransform={{ width: '100%', flex: 1, flexDirection: 'column', alignItems: 'stretch' }}>
