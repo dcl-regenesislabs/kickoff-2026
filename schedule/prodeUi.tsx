@@ -112,6 +112,10 @@ const serverGateState = {
 // Tracks the gate going from visible → hidden so we can fire the cinematic exactly once.
 let wasGateVisible = true
 
+// Drives the pulsing alert animation on the knockout chip (! icon + outline glow).
+let pulsePhase = 0
+let pulseValue = 0
+
 const SPINNER_DEG_PER_SEC = 220
 
 const predictionPanelState = {
@@ -256,6 +260,10 @@ export function setupProdeUi() {
       playCinematic()
       return
     }
+
+    // Pulse animation — runs regardless of gate state so the chip keeps pulsing live
+    pulsePhase = (pulsePhase + dt * 1.6) % 1
+    pulseValue = 0.5 + 0.5 * Math.sin(pulsePhase * Math.PI * 2)
 
     if (!serverGateState.visible) return
 
@@ -530,44 +538,51 @@ const KO_ROUND_SLOTS = [
   { round: '2', count: 2 }
 ]
 
+// 'predicted' = submitted, 'available' = open to predict but not yet done, 'unavailable' = TBD/locked/played
+type SlotState = 'predicted' | 'available' | 'unavailable'
+
 type KnockoutBoardProgress = {
   completed: number
   total: number
-  r32Left: boolean[]
-  r32Right: boolean[]
-  r16Left: boolean[]
-  r16Right: boolean[]
-  qfLeft: boolean[]
-  qfRight: boolean[]
-  sfLeft: boolean
-  sfRight: boolean
-  final: boolean
-  third: boolean
+  r32Left: SlotState[]
+  r32Right: SlotState[]
+  r16Left: SlotState[]
+  r16Right: SlotState[]
+  qfLeft: SlotState[]
+  qfRight: SlotState[]
+  sfLeft: SlotState
+  sfRight: SlotState
+  final: SlotState
+  third: SlotState
 }
 
-function getKnockoutPredictionSlots(): boolean[] {
+function getKnockoutPredictionSlots(): SlotState[] {
   const submittedByFixtureId = new Map(koPredictions.map((prediction) => [prediction.fixtureId, prediction.submitted]))
   const orderedSlots = KO_ROUND_SLOTS.flatMap(({ round, count }) => {
     const fixturesInRound = koFixtures
       .filter((fixture) => fixture.round === round)
       .sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
 
-    return Array.from({ length: count }, (_, i) => {
+    return Array.from({ length: count }, (_, i): SlotState => {
       const fixture = fixturesInRound[i]
-      return fixture ? (submittedByFixtureId.get(fixture.id) ?? false) : false
+      if (!fixture) return 'unavailable'
+      if (submittedByFixtureId.get(fixture.id)) return 'predicted'
+      const hasTeams = fixture.team1 && fixture.team2
+      const isOpen = hasTeams && !isKoFixtureLocked(fixture.id) && !koResults.has(fixture.id)
+      return isOpen ? 'available' : 'unavailable'
     })
   })
 
-  return Array.from({ length: KNOCKOUT_TOTAL_MATCHES }, (_, i) => orderedSlots[i] ?? false)
+  return Array.from({ length: KNOCKOUT_TOTAL_MATCHES }, (_, i) => orderedSlots[i] ?? 'unavailable')
 }
 
 function getKnockoutBoardProgress(): KnockoutBoardProgress {
   const slots = getKnockoutPredictionSlots()
   const take = (start: number, count: number) =>
-    Array.from({ length: count }, (_, i) => slots[start + i] ?? false)
+    Array.from({ length: count }, (_, i) => slots[start + i] ?? 'unavailable' as SlotState)
 
   return {
-    completed: slots.filter(Boolean).length,
+    completed: slots.filter(s => s === 'predicted').length,
     total: KNOCKOUT_TOTAL_MATCHES,
     r32Left: take(0, 8),
     r32Right: take(8, 8),
@@ -575,52 +590,69 @@ function getKnockoutBoardProgress(): KnockoutBoardProgress {
     r16Right: take(20, 4),
     qfLeft: take(24, 2),
     qfRight: take(26, 2),
-    sfLeft: slots[28] ?? false,
-    sfRight: slots[29] ?? false,
-    final: slots[30] ?? false,
-    third: slots[31] ?? false
+    sfLeft:  slots[28] ?? 'unavailable',
+    sfRight: slots[29] ?? 'unavailable',
+    final:   slots[30] ?? 'unavailable',
+    third:   slots[31] ?? 'unavailable'
   }
+}
+
+// True when there are fixtures the player can still predict but hasn't yet
+function koHasAvailableUnpredicted(): boolean {
+  return koFixtures.some(f => {
+    if (!f.team1 || !f.team2) return false
+    if (isKoFixtureLocked(f.id)) return false
+    if (koResults.has(f.id)) return false
+    return !(koPredictions.find(p => p.fixtureId === f.id)?.submitted)
+  })
+}
+
+// True when all group-stage matches have an official result
+function allGroupMatchesPlayed(): boolean {
+  return MATCHES.length > 0 && MATCHES.every(m => hasResult(m.id))
 }
 
 type MobileKnockoutSlot = {
   key: string
   x: number
   y: number
-  active: boolean
+  state: SlotState
   color: Color4
-  idleColor: Color4
 }
 
+const SLOT_AVAILABLE_COLOR = Color4.fromHexString('#F2C14Eff')  // yellow — available but not predicted
+
 function getMobileKnockoutSlots(progress: KnockoutBoardProgress): MobileKnockoutSlot[] {
-  const roundColors = (values: boolean[]) => {
-    const done = values.filter(Boolean).length
+  const roundColor = (values: SlotState[]) => {
+    const done  = values.filter(s => s === 'predicted').length
     const total = values.length
     const complete = total > 0 && done === total
-    const partial = done > 0 && done < total
-    return {
-      active: complete ? CHECKLIST_COMPLETE : CHECKLIST_PARTIAL,
-      idle: done === 0 ? VIOLET : CELL_EMPTY,
-      marker: complete ? CHECKLIST_COMPLETE : partial ? CHECKLIST_PARTIAL : VIOLET
-    }
+    const partial  = done > 0 && done < total
+    return complete ? CHECKLIST_COMPLETE : partial ? CHECKLIST_PARTIAL : VIOLET
   }
 
-  const r32 = roundColors([...progress.r32Left, ...progress.r32Right])
-  const r16 = roundColors([...progress.r16Left, ...progress.r16Right])
-  const qf = roundColors([...progress.qfLeft, ...progress.qfRight])
-  const sf = roundColors([progress.sfLeft, progress.sfRight])
-  const finals = roundColors([progress.final, progress.third])
+  const slotColor = (state: SlotState, roundC: Color4): Color4 =>
+    state === 'predicted'  ? roundC :
+    state === 'available'  ? SLOT_AVAILABLE_COLOR :
+    CELL_EMPTY
+
+  const r32c  = roundColor([...progress.r32Left, ...progress.r32Right])
+  const r16c  = roundColor([...progress.r16Left, ...progress.r16Right])
+  const qfc   = roundColor([...progress.qfLeft,  ...progress.qfRight])
+  const sfc   = roundColor([progress.sfLeft, progress.sfRight])
+  const finc  = roundColor([progress.final, progress.third])
 
   return [
-    ...progress.r32Left.map((active, i) => ({ key: `r32l-${i}`, x: MOBILE_KO_X.r32L, y: MOBILE_KO_R32_Y[i], active, color: r32.active, idleColor: r32.idle })),
-    ...progress.r32Right.map((active, i) => ({ key: `r32r-${i}`, x: MOBILE_KO_X.r32R, y: MOBILE_KO_R32_Y[i], active, color: r32.active, idleColor: r32.idle })),
-    ...progress.r16Left.map((active, i) => ({ key: `r16l-${i}`, x: MOBILE_KO_X.r16L, y: MOBILE_KO_R16_Y[i], active, color: r16.active, idleColor: r16.idle })),
-    ...progress.r16Right.map((active, i) => ({ key: `r16r-${i}`, x: MOBILE_KO_X.r16R, y: MOBILE_KO_R16_Y[i], active, color: r16.active, idleColor: r16.idle })),
-    ...progress.qfLeft.map((active, i) => ({ key: `qfl-${i}`, x: MOBILE_KO_X.qfL, y: MOBILE_KO_QF_Y[i], active, color: qf.active, idleColor: qf.idle })),
-    ...progress.qfRight.map((active, i) => ({ key: `qfr-${i}`, x: MOBILE_KO_X.qfR, y: MOBILE_KO_QF_Y[i], active, color: qf.active, idleColor: qf.idle })),
-    { key: 'sfl', x: MOBILE_KO_X.sfL, y: MOBILE_KO_SF_Y, active: progress.sfLeft, color: sf.active, idleColor: sf.idle },
-    { key: 'sfr', x: MOBILE_KO_X.sfR, y: MOBILE_KO_SF_Y, active: progress.sfRight, color: sf.active, idleColor: sf.idle },
-    { key: 'final', x: MOBILE_KO_X.final, y: MOBILE_KO_FINAL_Y, active: progress.final, color: finals.active, idleColor: finals.idle },
-    { key: 'third', x: MOBILE_KO_X.final, y: MOBILE_KO_THIRD_Y, active: progress.third, color: finals.active, idleColor: finals.idle }
+    ...progress.r32Left.map((s, i)  => ({ key: `r32l-${i}`, x: MOBILE_KO_X.r32L,  y: MOBILE_KO_R32_Y[i],  state: s, color: slotColor(s, r32c) })),
+    ...progress.r32Right.map((s, i) => ({ key: `r32r-${i}`, x: MOBILE_KO_X.r32R,  y: MOBILE_KO_R32_Y[i],  state: s, color: slotColor(s, r32c) })),
+    ...progress.r16Left.map((s, i)  => ({ key: `r16l-${i}`, x: MOBILE_KO_X.r16L,  y: MOBILE_KO_R16_Y[i],  state: s, color: slotColor(s, r16c) })),
+    ...progress.r16Right.map((s, i) => ({ key: `r16r-${i}`, x: MOBILE_KO_X.r16R,  y: MOBILE_KO_R16_Y[i],  state: s, color: slotColor(s, r16c) })),
+    ...progress.qfLeft.map((s, i)   => ({ key: `qfl-${i}`,  x: MOBILE_KO_X.qfL,   y: MOBILE_KO_QF_Y[i],   state: s, color: slotColor(s, qfc)  })),
+    ...progress.qfRight.map((s, i)  => ({ key: `qfr-${i}`,  x: MOBILE_KO_X.qfR,   y: MOBILE_KO_QF_Y[i],   state: s, color: slotColor(s, qfc)  })),
+    { key: 'sfl',   x: MOBILE_KO_X.sfL,   y: MOBILE_KO_SF_Y,    state: progress.sfLeft,  color: slotColor(progress.sfLeft,  sfc)  },
+    { key: 'sfr',   x: MOBILE_KO_X.sfR,   y: MOBILE_KO_SF_Y,    state: progress.sfRight, color: slotColor(progress.sfRight, sfc)  },
+    { key: 'final', x: MOBILE_KO_X.final,  y: MOBILE_KO_FINAL_Y, state: progress.final,   color: slotColor(progress.final,   finc) },
+    { key: 'third', x: MOBILE_KO_X.final,  y: MOBILE_KO_THIRD_Y, state: progress.third,   color: slotColor(progress.third,   finc) }
   ]
 }
 
@@ -641,6 +673,20 @@ const PredictionChip = (props: {
   const chipW = S((mob ? 224 : 232) * uiScale)
   const chipH = S((mob ? 88 : 78) * uiScale)
 
+  // Status icon shown in place of the › arrow
+  const showAlert = type === 'knockout' && koHasAvailableUnpredicted()
+  const pulsedGold = Color4.create(GOLD.r, GOLD.g, GOLD.b, 0.45 + 0.55 * pulseValue)
+
+  let iconChar = '›'
+  let iconColor = accent
+  if (type === 'group') {
+    if (allGroupMatchesPlayed())              { iconChar = '✓'; iconColor = CHECKLIST_COMPLETE }
+    else if (completed >= total && total > 0) { iconChar = '✓'; iconColor = MUTED }
+  } else {
+    if (showAlert)          { iconChar = '!'; iconColor = pulsedGold }
+    else if (completed > 0) { iconChar = '✓'; iconColor = ACCENT_KO }
+  }
+
   return (
     <UiEntity
       uiTransform={{
@@ -648,7 +694,7 @@ const PredictionChip = (props: {
         height: chipH,
         flexDirection: 'row',
         alignItems: 'stretch',
-        margin: `0 0 ${S((mob ? 10 : 8) * uiScale)}px 0`,
+        margin: { bottom: S((mob ? 10 : 8) * uiScale) },
         borderRadius: S(14),
         pointerFilter: 'block',
         overflow: 'hidden'
@@ -674,13 +720,13 @@ const PredictionChip = (props: {
       </UiEntity>
       <UiEntity
         uiTransform={{
-          width: S((mob ? 48 : 24) * uiScale),
+          width: S((mob ? 62 : 34) * uiScale),
           alignItems: 'center',
           justifyContent: 'flex-end',
-          margin: `0 ${S((mob ? 10 : 10) * uiScale)}px 0 0`
+          margin: `0 ${S((mob ? 6 : 6) * uiScale)}px 0 0`
         }}
       >
-        <Label value="›" fontSize={F((mob ? 42 : 20) * uiScale)} color={accent} />
+        <Label value={iconChar} fontSize={F((mob ? 56 : 28) * uiScale)} color={iconColor} />
       </UiEntity>
     </UiEntity>
   )
@@ -983,6 +1029,26 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
         </UiEntity>
       </UiEntity>
 
+      {koHasAvailableUnpredicted() && (
+        <UiEntity
+          uiTransform={{
+            width: '100%',
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: { top: S(8 * compactScale), bottom: S(8 * compactScale), left: S(12 * compactScale), right: S(12 * compactScale) },
+            borderRadius: S(10 * compactScale),
+            margin: `0 0 ${S(8 * compactScale)}px 0`
+          }}
+          uiBackground={{ color: Color4.create(0.38, 0.30, 0.05, 0.45) }}
+        >
+          <Label value="! " fontSize={F(16 * compactScale)} color={GOLD}
+            uiTransform={{ height: S(20 * compactScale) }} />
+          <Label value="You have matches available to predict — highlighted in yellow below"
+            fontSize={F(14 * compactScale)} color={GOLD}
+            uiTransform={{ height: S(20 * compactScale) }} />
+        </UiEntity>
+      )}
+
       <UiEntity
         uiTransform={{
           width: boardW,
@@ -1011,7 +1077,7 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            uiBackground={{ color: slot.active ? slot.color : slot.idleColor }}
+            uiBackground={{ color: slot.color }}
           >
             <UiEntity
               uiTransform={{
@@ -1019,7 +1085,7 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
                 height: slotCoreH,
                 borderRadius: slotCoreRadius
               }}
-              uiBackground={{ color: slot.active ? Color4.create(0, 0, 0, 0.18) : (slot.idleColor === VIOLET ? Color4.create(0, 0, 0, 0.14) : slotCoreColor) }}
+              uiBackground={{ color: slot.state !== 'unavailable' ? Color4.create(0, 0, 0, 0.18) : slotCoreColor }}
             />
             <UiEntity
               uiTransform={{
@@ -1028,7 +1094,7 @@ const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
                 borderRadius: slotMarkerRadius,
                 positionType: 'absolute'
               }}
-              uiBackground={{ color: slot.active ? Color4.White() : (slot.idleColor === VIOLET ? Color4.White() : Color4.create(1, 1, 1, 0.36)) }}
+              uiBackground={{ color: slot.state !== 'unavailable' ? Color4.White() : Color4.create(1, 1, 1, 0.36) }}
             />
           </UiEntity>
         ))}
