@@ -5,7 +5,7 @@ import {
 } from '../schedule/prodeNet'
 import {
   Prediction, OfficialResult, MATCHES, makeDefaultPredictions,
-  loadResults as loadResultsCache, totalPoints, exactScoreCount
+  loadResults as loadResultsCache, totalPoints, exactScoreCount, getResult, scorePrediction
 } from '../schedule/prodeData'
 import {
   KoFixture, KoPrediction, KoResult,
@@ -196,21 +196,71 @@ export function startProdeServer() {
 const TOURNAMENT_END_UTC = '2026-07-20T03:00:00Z'   // after the WC 2026 final (tunable)
 const PODIUM_TEST_SHOW = false                       // set true to show NOW with current standings (testing)
 
+// Group stage is finished — its top-3 are final, so we display them on the kickoff
+// podium right away (instead of waiting for tournament end). Identities are fixed
+// here; the podium still fetches each winner's live avatar by address.
+// points/accuracy here are fallbacks (shown in worlds without these players' mirror,
+// e.g. the test world). In prod they're overridden with the live values.
+const GROUP_STAGE_WINNERS: WinnerEntry[] = [
+  { address: '0x185af8cf06431dacbc877ac754d21e86b4f68136', rank: 1, name: 'Shiny',    points: 165, accuracy: 68 },
+  { address: '0x575b1100e732e5abe528bac55156936f6b827776', rank: 2, name: 'Maska',    points: 160, accuracy: 65 },
+  { address: '0x778a094cbff9fd2e5a27f6ad50993f1add00da39', rank: 3, name: 'Mauhetti', points: 155, accuracy: 65 }
+]
+
+// Resolve each hardcoded group winner's live points + accuracy from their mirror.
+// Falls back to the hardcoded points (and 0% accuracy) if the mirror is missing.
+async function groupWinnersWithStats(): Promise<WinnerEntry[]> {
+  loadResultsCache(await loadResults())
+  const out: WinnerEntry[] = []
+  for (const w of GROUP_STAGE_WINNERS) {
+    let points = w.points
+    let accuracy = w.accuracy ?? 0
+    try {
+      const mir = await Storage.get<PlayerMirror>(PLAYER_PREFIX + w.address.toLowerCase())
+      const preds = mir?.predictions ?? []
+      if (preds.length > 0) {
+        points = totalPoints(preds)
+        let played = 0, hits = 0
+        for (const p of preds) {
+          if (!p.submitted) continue
+          const r = getResult(p.matchId)
+          if (!r) continue
+          played++
+          if (scorePrediction(p, r) > 0) hits++
+        }
+        accuracy = played > 0 ? Math.round((hits / played) * 100) : 0
+      }
+    } catch { /* keep hardcoded points, accuracy 0 */ }
+    out.push({ ...w, points, accuracy })
+  }
+  return out
+}
+
 // 3 step positions for a podium placed at `base` (TUNABLE — tweak to sit on the model's steps).
 function podiumSlots(base: Vector3): Vector3[] {
   return [
-    Vector3.create(base.x,       base.y + 2.20, base.z),   // 1st
+    Vector3.create(base.x + 0.5,      base.y + 2.60, base.z - 0.15),   // 1st
     Vector3.create(base.x - 0.7, base.y + 1.90, base.z),   // 2nd
-    Vector3.create(base.x + 0.7, base.y + 1.65, base.z)    // 3rd
+    Vector3.create(base.x + 1.6, base.y + 1.55, base.z)    // 3rd
   ]
 }
 
 function setupPodiums() {
   const ROT = Quaternion.fromEulerDegrees(0, 180, 0)
   // Podium01 = kickoff (group) winners; Podium01_2 = knockout winners.
-  const kickoffPodium  = new PodiumAvatarsServer(podiumSlots(Vector3.create(84.0,  0, 70.75)), ROT, ROT, 'kickoff',  5000)
-  const knockoutPodium = new PodiumAvatarsServer(podiumSlots(Vector3.create(89.5,  0, 70.75)), ROT, ROT, 'knockout', 5010)
+  // syncBaseId spacing = 4 ids per slot (avatar + board + name + stats) × 3 slots = 12.
+  const kickoffPodium  = new PodiumAvatarsServer(podiumSlots(Vector3.create(82.2,  -0.1, 70.75)), ROT, ROT, 'kickoff',  5000)
+  const knockoutPodium = new PodiumAvatarsServer(podiumSlots(Vector3.create(89.5,  0, 70.75)), ROT, ROT, 'knockout', 5020)
 
+  // Group stage is over → show its (final, fixed) winners immediately, with live
+  // points + accuracy resolved from each winner's mirror.
+  void (async () => {
+    const winners = await groupWinnersWithStats()
+    kickoffPodium.showWinners(winners)
+    console.log(`[Podium] group winners shown — #1 ${winners[0]?.name} (${winners[0]?.points}pts ${winners[0]?.accuracy}%)`)
+  })()
+
+  // Knockout podium still waits for tournament end, computed live from the mirror.
   const endTs = Date.parse(TOURNAMENT_END_UTC)
   let shown = false
   let working = false
@@ -225,9 +275,8 @@ function setupPodiums() {
     void (async () => {
       try {
         const w = await computeWinners()
-        kickoffPodium.showWinners(w.group)
         knockoutPodium.showWinners(w.ko)
-        console.log(`[Podium] shown — kickoff #1: ${w.group[0]?.name ?? '-'} | knockout #1: ${w.ko[0]?.name ?? '-'} | total #1: ${w.total[0]?.name ?? '-'}`)
+        console.log(`[Podium] knockout shown — #1: ${w.ko[0]?.name ?? '-'} | total #1: ${w.total[0]?.name ?? '-'}`)
         shown = true
       } catch (e) {
         console.log('[Podium] failed:', e)
