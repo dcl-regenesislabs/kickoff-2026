@@ -182,7 +182,9 @@ export function startProdeServer() {
   void seedKeys()
 
   // Warm the leaderboard cache so the first joiner doesn't pay the scan cost.
-  void recomputeLeaderboards()
+  // The server boots on the first join, so this runs on every cold start — a
+  // boot-time storage hiccup must not become an unhandled rejection.
+  recomputeLeaderboards().catch(e => console.log('[Server] warm-up recompute failed:', e))
 
   // ── Auto-sync results + knockout fixtures from TheSportsDB (server-side) ─────────
   startResultsSync({
@@ -313,7 +315,7 @@ async function seedKeys() {
 // Returns how many entries were actually new or changed (0 → no broadcast).
 async function applyResults(incoming: OfficialResult[]): Promise<number> {
   if (incoming.length === 0) return 0
-  const results = await loadResults()
+  const results = (await loadResults()).slice()   // work on a copy; commit to cache only on success
   let changed = 0
   for (const inc of incoming) {
     const idx = results.findIndex(r => r.matchId === inc.matchId)
@@ -328,15 +330,28 @@ async function applyResults(incoming: OfficialResult[]): Promise<number> {
   }
   if (changed === 0) return 0
   await Storage.set(RESULTS_KEY, results)
+  resultsCache = results
   room.send('resultsSnapshot', { json: JSON.stringify(results) })
   await recomputeLeaderboards()
   broadcastCachedLeaderboards()
   return changed
 }
 
+// ── Scene-wide read cache ─────────────────────────────────────────────────────────
+// Results / KO results / KO fixtures are identical for every player, yet each join
+// re-reads them (requestResults, requestKoFixtures). Memoize them in memory: the
+// first read hits storage, the rest are free, and the mutators below refresh the
+// cache on write. So a cold-start burst reads each scene key once, not once per join.
+// Caches are per-session (the server boots on first join, dies when empty), so they
+// can't go stale across restarts; storage stays the source of truth.
+let resultsCache:    OfficialResult[] | null = null
+let koResultsCache:  KoResult[]       | null = null
+let koFixturesCache: KoFixture[]      | null = null
+
 // ── Knockout storage helpers ────────────────────────────────────────────────────
 async function loadKoFixtures(): Promise<KoFixture[]> {
-  try { return (await Storage.get<KoFixture[]>(KO_FIXTURES_KEY)) ?? [] }
+  if (koFixturesCache) return koFixturesCache
+  try { return (koFixturesCache = (await Storage.get<KoFixture[]>(KO_FIXTURES_KEY)) ?? []) }
   catch (e) { console.log('[Server] KO fixtures load FAILED:', e); return [] }
 }
 
@@ -354,19 +369,21 @@ async function saveKoFixtures(fixtures: KoFixture[]): Promise<number> {
   if (changed === 0) return 0
   const merged = Array.from(byId.values())
   await Storage.set(KO_FIXTURES_KEY, merged)
+  koFixturesCache = merged
   room.send('koFixturesSnapshot', { json: JSON.stringify(merged) })
   return changed
 }
 
 async function loadKoResultsSrv(): Promise<KoResult[]> {
-  try { return (await Storage.get<KoResult[]>(KO_RESULTS_KEY)) ?? [] }
+  if (koResultsCache) return koResultsCache
+  try { return (koResultsCache = (await Storage.get<KoResult[]>(KO_RESULTS_KEY)) ?? []) }
   catch (e) { console.log('[Server] KO results load FAILED:', e); return [] }
 }
 
 // Upsert KO results, persist once, push snapshot + recompute the (total) leaderboard.
 async function applyKoResults(incoming: KoResult[]): Promise<number> {
   if (incoming.length === 0) return 0
-  const results = await loadKoResultsSrv()
+  const results = (await loadKoResultsSrv()).slice()   // work on a copy; commit to cache only on success
   let changed = 0
   for (const inc of incoming) {
     const idx = results.findIndex(r => r.fixtureId === inc.fixtureId)
@@ -381,6 +398,7 @@ async function applyKoResults(incoming: KoResult[]): Promise<number> {
   }
   if (changed === 0) return 0
   await Storage.set(KO_RESULTS_KEY, results)
+  koResultsCache = results
   room.send('koResultsSnapshot', { json: JSON.stringify(results) })
   await recomputeLeaderboards()
   broadcastCachedLeaderboards()
@@ -420,8 +438,9 @@ async function loadFor(addr: string): Promise<Prediction[]> {
 }
 
 async function loadResults(): Promise<OfficialResult[]> {
+  if (resultsCache) return resultsCache
   try {
-    return (await Storage.get<OfficialResult[]>(RESULTS_KEY)) ?? []
+    return (resultsCache = (await Storage.get<OfficialResult[]>(RESULTS_KEY)) ?? [])
   } catch (e) {
     console.log('[Server] results load FAILED:', e)
     return []
