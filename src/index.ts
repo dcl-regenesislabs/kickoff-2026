@@ -8,6 +8,7 @@ import { setupBallClient } from '../client/ball'
 import { setupCrowdAudio, setupFieldTrigger } from '../client/sceneEffects'
 import { setupSfx, playClick } from '../client/sfx'
 import { setupReflectors } from '../client/reflectors'
+import { setupCinematicSystem } from '../client/cinematicCamera'
 import { Portal } from './portal'
 import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 import {
@@ -26,6 +27,7 @@ export async function main() {
   }
 
   setupSfx()
+  setupCinematicSystem()
   buildWorld()
   setupProdeUi()
   setupCrowdAudio()

@@ -31,7 +31,7 @@ export function setupWearableSpin() {
       else if (n.startsWith('dispenser_1')) { animateDispenser(entity); done.add(entity) }
       else if (n.startsWith('collider_')) {
         pointerEventsSystem.onPointerDown(
-          { entity, opts: { button: InputAction.IA_POINTER, hoverText: 'Claim your free wearable', maxDistance: 32, showHighlight: true } },
+          { entity, opts: { button: InputAction.IA_POINTER, hoverText: 'Claim your free wearable', maxDistance: 2, showHighlight: true } },
           () => { playClick(); claimWearable() }
         )
         done.add(entity)
@@ -50,7 +50,7 @@ function makeClaimable(entity: Entity) {
   })
   MeshCollider.setBox(clicker, ColliderLayer.CL_POINTER)
   pointerEventsSystem.onPointerDown(
-    { entity: clicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Claim your free wearable', maxDistance: 32 } },
+    { entity: clicker, opts: { button: InputAction.IA_POINTER, hoverText: 'Claim your free wearable', maxDistance: 2 } },
     () => { playClick(); claimWearable() }
   )
 }
