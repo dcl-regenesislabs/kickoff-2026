@@ -84,7 +84,6 @@ export function shouldAutoPlayCinematic(): boolean {
 export function playCinematic() {
   if (cinematicState === 'playing') return
 
-  console.log('[Cinematic] Starting bracket reveal tour')
   cinematicState = 'playing'
   cinematicStartTime = Date.now()
   hasPlayedOnce = true
@@ -112,7 +111,6 @@ export function playCinematic() {
 export function skipCinematic() {
   if (cinematicState !== 'playing') return
 
-  console.log('[Cinematic] Skipping')
   cinematicState = 'skipping'
 
   if (MainCamera.has(engine.CameraEntity)) {
