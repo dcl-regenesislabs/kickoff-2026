@@ -3,10 +3,14 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Button } from '@dcl/sdk/re
 import { getPlayer } from '@dcl/sdk/players'
 import { engine } from '@dcl/sdk/ecs'
 import {
-  MATCHES, GROUPS, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
-  isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef
+  MATCHES, GROUPS, Match, predictions, savePrediction, unsubmitPrediction, getCompletedCount, isGroupComplete,
+  isMatchDone, getResult, hasResult, submitOfficialResult, scorePrediction, myPoints, Outcome, FlagRef, flagFor
 } from './prodeData'
-import { getLeaderboard, setOnPredictionAck, isServerReady } from '../client/prodeClient'
+import {
+  koFixtures, koPredictions, koResults, getKoFixture, saveKoPrediction, isKoFixtureLocked,
+  myKoPoints, scoreKoPrediction
+} from './knockoutData'
+import { getKickoffLeaderboard, getKnockoutLeaderboard, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
@@ -58,7 +62,19 @@ const groupState = {
   dirty:          false,
   onChange:       null as (() => void) | null,
   saving:         false,                        // true while waiting for server ack
-  pendingAdvance: null as (() => void) | null   // queued navigation after successful save
+  pendingAdvance: null as (() => void) | null,  // queued navigation after successful save
+  matchIds:       null as number[] | null,      // custom match list (pending-matches mode); null = a real group
+  title:          null as string | null         // header override when matchIds is set
+}
+
+// The matches the form is currently stepping through (a real group, or a custom list).
+function currentFormMatches(): Match[] {
+  if (groupState.matchIds) {
+    return groupState.matchIds
+      .map(id => MATCHES.find(m => m.id === id))
+      .filter((m): m is Match => m !== undefined)
+  }
+  return GROUPS[groupState.groupIndex]?.matches ?? []
 }
 
 // Admin form state — iterates the flat MATCHES list to load official results.
@@ -75,8 +91,11 @@ const infoState = { visible: false }
 export function openProdeInfo() { infoState.visible = true }
 
 // Player stats overlay ("MY SCORE").
-const scoreState = { visible: false }
-export function openScorePanel() { scoreState.visible = true }
+const scoreState = { visible: false, tab: 'total' as 'total' | 'group' | 'knockout' }
+export function openScorePanel() {
+  if (scoreState.visible) { scoreState.visible = false; return }
+  scoreState.visible = true; scoreState.tab = 'total'
+}
 
 // Welcome overlay shown on entry; 3 steps, dismissed with "Join the Challenge".
 const welcomeState = { visible: true, step: 0 }
@@ -90,6 +109,11 @@ const serverGateState = {
 }
 
 const SPINNER_DEG_PER_SEC = 220
+
+const predictionPanelState = {
+  expanded: null as 'knockout' | 'group' | null
+}
+
 
 // Wearable claim status overlay ("on the way" → "received!").
 const claimState = { visible: false, done: false }
@@ -138,6 +162,8 @@ const ImgButton = (props: { src: string; width: number; height: number; onMouseD
 )
 
 export function openGroupForm(groupIndex: number, onChange: () => void) {
+  groupState.matchIds   = null
+  groupState.title      = null
   groupState.groupIndex = groupIndex
   groupState.matchIndex = 0
   groupState.onChange   = onChange
@@ -145,14 +171,63 @@ export function openGroupForm(groupIndex: number, onChange: () => void) {
   groupState.visible    = true
 }
 
+// Open the form over the still-open group-stage matches (not locked, no result yet).
+export function openPendingForm(onChange: () => void) {
+  const ids = MATCHES.filter(m => !hasResult(m.id) && !isMatchLocked(m.team1, m.team2)).map(m => m.id)
+  if (ids.length === 0) return
+  groupState.matchIds   = ids
+  groupState.title      = 'OPEN MATCHES'
+  groupState.matchIndex = 0
+  groupState.onChange   = onChange
+  loadGroupMatch()
+  groupState.visible    = true
+}
+
+// Count of still-open group-stage matches (for the pending board badge).
+export function pendingMatchCount(): number {
+  return MATCHES.filter(m => !hasResult(m.id) && !isMatchLocked(m.team1, m.team2)).length
+}
+
 // Load the currently-selected match's saved score into the form.
 function loadGroupMatch() {
-  const g = GROUPS[groupState.groupIndex]
-  const match = g?.matches[groupState.matchIndex]
+  const match = currentFormMatches()[groupState.matchIndex]
   const pred = match ? predictions.find(p => p.matchId === match.id) : undefined
   groupState.score1 = pred?.score1 ?? 0
   groupState.score2 = pred?.score2 ?? 0
   groupState.dirty  = false
+}
+
+// ── Knockout prediction form (mirrors the group form, keyed by fixture) ─────────
+const koFormState = {
+  visible:        false,
+  fixtureIds:     [] as number[],   // the fixtures of the clicked panel (1-2)
+  index:          0,
+  score1:         0,
+  score2:         0,
+  dirty:          false,
+  saving:         false,
+  pendingAdvance: null as (() => void) | null,
+  onChange:       null as (() => void) | null
+}
+const KO_ROUND_LABELS: Record<string, string> = {
+  '32': 'ROUND OF 32', '16': 'ROUND OF 16', '8': 'QUARTER FINAL', '4': 'SEMI FINAL', '2': 'FINAL', '1': 'FINAL'
+}
+
+export function openKoForm(fixtureIds: number[], onChange: () => void) {
+  if (fixtureIds.length === 0) return
+  koFormState.fixtureIds = fixtureIds
+  koFormState.index      = 0
+  koFormState.onChange   = onChange
+  loadKoFixtureForm()
+  koFormState.visible    = true
+}
+
+function loadKoFixtureForm() {
+  const fid = koFormState.fixtureIds[koFormState.index]
+  const pred = koPredictions.find(p => p.fixtureId === fid)
+  koFormState.score1 = pred?.score1 ?? 0
+  koFormState.score2 = pred?.score2 ?? 0
+  koFormState.dirty  = false
 }
 
 function openAdminForm(index: number) {
@@ -195,6 +270,16 @@ export function setupProdeUi() {
     }
     groupState.pendingAdvance = null
   })
+  setOnKoPredictionAck((_fixtureId, ok, reason) => {
+    const wasExplicit = koFormState.pendingAdvance !== null
+    koFormState.saving = false
+    if (ok) {
+      koFormState.pendingAdvance?.()
+    } else {
+      if (wasExplicit) showRejectionToast(reason === 'locked' ? 'locked' : reason === 'disconnected' ? 'disconnected' : 'error')
+    }
+    koFormState.pendingAdvance = null
+  })
   ReactEcsRenderer.setUiRenderer(ProdeUi)
 }
 
@@ -211,7 +296,14 @@ const OVERLAY   = Color4.create(0, 0, 0, 0.7)
 const RED       = Color4.fromHexString('#FF6B6Bff')
 const GOLD      = Color4.fromHexString('#F2C14Eff')
 const VIOLET    = Color4.fromHexString('#9f78e7ff')
-const CHECKLIST_PARTIAL = Color4.fromHexString('#7a1f31ff')
+const MUTED     = Color4.create(0.6, 0.6, 0.7, 1)
+const PANEL_BG      = Color4.create(0.05, 0.04, 0.11, 0.97)
+const ACCENT_KO     = Color4.fromHexString('#9f78e7ff')
+const ACCENT_GS     = Color4.fromHexString('#F28C28ff')
+const ACCENT_GS_CHIP = Color4.fromHexString('#B9BBC7ff')
+const TAB_INACTIVE  = Color4.create(0.45, 0.44, 0.55, 1)
+const CHIP_HOVER    = Color4.create(0.09, 0.08, 0.18, 1)
+const CHECKLIST_PARTIAL  = Color4.fromHexString('#7a1f31ff')
 const CHECKLIST_COMPLETE = Color4.fromHexString('#39ff78ff')
 const CELL_EMPTY = Color4.create(0.42, 0.42, 0.52, 1)    // pending checklist cell
 const BTN_DISABLED = Color4.create(0.24, 0.24, 0.30, 1)  // greyed/disabled button
@@ -223,7 +315,6 @@ function impliedWinner(s1: number, s2: number): Outcome {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const ProdeUi = () => {
-  const allComplete = getCompletedCount() === MATCHES.length
   const mob = isMobile()
   return (
     // Single root wrapper
@@ -236,20 +327,7 @@ const ProdeUi = () => {
       <MatchChecklist />
 
       {/* ── My Score entry button — only once every match is predicted ──────── */}
-      {allComplete && !scoreState.visible && (
-        <UiEntity
-          uiTransform={{
-            positionType: 'absolute',
-            position: { bottom: S(mob ? 150 : 100), left: 0 },
-            width: '100%', height: S(mob ? 150 : 130),
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
-          }}
-        >
-          <ImgButton src="images/buttons/myscore.png"
-            width={S((mob ? 150 : 130) * 2.716)} height={S(mob ? 150 : 130)}
-            onMouseDown={() => openScorePanel()} />
-        </UiEntity>
-      )}
+      <ScoreEntryButton />
 
       {/* ── Admin entry button — TOP-right (off the bottom joystick/action area) */}
       {localIsAdmin() && !adminState.visible && (
@@ -272,6 +350,9 @@ const ProdeUi = () => {
       <MobileKickButton />
       <DesktopKickHint />
       <GroupForm />
+
+      {/* ── Knockout prediction form overlay ─────────────────────────────────── */}
+      <KoForm />
 
       {/* ── Admin result form overlay ────────────────────────────────────────── */}
       <AdminForm />
@@ -299,9 +380,7 @@ const ProdeUi = () => {
   )
 }
 
-// ── Match checklist ───────────────────────────────────────────────────────────
-// Desktop: single horizontal row of 12 groups at the top.
-// Mobile:  compact 3×4 vertical sidebar on the left (avoids blocking gameplay).
+// ── Kick UI (from main) ───────────────────────────────────────────────────────
 let kickHintShownAt  = 0
 let kickHintHiddenAt = 0
 const HINT_ENTER_MS  = 300
@@ -408,83 +487,540 @@ const MobileKickButton = () => {
   )
 }
 
-const MatchChecklist = () => {
-  const mob = isMobile()
-  const k = mob ? 1.55 : 1
-  const hidden =
-    welcomeState.visible ||
-    groupState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible ||
-    (mob && getCompletedCount() === MATCHES.length)
+// ── Prediction panels ─────────────────────────────────────────────────────────
+const KNOCKOUT_TOTAL_MATCHES = 32
+const MOBILE_KO_BOARD_SRC = 'images/knockout-mobile-board.png'
+const MOBILE_KO_BASE_W = 1200
+const MOBILE_KO_BASE_H = 460
+const MOBILE_KO_BOX_W = 82
+const MOBILE_KO_BOX_H = 28
+const MOBILE_KO_X = {
+  r32L: 42,
+  r16L: 166,
+  qfL: 290,
+  sfL: 414,
+  final: 538,
+  sfR: 662,
+  qfR: 786,
+  r16R: 910,
+  r32R: 1034
+}
+const MOBILE_KO_R32_Y = [76, 118, 160, 202, 244, 286, 328, 370]
+const MOBILE_KO_R16_Y = [97, 181, 265, 349]
+const MOBILE_KO_QF_Y = [139, 307]
+const MOBILE_KO_FINAL_Y = 181
+const MOBILE_KO_THIRD_Y = 265
+const MOBILE_KO_SF_Y = 223
+const KO_ROUND_SLOTS = [
+  { round: '32', count: 16 },
+  { round: '16', count: 8 },
+  { round: '8', count: 4 },
+  { round: '4', count: 2 },
+  { round: '2', count: 2 }
+]
 
-  const cluster = (g: (typeof GROUPS)[number]) => {
-    const done = g.matches.filter(isMatchDone).length
-    const complete = done === g.matches.length
-    const activeColor = complete ? CHECKLIST_COMPLETE : done > 0 ? CHECKLIST_PARTIAL : VIOLET
+type KnockoutBoardProgress = {
+  completed: number
+  total: number
+  r32Left: boolean[]
+  r32Right: boolean[]
+  r16Left: boolean[]
+  r16Right: boolean[]
+  qfLeft: boolean[]
+  qfRight: boolean[]
+  sfLeft: boolean
+  sfRight: boolean
+  final: boolean
+  third: boolean
+}
 
-    return (
-      <UiEntity key={g.name} uiTransform={{
-        flexDirection: 'column', alignItems: 'center',
-        margin: mob ? `${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px ${S(4 * k)}px` : `0px ${S(5)}px 0px ${S(5)}px`
-      }}>
-        <UiEntity uiTransform={{ flexDirection: 'row' }}>
-          {g.matches.map((m, mi) => {
-            const cellDone = isMatchDone(m)
-            return (
-              <UiEntity key={mi}
-                uiTransform={{ width: S(14 * k), height: S(14 * k), margin: S(1 * k), borderRadius: S(3 * k) }}
-                uiBackground={{ color: cellDone ? activeColor : CELL_EMPTY }} />
-            )
-          })}
-        </UiEntity>
-        <Label value={g.name.replace('Group ', '')} fontSize={F(13 * k)}
-          color={complete ? CHECKLIST_COMPLETE : Color4.create(0.6, 0.6, 0.7, 1)}
-          uiTransform={{ height: S(16 * k) }} />
-      </UiEntity>
-    )
+function getKnockoutPredictionSlots(): boolean[] {
+  const submittedByFixtureId = new Map(koPredictions.map((prediction) => [prediction.fixtureId, prediction.submitted]))
+  const orderedSlots = KO_ROUND_SLOTS.flatMap(({ round, count }) => {
+    const fixturesInRound = koFixtures
+      .filter((fixture) => fixture.round === round)
+      .sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
+
+    return Array.from({ length: count }, (_, i) => {
+      const fixture = fixturesInRound[i]
+      return fixture ? (submittedByFixtureId.get(fixture.id) ?? false) : false
+    })
+  })
+
+  return Array.from({ length: KNOCKOUT_TOTAL_MATCHES }, (_, i) => orderedSlots[i] ?? false)
+}
+
+function getKnockoutBoardProgress(): KnockoutBoardProgress {
+  const slots = getKnockoutPredictionSlots()
+  const take = (start: number, count: number) =>
+    Array.from({ length: count }, (_, i) => slots[start + i] ?? false)
+
+  return {
+    completed: slots.filter(Boolean).length,
+    total: KNOCKOUT_TOTAL_MATCHES,
+    r32Left: take(0, 8),
+    r32Right: take(8, 8),
+    r16Left: take(16, 4),
+    r16Right: take(20, 4),
+    qfLeft: take(24, 2),
+    qfRight: take(26, 2),
+    sfLeft: slots[28] ?? false,
+    sfRight: slots[29] ?? false,
+    final: slots[30] ?? false,
+    third: slots[31] ?? false
+  }
+}
+
+type MobileKnockoutSlot = {
+  key: string
+  x: number
+  y: number
+  active: boolean
+  color: Color4
+  idleColor: Color4
+}
+
+function getMobileKnockoutSlots(progress: KnockoutBoardProgress): MobileKnockoutSlot[] {
+  const roundColors = (values: boolean[]) => {
+    const done = values.filter(Boolean).length
+    const total = values.length
+    const complete = total > 0 && done === total
+    const partial = done > 0 && done < total
+    return {
+      active: complete ? CHECKLIST_COMPLETE : CHECKLIST_PARTIAL,
+      idle: done === 0 ? VIOLET : CELL_EMPTY,
+      marker: complete ? CHECKLIST_COMPLETE : partial ? CHECKLIST_PARTIAL : VIOLET
+    }
   }
 
-  // Desktop: 2 rows × 6 groups centered. Mobile: 6 rows × 2 groups (vertical sidebar).
-  const rows = mob
-    ? [GROUPS.slice(0, 2), GROUPS.slice(2, 4), GROUPS.slice(4, 6), GROUPS.slice(6, 8), GROUPS.slice(8, 10), GROUPS.slice(10, 12)]
-    : [GROUPS.slice(0, 6), GROUPS.slice(6, 12)]
+  const r32 = roundColors([...progress.r32Left, ...progress.r32Right])
+  const r16 = roundColors([...progress.r16Left, ...progress.r16Right])
+  const qf = roundColors([...progress.qfLeft, ...progress.qfRight])
+  const sf = roundColors([progress.sfLeft, progress.sfRight])
+  const finals = roundColors([progress.final, progress.third])
+
+  return [
+    ...progress.r32Left.map((active, i) => ({ key: `r32l-${i}`, x: MOBILE_KO_X.r32L, y: MOBILE_KO_R32_Y[i], active, color: r32.active, idleColor: r32.idle })),
+    ...progress.r32Right.map((active, i) => ({ key: `r32r-${i}`, x: MOBILE_KO_X.r32R, y: MOBILE_KO_R32_Y[i], active, color: r32.active, idleColor: r32.idle })),
+    ...progress.r16Left.map((active, i) => ({ key: `r16l-${i}`, x: MOBILE_KO_X.r16L, y: MOBILE_KO_R16_Y[i], active, color: r16.active, idleColor: r16.idle })),
+    ...progress.r16Right.map((active, i) => ({ key: `r16r-${i}`, x: MOBILE_KO_X.r16R, y: MOBILE_KO_R16_Y[i], active, color: r16.active, idleColor: r16.idle })),
+    ...progress.qfLeft.map((active, i) => ({ key: `qfl-${i}`, x: MOBILE_KO_X.qfL, y: MOBILE_KO_QF_Y[i], active, color: qf.active, idleColor: qf.idle })),
+    ...progress.qfRight.map((active, i) => ({ key: `qfr-${i}`, x: MOBILE_KO_X.qfR, y: MOBILE_KO_QF_Y[i], active, color: qf.active, idleColor: qf.idle })),
+    { key: 'sfl', x: MOBILE_KO_X.sfL, y: MOBILE_KO_SF_Y, active: progress.sfLeft, color: sf.active, idleColor: sf.idle },
+    { key: 'sfr', x: MOBILE_KO_X.sfR, y: MOBILE_KO_SF_Y, active: progress.sfRight, color: sf.active, idleColor: sf.idle },
+    { key: 'final', x: MOBILE_KO_X.final, y: MOBILE_KO_FINAL_Y, active: progress.final, color: finals.active, idleColor: finals.idle },
+    { key: 'third', x: MOBILE_KO_X.final, y: MOBILE_KO_THIRD_Y, active: progress.third, color: finals.active, idleColor: finals.idle }
+  ]
+}
+
+const PredictionChip = (props: {
+  type: 'knockout' | 'group'
+  mob: boolean
+  active?: boolean
+  onOpen: () => void
+}) => {
+  const { mob, type } = props
+  const uiScale = mob ? 1.3 : 0.9
+  const accent = type === 'knockout' ? ACCENT_KO : ACCENT_GS_CHIP
+  const label = type === 'knockout' ? 'KNOCKOUT' : 'GROUP STAGE'
+  const isActive = props.active ?? false
+  const completed = type === 'knockout' ? getKnockoutBoardProgress().completed : getCompletedCount()
+  const total = type === 'knockout' ? KNOCKOUT_TOTAL_MATCHES : MATCHES.length
+  const pct = total > 0 ? Math.round(completed / total * 100) : 0
+  const chipW = S((mob ? 224 : 232) * uiScale)
+  const chipH = S((mob ? 88 : 78) * uiScale)
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: chipW,
+        height: chipH,
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        margin: `0 0 ${S((mob ? 10 : 8) * uiScale)}px 0`,
+        borderRadius: S(14),
+        pointerFilter: 'block',
+        overflow: 'hidden'
+      }}
+      uiBackground={{ color: isActive ? Color4.create(accent.r * 0.32, accent.g * 0.32, accent.b * 0.32, 1) : CHIP_HOVER }}
+      onMouseDown={props.onOpen}
+    >
+      <UiEntity uiTransform={{ width: S(5), height: '100%' }} uiBackground={{ color: accent }} />
+      <UiEntity
+        uiTransform={{
+          flex: 1,
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: { top: S(10 * uiScale), bottom: S(10 * uiScale), left: S(14 * uiScale), right: S((mob ? 6 : 10) * uiScale) }
+        }}
+      >
+        <Label value={label} fontSize={F((mob ? 13 : 12) * uiScale)} color={Color4.White()}
+          uiTransform={{ height: S((mob ? 16 : 15) * uiScale) }} />
+        <Label value={`${completed} / ${total}`} fontSize={F((mob ? 22 : 21) * uiScale)} color={Color4.White()}
+          uiTransform={{ height: S((mob ? 26 : 24) * uiScale), margin: `${S(2 * uiScale)}px 0 0 0` }} />
+        <Label value={`${pct}% complete`} fontSize={F((mob ? 12 : 11) * uiScale)} color={accent}
+          uiTransform={{ height: S((mob ? 14 : 13) * uiScale), margin: `${S(2 * uiScale)}px 0 0 0` }} />
+      </UiEntity>
+      <UiEntity
+        uiTransform={{
+          width: S((mob ? 48 : 24) * uiScale),
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          margin: `0 ${S((mob ? 10 : 10) * uiScale)}px 0 0`
+        }}
+      >
+        <Label value="›" fontSize={F((mob ? 42 : 20) * uiScale)} color={accent} />
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+const Divider = (props: { mob: boolean }) => (
+  <UiEntity
+    uiTransform={{ width: '96%', height: S(1), margin: `0 0 ${S(props.mob ? 10 : 8)}px 0` }}
+    uiBackground={{ color: props.mob ? Color4.create(1, 1, 1, 0.18) : Color4.create(1, 1, 1, 0.07) }}
+  />
+)
+
+const MobilePanelHeader = (props: { title: string }) => (
+  <UiEntity
+    uiTransform={{
+      width: '100%',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      padding: { top: S(16), bottom: S(10), left: S(16), right: S(16) }
+    }}
+  >
+    <Label value={props.title} fontSize={F(24)} color={Color4.White()}
+      uiTransform={{ height: S(30) }} />
+  </UiEntity>
+)
+
+const MatchChecklist = () => {
+  const mob = isMobile()
+  const mobileUiScale = mob ? 1.3 : 1
+  const k = mob ? 1.55 * mobileUiScale : 1
+  const desktopChipScale = 0.9
+  const mobileButtonsLeft = S(184)
+  const mobileButtonsTop = '21%'
+  const mobileGap = S(24)
+  const mobileChipWidth = S(248 * 1.3)
+  const desktopButtonsLeft = S(64)
+  const desktopButtonsTop = '22%'
+  const desktopGap = S(28)
+  const desktopChipWidth = S(232 * desktopChipScale)
+  const buttonsLeft = mob ? mobileButtonsLeft : desktopButtonsLeft
+  const buttonsTop = mob ? mobileButtonsTop : desktopButtonsTop
+  const panelGap = mob ? mobileGap : desktopGap
+  const chipWidth = mob ? mobileChipWidth : desktopChipWidth
+  const hidden =
+    welcomeState.visible ||
+    groupState.visible || koFormState.visible || adminState.visible || infoState.visible || scoreState.visible || celebrateState.visible
+
+  const switchTab = (panel: 'knockout' | 'group') => {
+    playClick()
+    predictionPanelState.expanded = panel
+  }
+  const minimize = () => {
+    playClick()
+    predictionPanelState.expanded = null
+  }
 
   return (
     <UiEntity
       uiTransform={{
         positionType: 'absolute',
-        position: mob ? { top: S(300), left: S(240) } : { top: S(12), left: 0 },
-        width: mob ? 'auto' : '100%',
+        position: { top: 0, left: 0 },
+        width: '100%',
+        height: '100%',
         flexDirection: 'column',
-        alignItems: mob ? 'flex-start' : 'center',
+        alignItems: 'stretch',
         justifyContent: 'flex-start',
         display: hidden ? 'none' : 'flex'
       }}
     >
       <UiEntity
         uiTransform={{
-          padding: S(10 * k),
+          positionType: 'absolute',
+          position: { top: buttonsTop, left: buttonsLeft },
+          width: 'auto',
           flexDirection: 'column',
-          alignItems: 'center',
-          alignSelf: mob ? 'flex-start' : 'center',
-          borderRadius: S(16),
-          pointerFilter: 'block'
+          alignItems: 'flex-start'
         }}
-        uiBackground={{ color: Color4.create(0, 0, 0, 0.88) }}
       >
-        <Label
-          value={mob
-            ? `${getCompletedCount()}/${MATCHES.length}  •  ${myPoints()} pts`
-            : `Predictions  ${getCompletedCount()} / ${MATCHES.length}      ${myPoints()} pts`}
-          fontSize={F(mob ? 14 * k : 18)} color={Color4.White()}
-          uiTransform={{ height: S(mob ? 18 * k : 24), margin: '0 0 6px 0' }}
+        <PredictionChip
+          type="knockout"
+          mob={mob}
+          active={predictionPanelState.expanded === 'knockout'}
+          onOpen={() => switchTab('knockout')}
         />
-        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
-          {rows.map((rowGroups, ri) => (
-            <UiEntity key={ri} uiTransform={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              {rowGroups.map(g => cluster(g))}
-            </UiEntity>
+        <PredictionChip
+          type="group"
+          mob={mob}
+          active={predictionPanelState.expanded === 'group'}
+          onOpen={() => switchTab('group')}
+        />
+      </UiEntity>
+
+      {predictionPanelState.expanded !== null && (
+        <UiEntity
+          uiTransform={{
+            positionType: 'absolute',
+            position: { top: buttonsTop, left: buttonsLeft + chipWidth + panelGap },
+            flexDirection: 'column',
+            alignItems: 'center',
+            borderRadius: S(24),
+            overflow: 'hidden'
+          }}
+          uiBackground={{ color: Color4.create(0.015, 0.02, 0.06, 0.995) }}
+        >
+          <UiEntity
+            uiTransform={{
+              positionType: 'absolute',
+              position: { top: S(mob ? 10 : 12), right: S(mob ? 10 : 12) },
+              width: S(mob ? 58 : 29),
+              height: S(mob ? 58 : 29),
+              borderRadius: S(mob ? 14 : 7),
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerFilter: 'block'
+            }}
+            uiBackground={{ color: Color4.create(0.18, 0.14, 0.28, 1) }}
+            onMouseDown={minimize}
+          >
+            <Label value="×" fontSize={F(mob ? 36 : 18)} color={Color4.White()} />
+          </UiEntity>
+          <MobilePanelHeader title={predictionPanelState.expanded === 'knockout' ? 'KNOCKOUT STAGE' : 'GROUP STAGE'} />
+          <Divider mob={mob} />
+          {predictionPanelState.expanded === 'knockout' && (
+            <KnockoutChecklistPanel mob={mob} k={k} />
+          )}
+          {predictionPanelState.expanded === 'group' && (
+            <GroupStageChecklistPanel mob={mob} k={k} />
+          )}
+        </UiEntity>
+      )}
+
+    </UiEntity>
+  )
+}
+
+const ScoreEntryButton = () => {
+  const mob = isMobile()
+  const uiScale = mob ? 1.3 : 0.9
+  const chipWidth = S((mob ? 248 : 232) * uiScale)
+  const hidden =
+    welcomeState.visible ||
+    groupState.visible || adminState.visible || infoState.visible || celebrateState.visible
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: S(mob ? 150 : 100), left: 0 },
+        width: '100%',
+        height: S(mob ? 120 : 100),
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        display: hidden ? 'none' : 'flex'
+      }}
+    >
+      <ImgButton
+        src={scoreState.visible ? 'images/buttons/myscore_pressed.png' : 'images/buttons/myscore.png'}
+        width={chipWidth}
+        height={S((mob ? 92 : 84) * uiScale)}
+        onMouseDown={() => openScorePanel()}
+      />
+    </UiEntity>
+  )
+}
+
+const GroupStageChecklistPanel = (props: { mob: boolean; k: number }) => {
+  const cluster = (g: (typeof GROUPS)[number]) => {
+    const done = g.matches.filter(isMatchDone).length
+    const complete = done === g.matches.length
+    const activeColor = complete ? CHECKLIST_COMPLETE : done > 0 ? CHECKLIST_PARTIAL : VIOLET
+
+    return (
+      <UiEntity key={g.name} uiTransform={{ flexDirection: 'column', alignItems: 'center', margin: `${S(4 * props.k)}px ${S(5)}px` }}>
+        <UiEntity uiTransform={{ flexDirection: 'row' }}>
+          {g.matches.map((m, mi) => (
+            <UiEntity key={mi}
+              uiTransform={{
+                width: S(14 * props.k),
+                height: S(14 * props.k),
+                margin: S(1 * props.k),
+                borderRadius: S(3 * props.k)
+              }}
+              uiBackground={{ color: isMatchDone(m) ? activeColor : CELL_EMPTY }} />
           ))}
         </UiEntity>
+        <Label value={g.name.replace('Group ', '')} fontSize={F(13 * props.k)}
+          color={complete ? CHECKLIST_COMPLETE : TAB_INACTIVE}
+          uiTransform={{ height: S(16 * props.k) }} />
+      </UiEntity>
+    )
+  }
+
+  const rows = [GROUPS.slice(0, 2), GROUPS.slice(2, 4), GROUPS.slice(4, 6), GROUPS.slice(6, 8), GROUPS.slice(8, 10), GROUPS.slice(10, 12)]
+  const pct = Math.round(getCompletedCount() / MATCHES.length * 100)
+
+  return (
+    <UiEntity
+      uiTransform={{
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: { top: 0, bottom: S(10 * props.k), left: S(14 * props.k), right: S(14 * props.k) }
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          width: '100%',
+          margin: `0 0 ${S(props.mob ? 14 : 10)}px 0`
+        }}
+      >
+        <Label
+          value={`MATCHES PREDICTED ${getCompletedCount()} / ${MATCHES.length}`}
+          fontSize={F(props.mob ? 19 : 15)}
+          color={Color4.White()}
+          uiTransform={{ height: S(props.mob ? 24 : 18) }}
+        />
+      </UiEntity>
+      <UiEntity
+        uiTransform={{
+          width: '100%',
+          height: S(props.mob ? 6 : 5),
+          borderRadius: S(3),
+          margin: `0 0 ${S(props.mob ? 14 : 10)}px 0`
+        }}
+        uiBackground={{ color: Color4.create(1, 1, 1, 0.08) }}
+      >
+        <UiEntity
+          uiTransform={{ width: `${pct}%`, height: '100%', borderRadius: S(3) }}
+          uiBackground={{ color: ACCENT_GS_CHIP }}
+        />
+      </UiEntity>
+      <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
+        {rows.map((rowGroups, ri) => (
+          <UiEntity key={ri} uiTransform={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            {rowGroups.map(g => cluster(g))}
+          </UiEntity>
+        ))}
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+const KnockoutChecklistPanel = (props: { mob: boolean; k: number }) => {
+  const progress = getKnockoutBoardProgress()
+  const panelScale = props.k / 1.55
+  const labelColor = Color4.White()
+  const compactScale = 1.35
+  const boardW = S(760 * compactScale)
+  const boardH = Math.round(boardW * MOBILE_KO_BASE_H / MOBILE_KO_BASE_W)
+  const boxW = Math.round(boardW * MOBILE_KO_BOX_W / MOBILE_KO_BASE_W)
+  const boxH = Math.round(boardH * MOBILE_KO_BOX_H / MOBILE_KO_BASE_H)
+  const slotCoreW = Math.round(boxW * 0.7)
+  const slotCoreH = Math.round(boxH * 0.58)
+  const slotCoreRadius = Math.max(4, Math.round(boxH * 0.18))
+  const slotMarker = Math.max(8, Math.round(boxH * 0.28))
+  const slotMarkerRadius = Math.max(3, Math.round(slotMarker * 0.3))
+  const slotCoreColor = Color4.fromHexString('#1b2437ff')
+  const slots = getMobileKnockoutSlots(progress)
+
+  return (
+    <UiEntity
+      uiTransform={{
+        padding: {
+          top: S(4 * panelScale * compactScale),
+          bottom: S(14 * panelScale * compactScale),
+          left: S(20 * panelScale * compactScale),
+          right: S(20 * panelScale * compactScale)
+        },
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        alignSelf: 'flex-start'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: '100%',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          margin: `0 0 ${S(8 * panelScale * compactScale)}px 0`
+        }}
+      >
+        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+          <Label value="MATCHES PREDICTED" fontSize={F(15 * compactScale)} color={labelColor}
+            uiTransform={{ height: S(18 * compactScale) }} />
+          <Label value={`${progress.completed} / ${progress.total}`} fontSize={F(34 * compactScale)} color={Color4.White()}
+            uiTransform={{ height: S(40 * compactScale), margin: `${S(4 * compactScale)}px 0 0 0` }} />
+        </UiEntity>
+        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+          <Label value="BRACKET STATUS" fontSize={F(15 * compactScale)} color={labelColor}
+            uiTransform={{ height: S(18 * compactScale) }} />
+          <Label
+            value={progress.completed === progress.total ? 'COMPLETE' : `${Math.round(progress.completed / progress.total * 100)}%`}
+            fontSize={F(34 * compactScale)}
+            color={ACCENT_KO}
+            uiTransform={{ height: S(40 * compactScale), margin: `${S(4 * compactScale)}px 0 0 0` }}
+          />
+        </UiEntity>
+      </UiEntity>
+
+      <UiEntity
+        uiTransform={{
+          width: boardW,
+          height: boardH,
+          positionType: 'relative',
+          margin: `${S(6 * compactScale)}px 0 0 0`
+        }}
+      >
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { left: 0, top: 0 } }}
+          uiBackground={{ texture: { src: MOBILE_KO_BOARD_SRC }, textureMode: 'stretch' }}
+        />
+
+        {slots.map((slot) => (
+          <UiEntity
+            key={slot.key}
+            uiTransform={{
+              width: boxW,
+              height: boxH,
+              positionType: 'absolute',
+              position: {
+                left: Math.round(boardW * slot.x / MOBILE_KO_BASE_W),
+                top: Math.round(boardH * slot.y / MOBILE_KO_BASE_H)
+              },
+              borderRadius: S(8 * compactScale),
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            uiBackground={{ color: slot.active ? slot.color : slot.idleColor }}
+          >
+            <UiEntity
+              uiTransform={{
+                width: slotCoreW,
+                height: slotCoreH,
+                borderRadius: slotCoreRadius
+              }}
+              uiBackground={{ color: slot.active ? Color4.create(0, 0, 0, 0.18) : (slot.idleColor === VIOLET ? Color4.create(0, 0, 0, 0.14) : slotCoreColor) }}
+            />
+            <UiEntity
+              uiTransform={{
+                width: slotMarker,
+                height: slotMarker,
+                borderRadius: slotMarkerRadius,
+                positionType: 'absolute'
+              }}
+              uiBackground={{ color: slot.active ? Color4.White() : (slot.idleColor === VIOLET ? Color4.White() : Color4.create(1, 1, 1, 0.36)) }}
+            />
+          </UiEntity>
+        ))}
       </UiEntity>
     </UiEntity>
   )
@@ -493,19 +1029,19 @@ const MatchChecklist = () => {
 // ── Group prediction form — step through a group's matches and set scores ──────
 const GroupForm = () => {
   if (!groupState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
-  const g = GROUPS[groupState.groupIndex]
-  if (!g) return <UiEntity uiTransform={{ display: 'none' }} />
-  const match = g.matches[groupState.matchIndex]
+  const matches = currentFormMatches()
+  const match = matches[groupState.matchIndex]
   if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
 
-  const total  = g.matches.length
+  const headerTitle = groupState.title ?? GROUPS[groupState.groupIndex]?.name ?? ''
+  const total  = matches.length
   const connected  = isServerReady()
   const finished   = hasResult(match.id)
   const timeLocked = isMatchLocked(match.team1, match.team2)
   const locked = finished || timeLocked     // can't edit a finished or about-to-start match
   const saved  = predictions.find(p => p.matchId === match.id)?.submitted ?? false
-  const done   = g.matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
-  const complete = total > 0 && g.matches.every(isMatchDone)
+  const done   = matches.filter(m => predictions.find(p => p.matchId === m.id)?.submitted ?? false).length
+  const complete = total > 0 && matches.every(isMatchDone)
   const canPrev = groupState.matchIndex > 0
   const canNext = groupState.matchIndex < total - 1
 
@@ -523,11 +1059,11 @@ const GroupForm = () => {
   // otherwise (nav/close) we only save if it was actually edited.
   const commit = (force: boolean) => {
     if (!locked && connected && (force || groupState.dirty)) {
-      const wasComplete = isGroupComplete(groupState.groupIndex)
+      // Group-complete sound only makes sense in real-group mode (not the pending list).
+      const wasComplete = groupState.matchIds === null && isGroupComplete(groupState.groupIndex)
       savePrediction(match.id, inferred, groupState.score1, groupState.score2)
       groupState.onChange?.()
-      // Group just got completed (but not the whole prode) → play the complete sound.
-      if (!wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
+      if (groupState.matchIds === null && !wasComplete && isGroupComplete(groupState.groupIndex) && getCompletedCount() < MATCHES.length) {
         playComplete()
       }
       maybeCelebrate()
@@ -603,7 +1139,7 @@ const GroupForm = () => {
       >
         {/* Header: group name + completion badge */}
         <UiEntity uiTransform={{ width: '100%', height: S(64), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
-          <Label value={g.name} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
+          <Label value={headerTitle} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
           <UiEntity uiTransform={{ height: S(52), alignItems: 'center', justifyContent: 'center', padding: `0 ${S(22)}px 0 ${S(22)}px`, borderRadius: S(26) }}
             uiBackground={ complete ? { color: VIOLET } : undefined }>
             <Label value={complete ? 'GROUP COMPLETE' : `${done} / ${total} predicted`}
@@ -666,6 +1202,155 @@ const GroupForm = () => {
   )
 }
 
+// ── Knockout prediction form — same UX as the group form, keyed by fixture ──────
+const KoForm = () => {
+  if (!koFormState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const fid = koFormState.fixtureIds[koFormState.index]
+  const fx = getKoFixture(fid)
+  if (!fx) return <UiEntity uiTransform={{ display: 'none' }} />
+
+  const total = koFormState.fixtureIds.length
+  const connected  = isServerReady()
+  const finished   = koResults.has(fid)
+  const timeLocked = isKoFixtureLocked(fid)
+  const locked = finished || timeLocked
+  const done   = koFormState.fixtureIds.filter(id => koPredictions.find(p => p.fixtureId === id)?.submitted ?? false).length
+  const canPrev = koFormState.index > 0
+  const canNext = koFormState.index < total - 1
+
+  const mob = isMobile()
+  const stepH = mob ? 112 : 84
+  const actH  = mob ? 116 : 96
+  const teamsH = mob ? 470 : 440
+  const inferred = impliedWinner(koFormState.score1, koFormState.score2)
+  const resultText =
+    inferred === 'draw'  ? 'Draw' :
+    inferred === 'team1' ? `${fx.team1} wins` :
+                           `${fx.team2} wins`
+  const roundLabel = KO_ROUND_LABELS[fx.round] ?? 'KNOCKOUT'
+
+  const commit = (force: boolean) => {
+    if (!locked && connected && (force || koFormState.dirty)) {
+      saveKoPrediction(fid, inferred, koFormState.score1, koFormState.score2)
+      koFormState.onChange?.()
+      koFormState.dirty = false
+    }
+  }
+  const go = (delta: number) => {
+    const next = koFormState.index + delta
+    if (next < 0 || next >= total) return
+    commit(false)
+    koFormState.index = next
+    loadKoFixtureForm()
+  }
+  const close = () => { commit(false); koFormState.visible = false }
+  const saveNext = () => {
+    if (koFormState.saving || locked || !connected) return
+    koFormState.saving = true
+    koFormState.pendingAdvance = () => {
+      if (canNext) { koFormState.index += 1; loadKoFixtureForm() }
+      else koFormState.visible = false
+    }
+    commit(true)
+  }
+
+  const teamCol = (
+    name: string, flag: FlagRef, score: number, win: boolean,
+    dec: () => void, inc: () => void
+  ) => (
+    <UiEntity
+      uiTransform={{
+        width: S(510), height: S(teamsH), padding: S(22),
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: S(28)
+      }}
+      uiBackground={{ color: win ? TEAL : DARK_BTN }}
+    >
+      <UiEntity uiTransform={{ width: S(240), height: S(160) }}
+        uiBackground={{ texture: { src: flag.src }, textureMode: 'stretch', uvs: flag.uvs }} />
+      <Label value={name} fontSize={F(32)} color={Color4.White()} uiTransform={{ width: '100%', height: S(56) }} />
+      <Label value={String(score)} fontSize={F(92)} color={Color4.White()} uiTransform={{ width: '100%', height: S(110) }} />
+      <UiEntity uiTransform={{ width: '100%', height: S(stepH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <ImgButton src="images/buttons/-.png"
+          width={S(stepH * 1.116)} height={S(stepH)}
+          tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+          onMouseDown={() => { if (!locked && score > 0) dec() }} />
+        <ImgButton src="images/buttons/+.png"
+          width={S(stepH * 1.144)} height={S(stepH)}
+          tint={locked ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+          onMouseDown={() => { if (!locked) inc() }} />
+      </UiEntity>
+    </UiEntity>
+  )
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%', height: '100%',
+        positionType: 'absolute', position: { top: 0, left: 0 },
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        pointerFilter: 'block'
+      }}
+      uiBackground={{ color: OVERLAY }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(1360), height: S(mob ? 1040 : 900), padding: S(56), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
+          borderRadius: S(40)
+        }}
+        uiBackground={{ color: DARK }}
+      >
+        {/* Header: round + progress */}
+        <UiEntity uiTransform={{ width: '100%', height: S(64), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(12)}px 0` }}>
+          <Label value={roundLabel} fontSize={F(50)} color={Color4.White()} uiTransform={{ height: S(64) }} />
+          <Label value={`${done} / ${total} predicted`} fontSize={F(30)} color={TEAL} uiTransform={{ height: S(52) }} />
+        </UiEntity>
+
+        {/* Teams */}
+        <UiEntity uiTransform={{ width: '100%', height: S(teamsH), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: `0 0 ${S(10)}px 0` }}>
+          {teamCol(fx.team1, flagFor(fx.team1), koFormState.score1, inferred === 'team1',
+            () => { koFormState.score1--; koFormState.dirty = true }, () => { koFormState.score1++; koFormState.dirty = true })}
+          <Label value="VS" fontSize={F(44)} color={Color4.create(0.55, 0.55, 0.55, 1)} uiTransform={{ width: S(110), height: S(teamsH) }} />
+          {teamCol(fx.team2, flagFor(fx.team2), koFormState.score2, inferred === 'team2',
+            () => { koFormState.score2--; koFormState.dirty = true }, () => { koFormState.score2++; koFormState.dirty = true })}
+        </UiEntity>
+
+        {/* Inferred result / lock status / connection warning */}
+        <Label
+          value={!connected ? 'Server not connected — predictions disabled'
+            : finished ? 'Match finished - predictions are locked'
+            : timeLocked ? 'Voting closed - kickoff is near'
+            : resultText}
+          fontSize={F(36)} color={!connected ? RED : locked ? RED : GOLD}
+          uiTransform={{ width: '100%', height: S(52), margin: `0 0 ${S(mob ? 26 : 18)}px 0` }}
+        />
+
+        {/* Actions */}
+        <UiEntity uiTransform={{ width: '100%', height: S(actH + 6), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <ImgButton src="images/buttons/close.png"
+            width={S(actH * 2.27)} height={S(actH)}
+            onMouseDown={close} />
+          <ImgButton src="images/buttons/prev.png"
+            width={S(actH * 2.18)} height={S(actH)}
+            tint={canPrev ? undefined : Color4.create(0.4, 0.4, 0.4, 1)}
+            onMouseDown={() => { if (canPrev) go(-1) }} />
+          {locked
+            ? (canNext
+                ? <ImgButton src="images/buttons/Next-primary.png"
+                    width={S(actH * 2.356)} height={S(actH)}
+                    onMouseDown={() => go(1)} />
+                : <UiEntity uiTransform={{ width: S(actH * 2.356), height: S(actH) }} />)
+            : <ImgButton src={canNext ? 'images/buttons/saveandnext.png' : 'images/buttons/save-primary.png'}
+                width={S(actH * (canNext ? 3.148 : 3.034))} height={S(actH)}
+                tint={(koFormState.saving || !connected) ? Color4.create(0.4, 0.4, 0.4, 1) : undefined}
+                onMouseDown={saveNext} />}
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
 // ── Celebration: all 72 predictions complete ──────────────────────────────────
 const CompletionOverlay = () => {
   if (!celebrateState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
@@ -702,49 +1387,204 @@ const CompletionOverlay = () => {
   )
 }
 
+// ── Rank badge used inside each My Score tab: shows "your position / total" ───
+type LBRow = { name: string; address: string; value: number }
+const RankBadge = ({ rows, accent }: { rows: LBRow[]; accent: Color4 }) => {
+  const mob = isMobile()
+  const me = getPlayer()?.userId?.toLowerCase()
+  const total = rows.length
+  if (total === 0) return <UiEntity uiTransform={{ display: 'none' }} />
+  const idx = rows.findIndex(r => r.address?.toLowerCase() === me)
+  const rankText = idx >= 0 ? `#${idx + 1} / ${total}` : `- / ${total}`
+  return (
+    <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: `${S(12)}px 0 0 0`, padding: S(16), borderRadius: S(20) }}
+      uiBackground={{ color: Color4.create(1, 1, 1, 0.04) }}>
+      <Label value="YOUR RANK" fontSize={F(mob ? 22 : 20)} color={MUTED} uiTransform={{ height: S(32) }} />
+      <Label value={rankText} fontSize={F(mob ? 28 : 26)} color={accent} uiTransform={{ height: S(40) }} />
+    </UiEntity>
+  )
+}
+
 // ── My Score — player stats (points + rank, hits breakdown, accuracy) ──────────
 const ScorePanel = () => {
   if (!scoreState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
   const mob = isMobile()
+  const activeTab = scoreState.tab
+  const totalAccent = Color4.fromHexString('#F28C28ff')
+  const totalAccentSoft = Color4.fromHexString('#FFD089ff')
+  const totalAccentDim = Color4.fromHexString('#C96D1Dff')
+  const groupAccent = Color4.fromHexString('#B9BBC7ff')
+  const groupAccentSoft = Color4.fromHexString('#E6E7EDff')
+  const groupAccentDim = Color4.fromHexString('#8F92A0ff')
+  const knockoutAccent = ACCENT_KO
+  const knockoutAccentSoft = Color4.fromHexString('#CEB1FFFF')
+  const knockoutAccentDim = Color4.fromHexString('#7B5FC8ff')
+  const panelAccent = activeTab === 'total' ? totalAccent : activeTab === 'group' ? groupAccent : knockoutAccent
+  const panelSoft = activeTab === 'total' ? Color4.create(0.22, 0.12, 0.03, 0.45) : activeTab === 'group' ? Color4.create(0.16, 0.18, 0.24, 0.45) : Color4.create(0.16, 0.10, 0.28, 0.45)
+  const cardBg = activeTab === 'total' ? Color4.create(0.24, 0.16, 0.08, 0.92) : activeTab === 'group' ? Color4.create(0.22, 0.24, 0.30, 0.92) : Color4.create(0.21, 0.19, 0.38, 0.92)
+  const sectionBg = activeTab === 'total' ? Color4.create(0.15, 0.09, 0.03, 0.42) : activeTab === 'group' ? Color4.create(0.15, 0.17, 0.22, 0.42) : Color4.create(0.12, 0.09, 0.20, 0.42)
+  const totalGroupCardBg = Color4.create(0.24, 0.24, 0.30, 0.92)
+  const totalKnockoutCardBg = Color4.create(0.21, 0.19, 0.38, 0.92)
 
-  // Hits breakdown over matches that already have an official result.
-  let exact = 0, winner = 0, missed = 0, pending = 0
+  let groupExact = 0, groupWinner = 0, groupMissed = 0, groupPending = 0
   for (const p of predictions) {
     if (!p.submitted) continue
     const r = getResult(p.matchId)
-    if (!r) { pending++; continue }
+    if (!r) { groupPending++; continue }
     const s = scorePrediction(p, r)
-    if (s === PTS_WINNER + PTS_SCORE) exact++
-    else if (s === PTS_WINNER) winner++
-    else missed++
+    if (s === PTS_WINNER + PTS_SCORE) groupExact++
+    else if (s === PTS_WINNER) groupWinner++
+    else groupMissed++
   }
-  const played   = exact + winner + missed
-  const accuracy = played > 0 ? Math.round(((exact + winner) / played) * 100) : null
-  const points   = myPoints()
 
-  // Rank from the cached leaderboard (sorted desc by points), matched by wallet.
-  const lb   = getLeaderboard()
-  const me   = getPlayer()?.userId?.toLowerCase()
-  const idx  = me ? lb.findIndex(r => r.address?.toLowerCase() === me) : -1
-  const rank = idx >= 0 ? `#${idx + 1} / ${lb.length}` : 'Unranked'
+  let koExact = 0, koWinner = 0, koMissed = 0, koPending = 0
+  for (const p of koPredictions) {
+    if (!p.submitted) continue
+    const r = koResults.get(p.fixtureId)
+    if (!r) { koPending++; continue }
+    const s = scoreKoPrediction(p, r)
+    if (s === PTS_WINNER + PTS_SCORE) koExact++
+    else if (s === PTS_WINNER) koWinner++
+    else koMissed++
+  }
 
-  const statBlock = (label: string, value: string, color: Color4) => (
-    <UiEntity uiTransform={{ width: S(360), height: S(150), padding: S(16), flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: S(20) }}
-      uiBackground={{ color: DARK_BTN }}>
-      <Label value={value} fontSize={F(56)} color={color} uiTransform={{ width: '100%', height: S(80) }} />
-      <Label value={label} fontSize={F(24)} color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(36) }} />
+  const groupPlayed = groupExact + groupWinner + groupMissed
+  const koPlayed = koExact + koWinner + koMissed
+  const totalPlayed = groupPlayed + koPlayed
+  const groupAccuracy = groupPlayed > 0 ? Math.round(((groupExact + groupWinner) / groupPlayed) * 100) : null
+  const koAccuracy = koPlayed > 0 ? Math.round(((koExact + koWinner) / koPlayed) * 100) : null
+  const totalAccuracy = totalPlayed > 0 ? Math.round(((groupExact + groupWinner + koExact + koWinner) / totalPlayed) * 100) : null
+  const groupPoints = myPoints()
+  const koPoints = myKoPoints()
+  const totalPoints = groupPoints + koPoints
+
+  const statBlock = (label: string, value: string, color: Color4, bg: Color4, compact = false) => (
+    <UiEntity
+      uiTransform={{
+        width: S(compact ? (mob ? 298 : 168) : (mob ? 318 : 286)),
+        height: S(compact ? (mob ? 104 : 84) : (mob ? 112 : 102)),
+        padding: S(compact ? 10 : 14),
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: S(18)
+      }}
+      uiBackground={{ color: bg }}
+    >
+      <UiEntity
+        uiTransform={{ width: S(compact ? 34 : 46), height: S(4), borderRadius: S(2), margin: `0 0 ${S(compact ? 8 : 10)}px 0` }}
+        uiBackground={{ color }}
+      />
+      <Label value={value} fontSize={F(compact ? (mob ? 40 : 28) : (mob ? 46 : 40))} color={color}
+        uiTransform={{ width: '100%', height: S(compact ? (mob ? 44 : 32) : (mob ? 52 : 46)) }} />
+      <Label value={label} fontSize={F(compact ? (mob ? 19 : 15) : (mob ? 21 : 19))} color={Color4.create(0.78, 0.78, 0.82, 1)}
+        uiTransform={{ width: '100%', height: S(compact ? 24 : 30) }} />
     </UiEntity>
   )
 
+  const totalStatGrid = () => (
+    <UiEntity uiTransform={{ width: '100%', height: S(mob ? 104 : 84), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(20)}px 0` }}>
+      {statBlock('Group stage', `${groupPoints}`, Color4.White(), totalGroupCardBg, true)}
+      {statBlock('Knockout stage', `${koPoints}`, knockoutAccentSoft, totalKnockoutCardBg, true)}
+      {statBlock('Total points', `${totalPoints}`, totalAccent, cardBg, true)}
+    </UiEntity>
+  )
+
+  const tabButton = (id: 'total' | 'group' | 'knockout', label: string, accent: Color4) => {
+    const active = activeTab === id
+    return (
+      <UiEntity
+        key={id}
+        uiTransform={{
+          width: 'auto',
+          height: S(mob ? 80 : 44),
+          margin: `0 ${S(mob ? 12 : 10)}px 0 ${S(mob ? 12 : 10)}px`,
+          padding: { left: S(4), right: S(4), top: 0, bottom: 0 },
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerFilter: 'block'
+        }}
+        onMouseDown={() => { playClick(); scoreState.tab = id }}
+      >
+        <Label
+          value={label}
+          fontSize={F(mob ? 30 : 17)}
+          color={active ? Color4.White() : MUTED}
+          uiTransform={{ height: S(mob ? 38 : 20), margin: `0 0 ${S(6)}px 0` }}
+        />
+        <UiEntity
+          uiTransform={{ width: '100%', height: S(3), borderRadius: S(2) }}
+          uiBackground={{ color: active ? accent : Color4.create(0, 0, 0, 0) }}
+        />
+      </UiEntity>
+    )
+  }
+
   const breakdownRow = (label: string, count: number, color: Color4) => (
-    <UiEntity uiTransform={{ width: '100%', height: S(52), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: `0 0 ${S(10)}px 0` }}>
-      <Label value={label} fontSize={F(28)} color={Color4.White()} uiTransform={{ height: S(52) }} />
-      <Label value={String(count)} fontSize={F(30)} color={color} uiTransform={{ height: S(52) }} />
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        height: S(mob ? 54 : 48),
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: `0 0 ${S(8)}px 0`,
+        padding: { left: S(12), right: S(12) },
+        borderRadius: S(14)
+      }}
+      uiBackground={{ color: Color4.create(1, 1, 1, 0.03) }}
+    >
+      <Label value={label} fontSize={F(mob ? 26 : 24)} color={Color4.White()} uiTransform={{ height: S(40) }} />
+      <Label value={String(count)} fontSize={F(mob ? 30 : 28)} color={color} uiTransform={{ height: S(40) }} />
     </UiEntity>
   )
 
   // Matches already played in the tournament (those with an official result).
-  const playedTotal = MATCHES.filter(m => hasResult(m.id)).length
+  const groupResolved = MATCHES.filter(m => hasResult(m.id)).length
+  const totalResolved = groupResolved + koResults.size
+  const totalFixtures = MATCHES.length + koFixtures.length
+
+  const breakdownSection = (
+    title: string,
+    accent: Color4,
+    strong: Color4,
+    mid: Color4,
+    low: Color4,
+    exact: number,
+    winner: number,
+    missed: number,
+    pending: number,
+    played: number,
+    accuracy: number | null,
+    predictedCount: number,
+    totalCount: number
+  ) => (
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        padding: S(20),
+        borderRadius: S(24)
+      }}
+      uiBackground={{ color: sectionBg }}
+    >
+      <Label value={title} fontSize={F(mob ? 28 : 26)} color={accent}
+        uiTransform={{ width: '100%', height: S(38), margin: `0 0 ${S(10)}px 0` }} />
+      <Label value={`Predicted: ${predictedCount} / ${totalCount}`} fontSize={F(24)}
+        color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(34), margin: `0 0 ${S(12)}px 0` }} />
+      {breakdownRow(`Exact scores  (+${PTS_WINNER + PTS_SCORE})`, exact, strong)}
+      {breakdownRow(`Correct winner  (+${PTS_WINNER})`, winner, mid)}
+      {breakdownRow('Missed', missed, low)}
+      {breakdownRow('Pending (not played yet)', pending, Color4.create(0.6, 0.6, 0.7, 1))}
+      <Label
+        value={accuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${accuracy}%   (${exact + winner} hits / ${played} played)`}
+        fontSize={F(26)} color={accent}
+        uiTransform={{ width: '100%', height: S(40), margin: `${S(6)}px 0 0 0` }}
+      />
+    </UiEntity>
+  )
 
   return (
     <UiEntity
@@ -757,39 +1597,78 @@ const ScorePanel = () => {
     >
       <UiEntity
         uiTransform={{
-          width: S(880), height: S(mob ? 860 : 800), padding: S(56), alignSelf: 'center',
-          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between',
+          width: S(880), height: S(mob ? 1030 : 900), padding: S(40), alignSelf: 'center',
+          flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start',
           borderRadius: S(36)
         }}
         uiBackground={{ color: DARK }}
       >
-        <Label value="MY SCORE" fontSize={F(46)} color={VIOLET}
+        <UiEntity
+          uiTransform={{
+            width: '100%',
+            padding: { top: S(18), bottom: S(18), left: S(22), right: S(22) },
+            margin: `0 0 ${S(18)}px 0`,
+            borderRadius: S(24),
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+          uiBackground={{ color: panelSoft }}
+        >
+        <Label value="MY SCORE" fontSize={F(46)} color={panelAccent}
           uiTransform={{ width: '100%', height: S(60), margin: `0 0 ${S(4)}px 0` }} />
-        <Label value={`Matches played: ${playedTotal} / ${MATCHES.length}`} fontSize={F(24)}
-          color={Color4.create(0.7, 0.7, 0.7, 1)} uiTransform={{ width: '100%', height: S(34), margin: `0 0 ${S(14)}px 0` }} />
-
-        {/* Points + rank */}
-        <UiEntity uiTransform={{ width: '100%', height: S(150), flexDirection: 'row', justifyContent: 'space-between', margin: `0 0 ${S(24)}px 0` }}>
-          {statBlock('Total points', `${points}`, GOLD)}
-          {statBlock('Leaderboard', rank, VIOLET)}
+        <Label value={`Matches with results: ${totalResolved} / ${totalFixtures}`} fontSize={F(24)}
+          color={Color4.create(0.78, 0.78, 0.82, 1)} uiTransform={{ width: '100%', height: S(34) }} />
         </UiEntity>
 
-        {/* Hits breakdown */}
-        <Label value="Results so far" fontSize={F(26)} color={Color4.create(0.7, 0.7, 0.7, 1)}
-          uiTransform={{ width: '100%', height: S(36), margin: `0 0 ${S(12)}px 0` }} />
-        {breakdownRow(`Exact scores  (+${PTS_WINNER + PTS_SCORE})`, exact, GOLD)}
-        {breakdownRow(`Correct winner  (+${PTS_WINNER})`, winner, TEAL)}
-        {breakdownRow('Missed', missed, RED)}
-        {breakdownRow('Pending (not played yet)', pending, Color4.create(0.6, 0.6, 0.7, 1))}
+        <UiEntity uiTransform={{ width: '100%', height: S(mob ? 80 : 44), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `0 0 ${S(20)}px 0` }}>
+          {tabButton('total',    mob ? 'TOTAL'    : 'TOTAL SCORE',    totalAccent)}
+          {tabButton('group',    mob ? 'GROUP'    : 'GROUP STAGE',    groupAccent)}
+          {tabButton('knockout', mob ? 'KNOCKOUT' : 'KNOCKOUT STAGE', knockoutAccent)}
+        </UiEntity>
 
-        {/* Accuracy */}
-        <Label
-          value={accuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${accuracy}%   (${exact + winner} hits / ${played} played)`}
-          fontSize={F(26)} color={VIOLET}
-          uiTransform={{ width: '100%', height: S(40), margin: `${S(6)}px 0 ${S(14)}px 0` }}
-        />
+        <UiEntity uiTransform={{ width: '100%', flex: 1, flexDirection: 'column', alignItems: 'stretch' }}>
+          {activeTab === 'total' && (
+            <UiEntity
+              uiTransform={{
+                width: '100%',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                padding: S(20),
+                borderRadius: S(24)
+              }}
+              uiBackground={{ color: sectionBg }}
+            >
+              {totalStatGrid()}
+              <Label value="Overall summary" fontSize={F(26)} color={totalAccent}
+                uiTransform={{ width: '100%', height: S(36), margin: `0 0 ${S(16)}px 0` }} />
+              {breakdownRow('Exact scores total', groupExact + koExact, totalAccentSoft)}
+              {breakdownRow('Correct winners total', groupWinner + koWinner, totalAccent)}
+              {breakdownRow('Missed total', groupMissed + koMissed, totalAccentDim)}
+              {breakdownRow('Pending total', groupPending + koPending, Color4.create(0.6, 0.6, 0.7, 1))}
+              <Label
+                value={totalAccuracy === null ? 'Accuracy: - (no matches played yet)' : `Accuracy: ${totalAccuracy}%   (${groupExact + groupWinner + koExact + koWinner} hits / ${totalPlayed} played)`}
+                fontSize={F(26)} color={totalAccent}
+                uiTransform={{ width: '100%', height: S(40), margin: `${S(12)}px 0 0 0` }}
+              />
+            </UiEntity>
+          )}
 
-        <UiEntity uiTransform={{ width: '100%', height: S(88), flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          {activeTab === 'group' && (
+            <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
+              {breakdownSection('Group Stage Results', groupAccent, groupAccentSoft, groupAccent, groupAccentDim, groupExact, groupWinner, groupMissed, groupPending, groupPlayed, groupAccuracy, predictions.filter(p => p.submitted).length, MATCHES.length)}
+              <RankBadge rows={getKickoffLeaderboard()} accent={groupAccent} />
+            </UiEntity>
+          )}
+
+          {activeTab === 'knockout' && (
+            <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
+              {breakdownSection('Knockout Stage Results', knockoutAccent, knockoutAccentSoft, knockoutAccent, knockoutAccentDim, koExact, koWinner, koMissed, koPending, koPlayed, koAccuracy, koPredictions.filter(p => p.submitted).length, koFixtures.length)}
+              <RankBadge rows={getKnockoutLeaderboard()} accent={knockoutAccent} />
+            </UiEntity>
+          )}
+        </UiEntity>
+
+        <UiEntity uiTransform={{ width: '100%', height: S(88), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: `${S(24)}px 0 0 0` }}>
           <ImgButton src="images/buttons/close.png"
             width={S(88 * 2.27)} height={S(88)}
             onMouseDown={() => { scoreState.visible = false }} />
@@ -1159,4 +2038,5 @@ const AdminForm = () => {
     </UiEntity>
   )
 }
+
 

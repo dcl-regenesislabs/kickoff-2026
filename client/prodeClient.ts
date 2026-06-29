@@ -2,9 +2,21 @@ import { room } from '../schedule/prodeNet'
 import {
   Prediction, OfficialResult,
   setPredictionSync, loadPredictions,
-  setResultSync, loadResults
+  setResultSync, loadResults, myPoints
 } from '../schedule/prodeData'
+import {
+  KoFixture, KoPrediction, KoResult,
+  setKoPredictionSync, loadKoFixtures, loadKoPredictions, loadKoResults, myKoPoints
+} from '../schedule/knockoutData'
 import { getPlayer } from '@dcl/sdk/players'
+
+// Logs the local player's points: kickoff (group stage), knockout, and total.
+function logMyPoints() {
+  const kickoff  = myPoints()
+  const knockout = myKoPoints()
+  const total    = kickoff + knockout
+  console.log(`[Points] kickoff=${kickoff} | knockout=${knockout} | total=${total}`)
+}
 
 export type LeaderboardRow = { name: string; address: string; value: number }
 
@@ -12,9 +24,20 @@ export type LeaderboardRow = { name: string; address: string; value: number }
 let leaderboard: LeaderboardRow[] = []
 export function getLeaderboard(): LeaderboardRow[] { return leaderboard }
 
+// Kickoff (group-stage) standings — for the "GROUP STAGE WINNERS" leaderboard slide.
+let kickoffLeaderboard: LeaderboardRow[] = []
+export function getKickoffLeaderboard(): LeaderboardRow[] { return kickoffLeaderboard }
+
+// Knockout-only standings — for the "KNOCKOUT WINNERS" leaderboard slide.
+let knockoutLeaderboard: LeaderboardRow[] = []
+export function getKnockoutLeaderboard(): LeaderboardRow[] { return knockoutLeaderboard }
+
 type AckReason = 'locked' | 'error' | 'disconnected'
 let onPredictionAck: ((matchId: number, ok: boolean, reason: AckReason | '') => void) | null = null
 export function setOnPredictionAck(cb: (matchId: number, ok: boolean, reason: AckReason | '') => void) { onPredictionAck = cb }
+
+let onKoPredictionAck: ((fixtureId: number, ok: boolean, reason: AckReason | '') => void) | null = null
+export function setOnKoPredictionAck(cb: (fixtureId: number, ok: boolean, reason: AckReason | '') => void) { onKoPredictionAck = cb }
 
 const SEND_TIMEOUT_MS = 8000  // safety net only — disconnected case is handled instantly
 const pendingAcks = new Map<number, ReturnType<typeof setTimeout>>()
@@ -54,11 +77,22 @@ export function startProdeClient(onSnapshot: () => void) {
     })
   })
 
+  // 1c. Local knockout prediction saves are forwarded to the server.
+  setKoPredictionSync((p) => {
+    room.send('submitKoPrediction', {
+      fixtureId: p.fixtureId,
+      winner:    p.winner ?? 'draw',
+      score1:    p.score1,
+      score2:    p.score2
+    })
+  })
+
   // 2. Server snapshots → rehydrate caches → refresh visuals.
   room.onMessage('predictionsSnapshot', (data) => {
     try {
       loadPredictions(JSON.parse(data.json) as Prediction[])
       onSnapshot()
+      logMyPoints()
     } catch (e) { console.log('[Client] bad predictions snapshot', e) }
   })
 
@@ -66,6 +100,7 @@ export function startProdeClient(onSnapshot: () => void) {
     try {
       loadResults(JSON.parse(data.json) as OfficialResult[])
       onSnapshot()
+      logMyPoints()
     } catch (e) { console.log('[Client] bad results snapshot', e) }
   })
 
@@ -73,6 +108,15 @@ export function startProdeClient(onSnapshot: () => void) {
     try {
       leaderboard = JSON.parse(data.json) as LeaderboardRow[]
     } catch (e) { console.log('[Client] bad leaderboard snapshot', e) }
+  })
+
+  room.onMessage('kickoffLeaderboardSnapshot', (data) => {
+    try { kickoffLeaderboard = JSON.parse(data.json) as LeaderboardRow[] }
+    catch (e) { console.log('[Client] bad kickoff leaderboard snapshot', e) }
+  })
+  room.onMessage('knockoutLeaderboardSnapshot', (data) => {
+    try { knockoutLeaderboard = JSON.parse(data.json) as LeaderboardRow[] }
+    catch (e) { console.log('[Client] bad knockout leaderboard snapshot', e) }
   })
 
   room.onMessage('predictionSaved', (data) => {
@@ -83,6 +127,24 @@ export function startProdeClient(onSnapshot: () => void) {
   })
   room.onMessage('resultSaved', (data) => {
     if (!data.ok) console.log('[Client] server rejected result', data.matchId)
+  })
+
+  // ── Knockout snapshots (parallel to the group handlers above) ────────────────
+  room.onMessage('koFixturesSnapshot', (data) => {
+    try { loadKoFixtures(JSON.parse(data.json) as KoFixture[]); onSnapshot() }
+    catch (e) { console.log('[Client] bad KO fixtures snapshot', e) }
+  })
+  room.onMessage('koResultsSnapshot', (data) => {
+    try { loadKoResults(JSON.parse(data.json) as KoResult[]); onSnapshot(); logMyPoints() }
+    catch (e) { console.log('[Client] bad KO results snapshot', e) }
+  })
+  room.onMessage('koPredictionsSnapshot', (data) => {
+    try { loadKoPredictions(JSON.parse(data.json) as KoPrediction[]); onSnapshot(); logMyPoints() }
+    catch (e) { console.log('[Client] bad KO predictions snapshot', e) }
+  })
+  room.onMessage('koPredictionSaved', (data) => {
+    if (!data.ok) console.log('[Client] server rejected KO prediction', data.fixtureId, data.reason)
+    onKoPredictionAck?.(data.fixtureId, data.ok, (data.reason as AckReason) || '')
   })
 
   // 3. Initial sync. Room auto-queues until ready; re-send on (re)connect.
@@ -96,6 +158,8 @@ function syncOnConnect() {
   room.send('requestPredictions', {})
   room.send('requestResults', {})
   room.send('requestLeaderboard', {})
+  room.send('requestKoFixtures', {})
+  room.send('requestKoPredictions', {})
   room.send('requestBallState', {})
 }
 

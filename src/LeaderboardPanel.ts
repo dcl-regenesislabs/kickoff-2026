@@ -30,6 +30,7 @@ export type LeaderboardPanelOptions = {
 export type PanelState = {
   root: Entity
   contentRoot: Entity  // parent of all TextShape entities — scale to 0 to hide text
+  titleEntity: Entity  // the header title — change its text per slide
   rowNames: Entity[]
   rowValues: Entity[]
   currentTab: number
@@ -205,6 +206,7 @@ export function createLeaderboardPanel(options: LeaderboardPanelOptions = {}) {
   const state: PanelState = {
     root,
     contentRoot,
+    titleEntity,
     rowNames,
     rowValues,
     currentTab: 0
