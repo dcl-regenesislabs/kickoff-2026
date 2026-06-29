@@ -501,8 +501,8 @@ async function broadcastLeaderboard(results: OfficialResult[]) {
   room.send('knockoutLeaderboardSnapshot', { json: JSON.stringify(await computeKnockoutLeaderboard()) })
 }
 
-// Kickoff (group-stage) ranking — by group points only. Drives the "KICKOFF WINNERS"
-// slide on the leaderboard TV.
+// Kickoff (group-stage) ranking — by group points only. Returns all players so
+// "My Score" can find any user's rank position regardless of where they stand.
 async function computeKickoffLeaderboard(): Promise<LeaderboardRow[]> {
   loadResultsCache(await loadResults())
   const rows: LeaderboardRow[] = []
@@ -525,7 +525,7 @@ async function computeKickoffLeaderboard(): Promise<LeaderboardRow[]> {
     if (page.data.length === 0 || offset >= page.pagination.total) break
   }
   rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
-  return rows.slice(0, LEADERBOARD_SIZE)
+  return rows
 }
 
 // Knockout ranking — by KO points only. Uses PLAYER_PREFIX as the base list so
@@ -574,7 +574,7 @@ async function computeKnockoutLeaderboard(): Promise<LeaderboardRow[]> {
   }
 
   rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
-  return rows.slice(0, LEADERBOARD_SIZE)
+  return rows
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────────
