@@ -23,16 +23,12 @@ type CameraKeyframe = {
 }
 
 // Tour path:
-// 0 → Avatar spawn point — ground level, looking east (matches scene.json cameraTarget)
-// 1 → Establishing shot — rises, sweeps south-east toward bracket area
-// 2 → Rising approach on field Z-center, bracket corridor in sight
-// 3 → Inside corridor, slightly north, focusing on center SF/Final
-// 4 → Far east end — looking back west at all bracket layers
-// 5 → 180° reveal pulled further back — wide view of the full layout
-// Positions are equally spaced on the straight line from spawn to final:
-//   start (-4.8, 4.1, 49.8)  →  end (137, 10.3, 49.3)
-//   t = 0, 0.2, 0.4, 0.6, 0.8, 1
-// lookAt varies to highlight different parts of the bracket along the way.
+// 0 → Avatar spawn point — ground level, looking east [unchanged]
+// 1 → Mid-corridor approach, rising [unchanged]
+// 2 → Near R32-left panels (X≈61), camera breaks north toward the stands
+// 3 → High up in the north bleachers — wide overhead view of the full bracket
+// 4 → Horizontal dolly east across the stands, bracket below
+// 5 → Far east end at the back panels [unchanged]
 const CAMERA_KEYFRAMES: CameraKeyframe[] = [
   {
     position: Vector3.create(-4.8, 4.1, 49.8),
@@ -42,22 +38,22 @@ const CAMERA_KEYFRAMES: CameraKeyframe[] = [
   {
     position: Vector3.create(23.6, 5.3, 49.7),
     lookAt:   Vector3.create(50.2, 2.1, 49.4),
+    duration: 2000
+  },
+  {
+    position: Vector3.create(58, 11, 78),
+    lookAt:   Vector3.create(86, 4, 47),
+    duration: 2000
+  },
+  {
+    position: Vector3.create(75, 17, 92),
+    lookAt:   Vector3.create(86, 4, 47),
+    duration: 2000
+  },
+  {
+    position: Vector3.create(108, 16, 88),
+    lookAt:   Vector3.create(86, 4, 47),
     duration: 2500
-  },
-  {
-    position: Vector3.create(51.9, 6.6, 49.6),
-    lookAt:   Vector3.create(86, 4, 47),
-    duration: 2000
-  },
-  {
-    position: Vector3.create(80.3, 7.8, 49.5),
-    lookAt:   Vector3.create(86, 4, 47),
-    duration: 2000
-  },
-  {
-    position: Vector3.create(108.6, 9.1, 49.4),
-    lookAt:   Vector3.create(86, 4, 47),
-    duration: 2000
   },
   {
     position: Vector3.create(137, 10.3, 49.3),
