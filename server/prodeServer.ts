@@ -125,6 +125,18 @@ export function startProdeServer() {
     room.send('leaderboardSnapshot',         { json: lbTotalJson },    { to: [ctx.from] })
     room.send('kickoffLeaderboardSnapshot',  { json: lbKickoffJson },  { to: [ctx.from] })
     room.send('knockoutLeaderboardSnapshot', { json: lbKnockoutJson }, { to: [ctx.from] })
+
+    // Personal rank: tiny message (6 ints). Uses the full in-memory sorted arrays —
+    // never limited — so the rank/total values are always accurate.
+    const addr    = ctx.from.toLowerCase()
+    const kRank   = kickoffRowsFull.findIndex(r => r.address === addr) + 1
+    const koRank  = knockoutRowsFull.findIndex(r => r.address === addr) + 1
+    const totRank = totalRowsFull.findIndex(r => r.address === addr) + 1
+    room.send('myRankSnapshot', {
+      kickoffRank:   kRank,   kickoffTotal:  kickoffRowsFull.length,
+      knockoutRank:  koRank,  knockoutTotal: knockoutRowsFull.length,
+      totalRank:     totRank, totalTotal:    totalRowsFull.length
+    }, { to: [ctx.from] })
   })
 
   // ── Knockout stage (parallel to the group handlers above) ───────────────────────
@@ -504,9 +516,18 @@ type LeaderboardRow = { name: string; address: string; value: number; exact: num
 // as pre-serialized JSON. Joins serve the cache; the scan only re-runs when state is
 // stale, and concurrent recomputes coalesce onto one in-flight promise.
 let lbTotalJson    = '[]'   // TOTAL = group + knockout, top LEADERBOARD_SIZE
-let lbKickoffJson  = '[]'   // group-stage points only, all players
-let lbKnockoutJson = '[]'   // knockout points only, all players
+let lbKickoffJson  = '[]'   // group-stage points only, top TV_LB_ROWS (for TV display)
+let lbKnockoutJson = '[]'   // knockout points only, top TV_LB_ROWS (for TV display)
 let lbReady = false
+
+// Full sorted arrays kept in memory for per-player rank lookup (never broadcast).
+let kickoffRowsFull:  LeaderboardRow[] = []
+let knockoutRowsFull: LeaderboardRow[] = []
+let totalRowsFull:    LeaderboardRow[] = []
+
+// TV panel shows top-3 (kickoff) and top-6 (knockout); broadcast a bit more so the
+// client slice works even if data shifts. Each row ≈ 120 bytes → 8 rows ≈ 1 KB.
+const TV_LB_ROWS = 8
 let lbInFlight: Promise<void> | null = null
 let lbDirty = false
 
@@ -610,9 +631,13 @@ async function doRecomputeLeaderboards(): Promise<void> {
   kickoffRows.sort(byScore)
   knockoutRows.sort(byScore)
 
+  kickoffRowsFull  = kickoffRows
+  knockoutRowsFull = knockoutRows
+  totalRowsFull    = totalRows
+
   lbTotalJson    = JSON.stringify(totalRows.slice(0, LEADERBOARD_SIZE))
-  lbKickoffJson  = JSON.stringify(kickoffRows)
-  lbKnockoutJson = JSON.stringify(knockoutRows)
+  lbKickoffJson  = JSON.stringify(kickoffRows.slice(0, TV_LB_ROWS))
+  lbKnockoutJson = JSON.stringify(knockoutRows.slice(0, TV_LB_ROWS))
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────────

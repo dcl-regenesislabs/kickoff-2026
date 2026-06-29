@@ -84,28 +84,41 @@ export function shouldAutoPlayCinematic(): boolean {
 export function playCinematic() {
   if (cinematicState === 'playing') return
 
-  cinematicState = 'playing'
-  cinematicStartTime = Date.now()
   hasPlayedOnce = true
 
-  if (!cameraEntity) {
-    cameraEntity = engine.addEntity()
-    Transform.create(cameraEntity, {
-      position: CAMERA_KEYFRAMES[0].position,
-      rotation: lookAtRotation(CAMERA_KEYFRAMES[0].position, CAMERA_KEYFRAMES[0].lookAt)
-    })
-    VirtualCamera.create(cameraEntity, {
-      defaultTransition: {
-        transitionMode: VirtualCamera.Transition.Time(0.5)
-      }
-    })
-  } else {
-    const t = Transform.getMutable(cameraEntity)
-    t.position = CAMERA_KEYFRAMES[0].position
-    t.rotation = lookAtRotation(CAMERA_KEYFRAMES[0].position, CAMERA_KEYFRAMES[0].lookAt)
+  // VirtualCamera requires the production DCL renderer; skip gracefully in local preview.
+  if (!MainCamera.has(engine.CameraEntity)) {
+    console.log('[Cinematic] MainCamera not available — skipping cinematic (local preview?)')
+    return
   }
 
-  MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cameraEntity
+  cinematicState = 'playing'
+  cinematicStartTime = Date.now()
+
+  try {
+    if (!cameraEntity) {
+      cameraEntity = engine.addEntity()
+      Transform.create(cameraEntity, {
+        position: CAMERA_KEYFRAMES[0].position,
+        rotation: lookAtRotation(CAMERA_KEYFRAMES[0].position, CAMERA_KEYFRAMES[0].lookAt)
+      })
+      VirtualCamera.create(cameraEntity, {
+        defaultTransition: {
+          transitionMode: VirtualCamera.Transition.Time(0.5)
+        }
+      })
+    } else {
+      const t = Transform.getMutable(cameraEntity)
+      t.position = CAMERA_KEYFRAMES[0].position
+      t.rotation = lookAtRotation(CAMERA_KEYFRAMES[0].position, CAMERA_KEYFRAMES[0].lookAt)
+    }
+
+    MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cameraEntity
+  } catch (e) {
+    console.log('[Cinematic] VirtualCamera unavailable — skipping cinematic:', e)
+    cinematicState = 'idle'
+    if (cameraEntity) { engine.removeEntity(cameraEntity); cameraEntity = null }
+  }
 }
 
 export function skipCinematic() {
