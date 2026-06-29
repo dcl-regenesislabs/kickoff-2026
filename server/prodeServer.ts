@@ -70,6 +70,7 @@ export function startProdeServer() {
       }
       await Storage.player.set(addr, STORAGE_KEY, arr)
       await mirrorPlayer(addr, { predictions: arr })
+      markLeaderboardStale()
       console.log(`[Server] saved prediction match ${data.matchId} for ${addr}`)
 
       room.send('predictionSaved', { matchId: data.matchId, ok: true, reason: '' }, { to: [addr] })
@@ -115,12 +116,15 @@ export function startProdeServer() {
   })
 
   // ── Leaderboard ───────────────────────────────────────────────────────────────
+  // Served from an in-memory cache. The expensive full-storage scan only runs when
+  // the cache is stale (after a submit/result change), and concurrent joiners share
+  // a single in-flight recompute — so a 10-player join burst costs ≤1 scan, not ~50.
   room.onMessage('requestLeaderboard', async (_data, ctx) => {
     if (!ctx) return
-    const board = await buildLeaderboard()
-    room.send('leaderboardSnapshot',         { json: JSON.stringify(board) }, { to: [ctx.from] })
-    room.send('kickoffLeaderboardSnapshot',  { json: JSON.stringify(await computeKickoffLeaderboard()) },  { to: [ctx.from] })
-    room.send('knockoutLeaderboardSnapshot', { json: JSON.stringify(await computeKnockoutLeaderboard()) }, { to: [ctx.from] })
+    if (!lbReady) await recomputeLeaderboards()
+    room.send('leaderboardSnapshot',         { json: lbTotalJson },    { to: [ctx.from] })
+    room.send('kickoffLeaderboardSnapshot',  { json: lbKickoffJson },  { to: [ctx.from] })
+    room.send('knockoutLeaderboardSnapshot', { json: lbKnockoutJson }, { to: [ctx.from] })
   })
 
   // ── Knockout stage (parallel to the group handlers above) ───────────────────────
@@ -163,6 +167,7 @@ export function startProdeServer() {
       p.submitted = true
       await Storage.player.set(addr, KO_PREDICTIONS_KEY, arr)
       await mirrorKoPlayer(addr, { predictions: arr })
+      markLeaderboardStale()
       console.log(`[Server] saved KO prediction fixture ${data.fixtureId} for ${addr}`)
       room.send('koPredictionSaved', { fixtureId: data.fixtureId, ok: true, reason: '' }, { to: [addr] })
       room.send('koPredictionsSnapshot', { json: JSON.stringify(arr) }, { to: [addr] })
@@ -175,6 +180,9 @@ export function startProdeServer() {
   // Create empty scene keys up-front so the per-10s leaderboard reads don't 404
   // before any result exists (cosmetic — the reads are handled, but it spams logs).
   void seedKeys()
+
+  // Warm the leaderboard cache so the first joiner doesn't pay the scan cost.
+  void recomputeLeaderboards()
 
   // ── Auto-sync results + knockout fixtures from TheSportsDB (server-side) ─────────
   startResultsSync({
@@ -321,7 +329,8 @@ async function applyResults(incoming: OfficialResult[]): Promise<number> {
   if (changed === 0) return 0
   await Storage.set(RESULTS_KEY, results)
   room.send('resultsSnapshot', { json: JSON.stringify(results) })
-  await broadcastLeaderboard(results)
+  await recomputeLeaderboards()
+  broadcastCachedLeaderboards()
   return changed
 }
 
@@ -373,7 +382,8 @@ async function applyKoResults(incoming: KoResult[]): Promise<number> {
   if (changed === 0) return 0
   await Storage.set(KO_RESULTS_KEY, results)
   room.send('koResultsSnapshot', { json: JSON.stringify(results) })
-  await broadcastLeaderboard(await loadResults())
+  await recomputeLeaderboards()
+  broadcastCachedLeaderboards()
   return changed
 }
 
@@ -387,9 +397,12 @@ async function mirrorKoPlayer(addr: string, patch: Partial<KoMirror>) {
   try {
     const key = KO_PLAYER_PREFIX + addr
     const cur = (await Storage.get<KoMirror>(key)) ?? { name: '', predictions: [] }
-    if (patch.name !== undefined)        cur.name = patch.name
-    if (patch.predictions !== undefined) cur.predictions = patch.predictions
+    let changed = false
+    if (patch.name !== undefined && patch.name !== cur.name)        { cur.name = patch.name; changed = true }
+    if (patch.predictions !== undefined)                            { cur.predictions = patch.predictions; changed = true }
+    if (!changed) return
     await Storage.set(key, cur)
+    markLeaderboardStale()
   } catch (e) {
     console.log('[Server] mirrorKoPlayer FAILED:', e)
   }
@@ -417,14 +430,19 @@ async function loadResults(): Promise<OfficialResult[]> {
 
 type PlayerMirror = { name: string; predictions: Prediction[] }
 
-// Merge-update the scene mirror used for leaderboard aggregation.
+// Merge-update the scene mirror used for leaderboard aggregation. Skips the write
+// (and the leaderboard invalidation) when nothing actually changed — keeps the
+// per-join identify cheap and avoids needless storage writes during a join burst.
 async function mirrorPlayer(addr: string, patch: Partial<PlayerMirror>) {
   try {
     const key = PLAYER_PREFIX + addr
     const cur = (await Storage.get<PlayerMirror>(key)) ?? { name: '', predictions: [] }
-    if (patch.name !== undefined)        cur.name = patch.name
-    if (patch.predictions !== undefined) cur.predictions = patch.predictions
+    let changed = false
+    if (patch.name !== undefined && patch.name !== cur.name)        { cur.name = patch.name; changed = true }
+    if (patch.predictions !== undefined)                            { cur.predictions = patch.predictions; changed = true }
+    if (!changed) return
     await Storage.set(key, cur)
+    markLeaderboardStale()
   } catch (e) {
     console.log('[Server] mirrorPlayer FAILED:', e)
   }
@@ -432,18 +450,54 @@ async function mirrorPlayer(addr: string, patch: Partial<PlayerMirror>) {
 
 type LeaderboardRow = { name: string; address: string; value: number; exact: number }
 
-async function buildLeaderboard(): Promise<LeaderboardRow[]> {
-  const results = await loadResults()
-  return computeLeaderboard(results)
+// ── Leaderboard cache ─────────────────────────────────────────────────────────────
+// The three rankings are derived from a single full scan of both mirrors and cached
+// as pre-serialized JSON. Joins serve the cache; the scan only re-runs when state is
+// stale, and concurrent recomputes coalesce onto one in-flight promise.
+let lbTotalJson    = '[]'   // TOTAL = group + knockout, top LEADERBOARD_SIZE
+let lbKickoffJson  = '[]'   // group-stage points only, all players
+let lbKnockoutJson = '[]'   // knockout points only, all players
+let lbReady = false
+let lbInFlight: Promise<void> | null = null
+let lbDirty = false
+
+// Mark the cache stale without recomputing — the next requestLeaderboard rebuilds it
+// once. If a scan is in flight, flag it so that scan re-runs with the new data.
+function markLeaderboardStale() {
+  lbReady = false
+  if (lbInFlight) lbDirty = true
 }
 
-// Leaderboard value = TOTAL = group points + knockout points (unions both mirrors).
-async function computeLeaderboard(results: OfficialResult[]): Promise<LeaderboardRow[]> {
-  loadResultsCache(results)                            // group scoring cache
-  loadKoResultsCache(await loadKoResultsSrv())         // knockout scoring cache
+function broadcastCachedLeaderboards() {
+  room.send('leaderboardSnapshot',         { json: lbTotalJson })
+  room.send('kickoffLeaderboardSnapshot',  { json: lbKickoffJson })
+  room.send('knockoutLeaderboardSnapshot', { json: lbKnockoutJson })
+}
 
-  // address → { name, group?, ko? } — merged from both mirror namespaces.
-  const map = new Map<string, { name: string; group?: Prediction[]; ko?: KoPrediction[] }>()
+// Rebuild all three rankings. Coalesces concurrent callers onto one in-flight scan
+// (a join burst → ≤1 scan), and re-runs once if invalidated mid-scan.
+function recomputeLeaderboards(): Promise<void> {
+  if (lbInFlight) { lbDirty = true; return lbInFlight }
+  lbInFlight = (async () => {
+    do {
+      lbDirty = false
+      await doRecomputeLeaderboards()
+    } while (lbDirty)
+    lbReady = true
+  })().finally(() => { lbInFlight = null })
+  return lbInFlight
+}
+
+// The single 2-scan pass that derives total / kickoff / knockout in one go
+// (was 5 separate full scans across buildLeaderboard + the two compute* helpers).
+async function doRecomputeLeaderboards(): Promise<void> {
+  loadResultsCache(await loadResults())
+  loadKoResultsCache(await loadKoResultsSrv())
+
+  // address → merged mirror state. `inGroup` tracks presence in the group mirror,
+  // which is the base list for the knockout ranking.
+  type Entry = { name: string; group?: Prediction[]; ko?: KoPrediction[]; inGroup: boolean }
+  const map = new Map<string, Entry>()
 
   let offset = 0
   // eslint-disable-next-line no-constant-condition
@@ -452,7 +506,8 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
     for (const { key, value } of page.data) {
       const e = value as PlayerMirror | null
       const address = key.slice(PLAYER_PREFIX.length)
-      const cur = map.get(address) ?? { name: '' }
+      const cur = map.get(address) ?? { name: '', inGroup: false }
+      cur.inGroup = true
       if (e?.name) cur.name = e.name
       if (e?.predictions) cur.group = e.predictions
       map.set(address, cur)
@@ -468,7 +523,7 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
     for (const { key, value } of page.data) {
       const e = value as KoMirror | null
       const address = key.slice(KO_PLAYER_PREFIX.length)
-      const cur = map.get(address) ?? { name: '' }
+      const cur = map.get(address) ?? { name: '', inGroup: false }
       if (e?.name && !cur.name) cur.name = e.name
       if (e?.predictions) cur.ko = e.predictions
       map.set(address, cur)
@@ -477,105 +532,38 @@ async function computeLeaderboard(results: OfficialResult[]): Promise<Leaderboar
     if (page.data.length === 0 || offset >= page.pagination.total) break
   }
 
-  const rows: LeaderboardRow[] = []
+  const totalRows:    LeaderboardRow[] = []
+  const kickoffRows:  LeaderboardRow[] = []
+  const knockoutRows: LeaderboardRow[] = []
   for (const [address, v] of map) {
-    if (!v.group && !v.ko) continue
-    const groupPts = v.group ? totalPoints(v.group) : 0
-    const koPts    = v.ko ? koTotalPoints(v.ko) : 0
-    const exact = (v.group ? exactScoreCount(v.group) : 0) + (v.ko ? koExactCount(v.ko) : 0)
-    rows.push({
-      name:  v.name || address.slice(0, 8),
-      address,
-      value: groupPts + koPts,                          // TOTAL
-      exact                                             // tiebreaker (group + knockout)
-    })
-  }
+    const name       = v.name || address.slice(0, 8)
+    const groupPts   = v.group ? totalPoints(v.group)      : 0
+    const koPts      = v.ko    ? koTotalPoints(v.ko)       : 0
+    const groupExact = v.group ? exactScoreCount(v.group)  : 0
+    const koExact    = v.ko    ? koExactCount(v.ko)        : 0
 
-  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
-  return rows.slice(0, LEADERBOARD_SIZE)
-}
-
-async function broadcastLeaderboard(results: OfficialResult[]) {
-  const board = await computeLeaderboard(results)
-  room.send('leaderboardSnapshot', { json: JSON.stringify(board) })
-  room.send('kickoffLeaderboardSnapshot',  { json: JSON.stringify(await computeKickoffLeaderboard()) })
-  room.send('knockoutLeaderboardSnapshot', { json: JSON.stringify(await computeKnockoutLeaderboard()) })
-}
-
-// Kickoff (group-stage) ranking — by group points only. Returns all players so
-// "My Score" can find any user's rank position regardless of where they stand.
-async function computeKickoffLeaderboard(): Promise<LeaderboardRow[]> {
-  loadResultsCache(await loadResults())
-  const rows: LeaderboardRow[] = []
-  let offset = 0
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const page = await Storage.getValues({ prefix: PLAYER_PREFIX, offset })
-    for (const { key, value } of page.data) {
-      const e = value as PlayerMirror | null
-      if (!e?.predictions) continue
-      const address = key.slice(PLAYER_PREFIX.length)
-      rows.push({
-        name:  e.name || address.slice(0, 8),
-        address,
-        value: totalPoints(e.predictions),
-        exact: exactScoreCount(e.predictions)
-      })
+    // TOTAL — players with predictions in either stage.
+    if (v.group || v.ko) {
+      totalRows.push({ name, address, value: groupPts + koPts, exact: groupExact + koExact })
     }
-    offset += page.data.length
-    if (page.data.length === 0 || offset >= page.pagination.total) break
-  }
-  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
-  return rows
-}
-
-// Knockout ranking — by KO points only. Uses PLAYER_PREFIX as the base list so
-// everyone appears (with 0 pts) even before submitting KO predictions.
-async function computeKnockoutLeaderboard(): Promise<LeaderboardRow[]> {
-  loadKoResultsCache(await loadKoResultsSrv())
-
-  // Build KO-points map from the KO mirror.
-  const koMap = new Map<string, { name: string; pts: number; exact: number }>()
-  let offset = 0
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const page = await Storage.getValues({ prefix: KO_PLAYER_PREFIX, offset })
-    for (const { key, value } of page.data) {
-      const e = value as KoMirror | null
-      const address = key.slice(KO_PLAYER_PREFIX.length)
-      koMap.set(address, {
-        name:  e?.name || '',
-        pts:   e?.predictions ? koTotalPoints(e.predictions) : 0,
-        exact: e?.predictions ? koExactCount(e.predictions)  : 0
-      })
+    // KICKOFF — players with group predictions, group points only.
+    if (v.group) {
+      kickoffRows.push({ name, address, value: groupPts, exact: groupExact })
     }
-    offset += page.data.length
-    if (page.data.length === 0 || offset >= page.pagination.total) break
-  }
-
-  // Use the group-stage mirror as the base (everyone who ever joined).
-  const rows: LeaderboardRow[] = []
-  offset = 0
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const page = await Storage.getValues({ prefix: PLAYER_PREFIX, offset })
-    for (const { key, value } of page.data) {
-      const e = value as PlayerMirror | null
-      const address = key.slice(PLAYER_PREFIX.length)
-      const ko = koMap.get(address)
-      rows.push({
-        name:    e?.name || ko?.name || address.slice(0, 8),
-        address,
-        value:   ko?.pts   ?? 0,
-        exact:   ko?.exact ?? 0
-      })
+    // KNOCKOUT — base is the group mirror (everyone who joined), knockout points only.
+    if (v.inGroup) {
+      knockoutRows.push({ name, address, value: koPts, exact: koExact })
     }
-    offset += page.data.length
-    if (page.data.length === 0 || offset >= page.pagination.total) break
   }
 
-  rows.sort((a, b) => b.value - a.value || b.exact - a.exact)
-  return rows
+  const byScore = (a: LeaderboardRow, b: LeaderboardRow) => b.value - a.value || b.exact - a.exact
+  totalRows.sort(byScore)
+  kickoffRows.sort(byScore)
+  knockoutRows.sort(byScore)
+
+  lbTotalJson    = JSON.stringify(totalRows.slice(0, LEADERBOARD_SIZE))
+  lbKickoffJson  = JSON.stringify(kickoffRows)
+  lbKnockoutJson = JSON.stringify(knockoutRows)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────────
