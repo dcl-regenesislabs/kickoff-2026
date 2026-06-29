@@ -434,19 +434,19 @@ export function addKnockoutPanel(
     // "?" overlays — visible only when the fixture has no teams yet
     const q1 = engine.addEntity()
     Transform.createOrReplace(q1, { position: Vector3.create(-0.86, y, FRONT_Z), parent: root })
-    TextShape.createOrReplace(q1, { text: '?', fontSize: 0.36, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    TextShape.createOrReplace(q1, { text: '?', fontSize: 1.44, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
     mkHide(q1)
     const q2 = engine.addEntity()
     Transform.createOrReplace(q2, { position: Vector3.create(0.86, y, FRONT_Z), parent: root })
-    TextShape.createOrReplace(q2, { text: '?', fontSize: 0.36, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    TextShape.createOrReplace(q2, { text: '?', fontSize: 1.44, textColor: WHITE, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
     mkHide(q2)
     const teams = engine.addEntity()
     Transform.createOrReplace(teams, { position: Vector3.create(0, y, FRONT_Z), parent: root })
-    TextShape.createOrReplace(teams, { text: '', fontSize: 0.8, textColor: Color4.create(0, 0, 0, 1), textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    TextShape.createOrReplace(teams, { text: '', fontSize: 1.0, textColor: Color4.create(0, 0, 0, 1), textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
     mkShow(teams)
     const status = engine.addEntity()
     Transform.createOrReplace(status, { position: Vector3.create(0, y - 0.22, FRONT_Z), parent: root })
-    TextShape.createOrReplace(status, { text: '', fontSize: 0.65, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
+    TextShape.createOrReplace(status, { text: '', fontSize: 1.2, textColor: MUTED, textAlign: TextAlignMode.TAM_MIDDLE_CENTER })
     mkShow(status)
     return { flag1, flag2, q1, q2, teams, status }
   })
@@ -550,7 +550,7 @@ export function addKnockoutPanel(
         setFlag(row.flag1, flagFor(fx.team1)); setFlag(row.flag2, flagFor(fx.team2))
         teams.text = `${abbr(fx.team1)}  vs  ${abbr(fx.team2)}`; teams.textColor = Color4.create(0, 0, 0, 1)
         const r = koResults.get(fx.id)
-        if (r) { status.text = `${r.score1} - ${r.score2}`; status.textColor = ACCENT }
+        if (r) { status.text = `${r.score1} - ${r.score2}`; status.textColor = Color4.fromHexString('#0a5c1fff') }
         else { status.text = ''; status.textColor = MUTED }
       })
     } else {

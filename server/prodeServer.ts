@@ -188,6 +188,7 @@ export function startProdeServer() {
 
   // ── Winner podiums (shown at tournament end) ────────────────────────────────────
   setupPodiums()
+
 }
 
 // ── Winner podiums ────────────────────────────────────────────────────────────────
