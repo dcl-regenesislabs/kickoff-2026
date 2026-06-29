@@ -32,6 +32,17 @@ export function getKickoffLeaderboard(): LeaderboardRow[] { return kickoffLeader
 let knockoutLeaderboard: LeaderboardRow[] = []
 export function getKnockoutLeaderboard(): LeaderboardRow[] { return knockoutLeaderboard }
 
+// Personal rank — sent by the server on every requestLeaderboard response.
+// Rank 0 = player not in the leaderboard yet. Both arrays and personal rank are small
+// messages; the server never broadcasts full player arrays to avoid the DCL comms cap.
+export type MyRankData = {
+  kickoffRank:  number; kickoffTotal:  number
+  knockoutRank: number; knockoutTotal: number
+  totalRank:    number; totalTotal:    number
+}
+let myRankData: MyRankData = { kickoffRank: 0, kickoffTotal: 0, knockoutRank: 0, knockoutTotal: 0, totalRank: 0, totalTotal: 0 }
+export function getMyRankData(): MyRankData { return myRankData }
+
 type AckReason = 'locked' | 'error' | 'disconnected'
 let onPredictionAck: ((matchId: number, ok: boolean, reason: AckReason | '') => void) | null = null
 export function setOnPredictionAck(cb: (matchId: number, ok: boolean, reason: AckReason | '') => void) { onPredictionAck = cb }
@@ -117,6 +128,14 @@ export function startProdeClient(onSnapshot: () => void) {
   room.onMessage('knockoutLeaderboardSnapshot', (data) => {
     try { knockoutLeaderboard = JSON.parse(data.json) as LeaderboardRow[] }
     catch (e) { console.log('[Client] bad knockout leaderboard snapshot', e) }
+  })
+
+  room.onMessage('myRankSnapshot', (data) => {
+    myRankData = {
+      kickoffRank:   data.kickoffRank,   kickoffTotal:  data.kickoffTotal,
+      knockoutRank:  data.knockoutRank,  knockoutTotal: data.knockoutTotal,
+      totalRank:     data.totalRank,     totalTotal:    data.totalTotal
+    }
   })
 
   room.onMessage('predictionSaved', (data) => {

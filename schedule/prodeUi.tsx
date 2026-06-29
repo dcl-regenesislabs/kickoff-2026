@@ -10,7 +10,7 @@ import {
   koFixtures, koPredictions, koResults, getKoFixture, saveKoPrediction, isKoFixtureLocked,
   myKoPoints, scoreKoPrediction
 } from './knockoutData'
-import { getKickoffLeaderboard, getKnockoutLeaderboard, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
+import { getMyRankData, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
 import { playCinematic, getCinematicState, shouldAutoPlayCinematic } from '../client/cinematicCamera'
 import { isMatchLocked } from './matchDates'
@@ -694,7 +694,7 @@ const PredictionChip = (props: {
         height: chipH,
         flexDirection: 'row',
         alignItems: 'stretch',
-        margin: { bottom: S((mob ? 10 : 8) * uiScale) },
+        margin: `0 0 ${S((mob ? 10 : 8) * uiScale)}px 0`,
         borderRadius: S(14),
         pointerFilter: 'block',
         overflow: 'hidden'
@@ -1466,13 +1466,10 @@ const CompletionOverlay = () => {
 
 // ── Rank badge used inside each My Score tab: shows "your position / total" ───
 type LBRow = { name: string; address: string; value: number }
-const RankBadge = ({ rows, accent }: { rows: LBRow[]; accent: Color4 }) => {
+const RankBadge = ({ rank, total, accent }: { rank: number; total: number; accent: Color4 }) => {
   const mob = isMobile()
-  const me = getPlayer()?.userId?.toLowerCase()
-  const total = rows.length
   if (total === 0) return <UiEntity uiTransform={{ display: 'none' }} />
-  const idx = rows.findIndex(r => r.address?.toLowerCase() === me)
-  const rankText = idx >= 0 ? `#${idx + 1} / ${total}` : `- / ${total}`
+  const rankText = rank > 0 ? `#${rank} / ${total}` : `- / ${total}`
   return (
     <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: `${S(12)}px 0 0 0`, padding: S(16), borderRadius: S(20) }}
       uiBackground={{ color: Color4.create(1, 1, 1, 0.04) }}>
@@ -1733,14 +1730,14 @@ const ScorePanel = () => {
           {activeTab === 'group' && (
             <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
               {breakdownSection('Group Stage Results', groupAccent, groupAccentSoft, groupAccent, groupAccentDim, groupExact, groupWinner, groupMissed, groupPending, groupPlayed, groupAccuracy, predictions.filter(p => p.submitted).length, MATCHES.length)}
-              <RankBadge rows={getKickoffLeaderboard()} accent={groupAccent} />
+              <RankBadge rank={getMyRankData().kickoffRank} total={getMyRankData().kickoffTotal} accent={groupAccent} />
             </UiEntity>
           )}
 
           {activeTab === 'knockout' && (
             <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
               {breakdownSection('Knockout Stage Results', knockoutAccent, knockoutAccentSoft, knockoutAccent, knockoutAccentDim, koExact, koWinner, koMissed, koPending, koPlayed, koAccuracy, koPredictions.filter(p => p.submitted).length, koFixtures.length)}
-              <RankBadge rows={getKnockoutLeaderboard()} accent={knockoutAccent} />
+              <RankBadge rank={getMyRankData().knockoutRank} total={getMyRankData().knockoutTotal} accent={knockoutAccent} />
             </UiEntity>
           )}
         </UiEntity>

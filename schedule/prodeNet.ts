@@ -62,6 +62,15 @@ export const ProdeMessages = {
   knockoutLeaderboardSnapshot: Schemas.Map({
     json: Schemas.String
   }),
+  // Server → Client: this player's personal rank in each leaderboard (tiny — 6 ints)
+  myRankSnapshot: Schemas.Map({
+    kickoffRank:   Schemas.Int,
+    kickoffTotal:  Schemas.Int,
+    knockoutRank:  Schemas.Int,
+    knockoutTotal: Schemas.Int,
+    totalRank:     Schemas.Int,
+    totalTotal:    Schemas.Int
+  }),
 
   // ── Knockout stage (parallel to the group messages above) ───────────────────
   // Client → Server: upsert one knockout prediction
