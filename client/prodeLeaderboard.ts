@@ -16,7 +16,7 @@ type TVSlide = 'kickoff' | 'knockout' | 'image'
 type TVPhase = 'showing' | 'out' | 'in'
 
 const SLIDE_DURATIONS: Record<TVSlide, number> = { kickoff: 10, knockout: 10, image: 8 }
-const SLIDE_TITLES: Record<TVSlide, string> = { kickoff: 'GROUP STAGE LEADERBOARD', knockout: 'KNOCKOUT LEADERBOARD', image: '' }
+const SLIDE_TITLES: Record<TVSlide, string> = { kickoff: 'GROUP STAGE WINNERS', knockout: 'KNOCKOUT LEADERBOARD', image: '' }
 function nextSlide(s: TVSlide): TVSlide {
   return s === 'kickoff' ? 'knockout' : s === 'knockout' ? 'image' : 'kickoff'
 }
@@ -50,7 +50,7 @@ function dataForSlide(slide: TVSlide): LeaderboardPanelEntry[] {
     return getKickoffLeaderboard().slice(0, 3).map((r) => ({ name: formatLeaderboardName(r.name, r.address), value: String(r.value) }))
   }
   if (slide === 'knockout') {
-    return getKnockoutLeaderboard().slice(0, 3).map((r) => ({ name: formatLeaderboardName(r.name, r.address), value: String(r.value) }))
+    return getKnockoutLeaderboard().slice(0, 6).map((r) => ({ name: formatLeaderboardName(r.name, r.address), value: String(r.value) }))
   }
   return []
 }

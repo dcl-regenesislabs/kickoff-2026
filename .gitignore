@@ -18,3 +18,9 @@ npm-debug.log*
 
 # Claude Code local config (contains machine-specific paths)
 .claude/settings.json
+
+# Storage exports/backups (contain player addresses) + local storage scripts
+prode-storage-export-*.json
+storage-export.json
+scripts/export-storage.js
+scripts/migrate-storage.js

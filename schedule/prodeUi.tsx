@@ -1655,7 +1655,7 @@ const ScorePanel = () => {
 
           {activeTab === 'group' && (
             <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', alignItems: 'stretch' }}>
-              {breakdownSection('Group Stage Results', groupAccent, groupAccentSoft, groupAccent, groupAccentDim, groupExact, groupWinner, groupMissed, groupPending, groupPlayed, groupAccuracy, getCompletedCount(), MATCHES.length)}
+              {breakdownSection('Group Stage Results', groupAccent, groupAccentSoft, groupAccent, groupAccentDim, groupExact, groupWinner, groupMissed, groupPending, groupPlayed, groupAccuracy, predictions.filter(p => p.submitted).length, MATCHES.length)}
               <RankBadge rows={getKickoffLeaderboard()} accent={groupAccent} />
             </UiEntity>
           )}
