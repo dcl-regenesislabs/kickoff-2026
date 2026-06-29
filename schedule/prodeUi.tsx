@@ -12,6 +12,7 @@ import {
 } from './knockoutData'
 import { getKickoffLeaderboard, getKnockoutLeaderboard, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
+import { playCinematic, getCinematicState, shouldAutoPlayCinematic } from '../client/cinematicCamera'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -107,6 +108,9 @@ const serverGateState = {
   holdElapsed: 0,
   spinnerAngle: 0
 }
+
+// Tracks the gate going from visible → hidden so we can fire the cinematic exactly once.
+let wasGateVisible = true
 
 const SPINNER_DEG_PER_SEC = 220
 
@@ -246,6 +250,13 @@ function loadAdminMatch(index: number) {
 export function setupProdeUi() {
   setupConfettiSystem()
   engine.addSystem((dt: number) => {
+    // Gate just closed → fire the cinematic, then the welcome will follow after it ends
+    if (wasGateVisible && !serverGateState.visible) {
+      wasGateVisible = false
+      playCinematic()
+      return
+    }
+
     if (!serverGateState.visible) return
 
     serverGateState.spinnerAngle = normalizeDegrees(serverGateState.spinnerAngle + dt * SPINNER_DEG_PER_SEC)
@@ -367,7 +378,7 @@ const ProdeUi = () => {
       <CompletionOverlay />
 
       {/* ── Welcome overlay (on entry) ───────────────────────────────────────── */}
-      {!serverGateState.visible && <WelcomeOverlay />}
+      {!serverGateState.visible && getCinematicState() === 'idle' && !shouldAutoPlayCinematic() && <WelcomeOverlay />}
 
       {/* ── Wearable claim status overlay ────────────────────────────────────── */}
       <ClaimOverlay />
