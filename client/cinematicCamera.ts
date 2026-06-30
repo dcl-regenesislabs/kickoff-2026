@@ -3,9 +3,12 @@ import {
   Transform,
   MainCamera,
   VirtualCamera,
-  Entity
+  Entity,
+  inputSystem,
+  InputAction
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
+import { hasSeenCinematicBefore, markCinematicSeen } from './prodeClient'
 
 // ============================================
 // CINEMATIC CAMERA — BRACKET REVEAL TOUR
@@ -69,6 +72,28 @@ let cinematicStartTime = 0
 let cameraEntity: Entity | null = null
 let hasPlayedOnce = false
 
+// ── Hold-F-to-skip ──────────────────────────────────────────────────────────
+// Only offered once the server confirms this wallet has seen the cinematic before —
+// a first-time visitor always gets the full, uninterruptible tour.
+const SKIP_HOLD_SECONDS = 1.1
+const SKIP_DECAY_RATE   = 2.6   // releasing the key drains the ring faster than holding fills it
+let skipHoldProgress = 0        // 0..1
+
+// Mobile has no physical F key — the on-screen skip button reports its touch state here
+// so the same hold/decay loop below drives both input methods.
+let mobileSkipPressed = false
+export function setMobileSkipPressed(pressed: boolean) {
+  mobileSkipPressed = pressed
+}
+
+export function getSkipHoldProgress(): number {
+  return skipHoldProgress
+}
+
+export function canSkipCinematic(): boolean {
+  return cinematicState === 'playing' && hasSeenCinematicBefore()
+}
+
 export function getCinematicState(): CinematicState {
   return cinematicState
 }
@@ -85,6 +110,8 @@ export function playCinematic() {
   if (cinematicState === 'playing') return
 
   hasPlayedOnce = true
+  skipHoldProgress = 0
+  mobileSkipPressed = false
 
   // VirtualCamera requires the production DCL renderer; skip gracefully in local preview.
   if (!MainCamera.has(engine.CameraEntity)) {
@@ -125,6 +152,9 @@ export function skipCinematic() {
   if (cinematicState !== 'playing') return
 
   cinematicState = 'skipping'
+  skipHoldProgress = 0
+  mobileSkipPressed = false
+  markCinematicSeen()   // covers both a manual skip and a natural full playthrough
 
   if (MainCamera.has(engine.CameraEntity)) {
     MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = undefined
@@ -173,9 +203,26 @@ function lookAtRotation(from: Vector3, to: Vector3): Quaternion {
 
 export function setupCinematicSystem() {
   engine.addSystem(
-    () => {
-      if (cinematicState !== 'playing') return
+    (dt: number) => {
+      if (cinematicState !== 'playing') {
+        if (skipHoldProgress !== 0) skipHoldProgress = 0
+        return
+      }
       if (!cameraEntity) return
+
+      if (hasSeenCinematicBefore()) {
+        if (inputSystem.isPressed(InputAction.IA_SECONDARY) || mobileSkipPressed) {
+          skipHoldProgress = Math.min(1, skipHoldProgress + dt / SKIP_HOLD_SECONDS)
+          if (skipHoldProgress >= 1) {
+            skipCinematic()
+            return
+          }
+        } else if (skipHoldProgress > 0) {
+          skipHoldProgress = Math.max(0, skipHoldProgress - dt * SKIP_DECAY_RATE)
+        }
+      } else if (skipHoldProgress !== 0) {
+        skipHoldProgress = 0
+      }
 
       const elapsed = Date.now() - cinematicStartTime
 

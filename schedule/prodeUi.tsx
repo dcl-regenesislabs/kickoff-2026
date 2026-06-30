@@ -12,7 +12,7 @@ import {
 } from './knockoutData'
 import { getMyRankData, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
-import { playCinematic, getCinematicState, shouldAutoPlayCinematic } from '../client/cinematicCamera'
+import { playCinematic, getCinematicState, shouldAutoPlayCinematic, isCinematicPlaying, canSkipCinematic, getSkipHoldProgress, setMobileSkipPressed } from '../client/cinematicCamera'
 import { isMatchLocked } from './matchDates'
 import { playClick, playComplete } from '../client/sfx'
 import { layoutScale, isMobile } from './responsive'
@@ -115,6 +115,9 @@ let wasGateVisible = true
 // Drives the pulsing alert animation on the knockout chip (! icon + outline glow).
 let pulsePhase = 0
 let pulseValue = 0
+
+// Tracks whether the mobile skip button is currently held, purely for the pressed-image swap.
+let mobileSkipBtnPressed = false
 
 const SPINNER_DEG_PER_SEC = 220
 
@@ -387,6 +390,10 @@ const ProdeUi = () => {
 
       {/* ── Welcome overlay (on entry) ───────────────────────────────────────── */}
       {!serverGateState.visible && getCinematicState() === 'idle' && !shouldAutoPlayCinematic() && <WelcomeOverlay />}
+
+      {/* ── Hold-to-skip prompt (cinematic, repeat visits only) ────────────────── */}
+      <CinematicSkipPrompt />
+      <MobileSkipButton />
 
       {/* ── Wearable claim status overlay ────────────────────────────────────── */}
       <ClaimOverlay />
@@ -868,7 +875,8 @@ const ScoreEntryButton = () => {
   const chipWidth = S((mob ? 248 : 232) * uiScale)
   const hidden =
     welcomeState.visible ||
-    groupState.visible || adminState.visible || infoState.visible || celebrateState.visible
+    groupState.visible || adminState.visible || infoState.visible || celebrateState.visible ||
+    isCinematicPlaying()
 
   return (
     <UiEntity
@@ -1878,6 +1886,115 @@ const ServerGateOverlay = () => {
             }}
           />
         </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+const CinematicSkipPrompt = () => {
+  // Desktop only — mobile uses the image-based MobileSkipButton instead.
+  if (isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+  if (serverGateState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  if (!isCinematicPlaying() || !canSkipCinematic()) return <UiEntity uiTransform={{ display: 'none' }} />
+  const progress = getSkipHoldProgress()
+  const boxW = 320
+  const boxH = 56
+  const barW = boxW - 36
+  const pct = Math.round(progress * 100)
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: S(100), left: 0 },
+        width: '100%',
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: S(boxW),
+          height: S(boxH),
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          borderRadius: S(12),
+          padding: { top: S(10), bottom: S(10), left: S(18), right: S(18) }
+        }}
+      >
+        <Label
+          value="HOLD F TO SKIP"
+          fontSize={F(14)}
+          color={Color4.White()}
+          uiTransform={{ height: S(18), margin: { bottom: S(6) } }}
+        />
+        <UiEntity
+          uiTransform={{ width: S(barW), height: S(6), borderRadius: S(3) }}
+          uiBackground={{ color: Color4.create(1, 1, 1, 0.2) }}
+        >
+          <UiEntity
+            uiTransform={{ width: `${pct}%`, height: '100%', borderRadius: S(3) }}
+            uiBackground={{ color: VIOLET }}
+          />
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+const MobileSkipButton = () => {
+  if (!isMobile()) return <UiEntity uiTransform={{ display: 'none' }} />
+  if (serverGateState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
+  const active = isCinematicPlaying() && canSkipCinematic()
+  if (!active) {
+    if (mobileSkipBtnPressed) { mobileSkipBtnPressed = false; setMobileSkipPressed(false) }
+    return <UiEntity uiTransform={{ display: 'none' }} />
+  }
+
+  const progress = getSkipHoldProgress()
+  const pct = Math.round(progress * 100)
+  const btnH = S(150)
+  const btnW = S(Math.round((386 / 200) * 150))
+  const barW = btnW
+  const wrapperH = S(10 + 10 + 150)
+
+  const press = () => { mobileSkipBtnPressed = true; setMobileSkipPressed(true) }
+  const release = () => { mobileSkipBtnPressed = false; setMobileSkipPressed(false) }
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: S(150), left: '50%' },
+        margin: { left: -Math.round(btnW / 2) },
+        width: btnW,
+        height: wrapperH,
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+      }}
+    >
+      <UiEntity
+        uiTransform={{ width: S(barW), height: S(10), borderRadius: S(5), margin: { bottom: S(10), left: Math.round((btnW - S(barW)) / 2) } }}
+        uiBackground={{ color: Color4.create(1, 1, 1, 0.2) }}
+      >
+        <UiEntity
+          uiTransform={{ width: `${pct}%`, height: '100%', borderRadius: S(5) }}
+          uiBackground={{ color: VIOLET }}
+        />
+      </UiEntity>
+      <UiEntity
+        uiTransform={{ width: btnW, height: btnH }}
+        onMouseDown={press}
+        onMouseUp={release}
+        onMouseLeave={release}
+      >
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+          uiBackground={{ texture: { src: 'images/buttons/skip.png' }, textureMode: 'stretch' }}
+        />
+        {mobileSkipBtnPressed && (
+          <UiEntity
+            uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+            uiBackground={{ texture: { src: 'images/buttons/skip_pressed.png' }, textureMode: 'stretch' }}
+          />
+        )}
       </UiEntity>
     </UiEntity>
   )

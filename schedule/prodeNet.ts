@@ -129,7 +129,17 @@ export const ProdeMessages = {
   kickLand: Schemas.Map({
     x: Schemas.Float,
     z: Schemas.Float
-  })
+  }),
+
+  // ── Onboarding cinematic ─────────────────────────────────────────────────────
+  // Client → Server: have I seen the intro cinematic before? (sent on connect)
+  requestCinematicSeen: Schemas.Map({}),
+  // Server → Client: whether this wallet has already seen it (persisted)
+  cinematicSeenSnapshot: Schemas.Map({
+    seen: Schemas.Boolean
+  }),
+  // Client → Server: mark the cinematic as seen (sent once, after it plays/skips)
+  markCinematicSeen: Schemas.Map({})
 }
 
 export const STORAGE_KEY   = 'prode:predictions'   // per-player snapshot
@@ -141,5 +151,7 @@ export const KO_PREDICTIONS_KEY = 'prode:ko:predictions'  // per-player snapshot
 export const KO_RESULTS_KEY     = 'prode:ko:results'       // scene-wide official KO results
 export const KO_FIXTURES_KEY    = 'prode:ko:fixtures'      // scene-wide KO fixtures (from the API)
 export const KO_PLAYER_PREFIX   = 'prode:ko:player:'       // scene mirror per player (KO leaderboard)
+
+export const CINEMATIC_SEEN_KEY = 'prode:cinematicSeen'    // per-player flag — has this wallet seen the intro cinematic before?
 
 export const room = registerMessages(ProdeMessages)

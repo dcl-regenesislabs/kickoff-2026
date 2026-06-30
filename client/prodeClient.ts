@@ -55,6 +55,19 @@ const pendingAcks = new Map<number, ReturnType<typeof setTimeout>>()
 let serverReady = false
 export function isServerReady(): boolean { return serverReady }
 
+// ── Onboarding cinematic — has this wallet seen it before? ───────────────────
+// Loaded once on connect. The "hold F to skip" prompt only shows once this has
+// resolved to `true`, so a first-time player always gets the full uninterrupted tour.
+let cinematicSeenLoaded = false
+let cinematicSeen = false
+export function isCinematicSeenLoaded(): boolean { return cinematicSeenLoaded }
+export function hasSeenCinematicBefore(): boolean { return cinematicSeen }
+export function markCinematicSeen() {
+  if (cinematicSeen) return
+  cinematicSeen = true   // optimistic — avoids a round-trip before the flag sticks locally
+  room.send('markCinematicSeen', {})
+}
+
 // ── Client networking ─────────────────────────────────────────────────────────
 // `onSnapshot` re-tints the 3D panels / refreshes UI after server state changes.
 export function startProdeClient(onSnapshot: () => void) {
@@ -130,6 +143,11 @@ export function startProdeClient(onSnapshot: () => void) {
     catch (e) { console.log('[Client] bad knockout leaderboard snapshot', e) }
   })
 
+  room.onMessage('cinematicSeenSnapshot', (data) => {
+    cinematicSeen = data.seen
+    cinematicSeenLoaded = true
+  })
+
   room.onMessage('myRankSnapshot', (data) => {
     myRankData = {
       kickoffRank:   data.kickoffRank,   kickoffTotal:  data.kickoffTotal,
@@ -180,6 +198,7 @@ function syncOnConnect() {
   room.send('requestKoFixtures', {})
   room.send('requestKoPredictions', {})
   room.send('requestBallState', {})
+  room.send('requestCinematicSeen', {})
 }
 
 // Ask the server for a fresh leaderboard (e.g. when the panel comes into view).

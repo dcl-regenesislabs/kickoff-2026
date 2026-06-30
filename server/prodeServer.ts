@@ -1,7 +1,8 @@
 import { Storage } from '@dcl/sdk/server/index.js'
 import {
   room, STORAGE_KEY, RESULTS_KEY, PLAYER_PREFIX,
-  KO_PREDICTIONS_KEY, KO_RESULTS_KEY, KO_FIXTURES_KEY, KO_PLAYER_PREFIX
+  KO_PREDICTIONS_KEY, KO_RESULTS_KEY, KO_FIXTURES_KEY, KO_PLAYER_PREFIX,
+  CINEMATIC_SEEN_KEY
 } from '../schedule/prodeNet'
 import {
   Prediction, OfficialResult, MATCHES, makeDefaultPredictions,
@@ -35,6 +36,21 @@ export function startProdeServer() {
     const name = (data.name ?? '').slice(0, 40)
     await mirrorPlayer(ctx.from, { name })
     await mirrorKoPlayer(ctx.from, { name })   // keep the KO mirror self-sufficient for names
+  })
+
+  // ── Onboarding cinematic — has this wallet seen it before? ──────────────────
+  room.onMessage('requestCinematicSeen', async (_data, ctx) => {
+    if (!ctx) return
+    let seen = false
+    try { seen = (await Storage.player.get<boolean>(ctx.from, CINEMATIC_SEEN_KEY)) ?? false }
+    catch (e) { console.log('[Server] cinematicSeen Storage.get FAILED:', e) }
+    room.send('cinematicSeenSnapshot', { seen }, { to: [ctx.from] })
+  })
+
+  room.onMessage('markCinematicSeen', async (_data, ctx) => {
+    if (!ctx) return
+    try { await Storage.player.set(ctx.from, CINEMATIC_SEEN_KEY, true) }
+    catch (e) { console.log('[Server] cinematicSeen Storage.set FAILED:', e) }
   })
 
   // ── Predictions ─────────────────────────────────────────────────────────────
