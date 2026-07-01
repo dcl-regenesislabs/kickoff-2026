@@ -8,7 +8,7 @@ import {
 } from './prodeData'
 import {
   koFixtures, koPredictions, koResults, getKoFixture, saveKoPrediction, isKoFixtureLocked,
-  myKoPoints, scoreKoPrediction
+  myKoPoints, scoreKoPrediction, submitKoResult
 } from './knockoutData'
 import { getMyRankData, setOnPredictionAck, setOnKoPredictionAck, isServerReady } from '../client/prodeClient'
 import { getMobileKickButtonState, setMobileKickPressed, getKickHintVisible } from '../client/ball'
@@ -78,7 +78,7 @@ function currentFormMatches(): Match[] {
   return GROUPS[groupState.groupIndex]?.matches ?? []
 }
 
-// Admin form state — iterates the flat MATCHES list to load official results.
+// Admin form state — iterates koFixtures to load official KO results.
 const adminState = {
   visible:   false,
   index:     0,
@@ -248,8 +248,8 @@ function openAdminForm(index: number) {
 }
 
 function loadAdminMatch(index: number) {
-  const match = MATCHES[index]
-  const r = match ? getResult(match.id) : undefined
+  const fx = koFixtures[index]
+  const r  = fx ? koResults.get(fx.id) : undefined
   adminState.score1 = r?.score1 ?? 0
   adminState.score2 = r?.score2 ?? 0
 }
@@ -2115,25 +2115,40 @@ const InfoForm = () => {
   )
 }
 
-// ── Admin: load official match results, iterating match by match ───────────────
+// ── Admin: load official KO results, iterating fixture by fixture ───────────────
 const AdminForm = () => {
   if (!adminState.visible) return <UiEntity uiTransform={{ display: 'none' }} />
 
-  const match = MATCHES[adminState.index]
-  if (!match) return <UiEntity uiTransform={{ display: 'none' }} />
+  if (koFixtures.length === 0) {
+    return (
+      <UiEntity
+        uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerFilter: 'block' }}
+        uiBackground={{ color: OVERLAY }}
+      >
+        <UiEntity uiTransform={{ width: S(800), padding: S(48), flexDirection: 'column', alignItems: 'center', borderRadius: S(36) }} uiBackground={{ color: DARK }}>
+          <Label value="ADMIN - Load KO result" fontSize={F(32)} color={GOLD} uiTransform={{ height: S(50), margin: '0 0 24px 0' }} />
+          <Label value="No knockout fixtures available yet." fontSize={F(28)} color={Color4.create(0.7,0.7,0.7,1)} uiTransform={{ height: S(44) }} />
+          <SfxButton value="Close" variant="secondary" fontSize={F(30)} uiTransform={{ width: '100%', height: S(84), borderRadius: S(18), margin: `${S(32)}px 0 0 0` }} onMouseDown={() => { adminState.visible = false }} />
+        </UiEntity>
+      </UiEntity>
+    )
+  }
+
+  const fx = koFixtures[adminState.index]
+  if (!fx) return <UiEntity uiTransform={{ display: 'none' }} />
 
   const winner = impliedWinner(adminState.score1, adminState.score2)
-  const saved  = getResult(match.id)
+  const saved  = koResults.get(fx.id)
   const outcomeText =
-    winner === 'draw' ? 'DRAW' : winner === 'team1' ? `${match.team1} WIN` : `${match.team2} WIN`
+    winner === 'draw' ? 'DRAW' : winner === 'team1' ? `${fx.team1} WIN` : `${fx.team2} WIN`
 
   const save = () => {
-    submitOfficialResult(match.id, winner, adminState.score1, adminState.score2)
+    submitKoResult(fx.id, winner, adminState.score1, adminState.score2)
   }
 
   const go = (delta: number) => {
     const next = adminState.index + delta
-    if (next < 0 || next >= MATCHES.length) return
+    if (next < 0 || next >= koFixtures.length) return
     adminState.index = next
     loadAdminMatch(next)
   }
@@ -2160,17 +2175,17 @@ const AdminForm = () => {
       >
         {/* Header */}
         <UiEntity uiTransform={{ width: '100%', height: S(50), flexDirection: 'row', justifyContent: 'space-between', margin: '0 0 8px 0' }}>
-          <Label value="ADMIN - Load result" fontSize={F(32)} color={GOLD} uiTransform={{ height: S(50) }} />
-          <Label value={`${adminState.index + 1} / ${MATCHES.length}`} fontSize={F(28)} color={Color4.create(0.7,0.7,0.7,1)} uiTransform={{ height: S(50) }} />
+          <Label value="ADMIN - Load KO result" fontSize={F(32)} color={GOLD} uiTransform={{ height: S(50) }} />
+          <Label value={`${adminState.index + 1} / ${koFixtures.length}`} fontSize={F(28)} color={Color4.create(0.7,0.7,0.7,1)} uiTransform={{ height: S(50) }} />
         </UiEntity>
 
         <Label
-          value={`${match.team1}  vs  ${match.team2}`}
+          value={`${fx.team1}  vs  ${fx.team2}`}
           fontSize={F(44)} color={Color4.White()}
           uiTransform={{ width: '100%', height: S(64), margin: '0 0 4px 0' }}
         />
         <Label
-          value={`${match.group}  -  ${match.time}${saved ? '   (result loaded)' : ''}`}
+          value={`Round ${fx.round}${saved ? '   (result loaded)' : ''}`}
           fontSize={F(24)} color={saved ? TEAL : Color4.create(0.6,0.6,0.6,1)}
           uiTransform={{ width: '100%', height: S(36), margin: '0 0 20px 0' }}
         />

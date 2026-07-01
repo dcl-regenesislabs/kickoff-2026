@@ -89,6 +89,19 @@ export const ProdeMessages = {
   koPredictionsSnapshot: Schemas.Map({
     json: Schemas.String         // JSON.stringify(KoPrediction[])
   }),
+  // Admin → Server: upsert one official KO result
+  submitKoResult: Schemas.Map({
+    fixtureId: Schemas.Int,
+    winner:    Schemas.String,  // 'team1' | 'draw' | 'team2'
+    score1:    Schemas.Int,
+    score2:    Schemas.Int
+  }),
+  // Server → Admin: ack of a KO result save
+  koResultSaved: Schemas.Map({
+    fixtureId: Schemas.Int,
+    ok:        Schemas.Boolean
+  }),
+
   // Server → Client: the known knockout fixtures (teams, round, kickoff) + results
   requestKoFixtures: Schemas.Map({}),
   koFixturesSnapshot: Schemas.Map({

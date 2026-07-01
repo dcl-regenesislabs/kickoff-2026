@@ -131,6 +131,31 @@ export function startProdeServer() {
     }
   })
 
+  // ── Admin: manual KO results (fallback when the sports API is unavailable) ──────
+  room.onMessage('submitKoResult', async (data, ctx) => {
+    if (!ctx) return
+    const addr = ctx.from
+    if (!isAdmin(addr) || !isValidKoResult(data)) {
+      console.log(`[Server] rejected KO result from ${addr} (admin=${isAdmin(addr)})`)
+      room.send('koResultSaved', { fixtureId: data.fixtureId, ok: false }, { to: [addr] })
+      return
+    }
+    try {
+      const incoming: KoResult = {
+        fixtureId: data.fixtureId,
+        winner:    data.winner as KoResult['winner'],
+        score1:    data.score1,
+        score2:    data.score2
+      }
+      await applyKoResults([incoming])
+      console.log(`[Server] saved official KO result for fixture ${data.fixtureId}`)
+      room.send('koResultSaved', { fixtureId: data.fixtureId, ok: true }, { to: [addr] })
+    } catch (e) {
+      console.log('[Server] KO result save FAILED:', e)
+      room.send('koResultSaved', { fixtureId: data.fixtureId, ok: false }, { to: [addr] })
+    }
+  })
+
   // ── Leaderboard ───────────────────────────────────────────────────────────────
   // Served from an in-memory cache. The expensive full-storage scan only runs when
   // the cache is stale (after a submit/result change), and concurrent joiners share
@@ -677,6 +702,12 @@ function isValidPrediction(d: { matchId: number; winner: string; score1: number;
 // Knockout: same rules; the fixture's existence is checked against the live list.
 function isValidKoPrediction(d: { fixtureId: number; winner: string; score1: number; score2: number }): boolean {
   return validScore(d.score1, d.score2) && validOutcome(d.winner, d.score1, d.score2)
+}
+
+function isValidKoResult(d: { fixtureId: number; winner: string; score1: number; score2: number }): boolean {
+  if (!validScore(d.score1, d.score2)) return false
+  const implied = d.score1 > d.score2 ? 'team1' : d.score1 < d.score2 ? 'team2' : 'draw'
+  return d.winner === implied
 }
 
 function isValidResult(d: { matchId: number; winner: string; score1: number; score2: number }): boolean {

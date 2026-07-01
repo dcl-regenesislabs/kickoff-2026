@@ -6,7 +6,8 @@
 // 👉 Paste your DCL wallet address here (any case — it's compared lowercased).
 export const ADMIN_WALLETS: string[] = [
   '0xc502975b49398f9754AFC4E9693Cf0e1594f3275',
-  '0x070f99855D4A4544340Ab461eAE53922AeC14A5d'
+  '0x070f99855D4A4544340Ab461eAE53922AeC14A5d',
+  '0xCBDC864EDA5E25cD6FEba6616B7ADc1aF71ff94e'
 ]
 
 export function isAdmin(address: string | undefined | null): boolean {

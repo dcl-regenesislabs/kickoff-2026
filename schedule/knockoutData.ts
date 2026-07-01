@@ -106,6 +106,16 @@ export function isKoFixtureLocked(fixtureId: number): boolean {
   return Date.now() >= f.kickoff - LOCK_LEAD_MS
 }
 
+// ── Admin result hook (client forwards each KO result save to the server) ──────
+let _onKoResult: ((r: KoResult) => void) | null = null
+export function setKoResultSync(cb: (r: KoResult) => void) { _onKoResult = cb }
+
+export function submitKoResult(fixtureId: number, winner: Outcome, score1: number, score2: number) {
+  const r: KoResult = { fixtureId, winner, score1, score2 }
+  koResults.set(fixtureId, r)
+  _onKoResult?.(r)
+}
+
 // ── Persistence hook (client forwards each save to the server) ──────────────────
 let _onKoSave: ((p: KoPrediction) => void) | null = null
 export function setKoPredictionSync(cb: (p: KoPrediction) => void) { _onKoSave = cb }

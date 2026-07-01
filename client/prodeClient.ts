@@ -6,7 +6,7 @@ import {
 } from '../schedule/prodeData'
 import {
   KoFixture, KoPrediction, KoResult,
-  setKoPredictionSync, loadKoFixtures, loadKoPredictions, loadKoResults, myKoPoints
+  setKoPredictionSync, setKoResultSync, loadKoFixtures, loadKoPredictions, loadKoResults, myKoPoints
 } from '../schedule/knockoutData'
 import { getPlayer } from '@dcl/sdk/players'
 
@@ -101,6 +101,16 @@ export function startProdeClient(onSnapshot: () => void) {
     })
   })
 
+  // 1b-ko. Admin: local KO official-result saves are forwarded to the server.
+  setKoResultSync((r) => {
+    room.send('submitKoResult', {
+      fixtureId: r.fixtureId,
+      winner:    r.winner,
+      score1:    r.score1,
+      score2:    r.score2
+    })
+  })
+
   // 1c. Local knockout prediction saves are forwarded to the server.
   setKoPredictionSync((p) => {
     room.send('submitKoPrediction', {
@@ -164,6 +174,9 @@ export function startProdeClient(onSnapshot: () => void) {
   })
   room.onMessage('resultSaved', (data) => {
     if (!data.ok) console.log('[Client] server rejected result', data.matchId)
+  })
+  room.onMessage('koResultSaved', (data) => {
+    if (!data.ok) console.log('[Client] server rejected KO result', data.fixtureId)
   })
 
   // ── Knockout snapshots (parallel to the group handlers above) ────────────────
