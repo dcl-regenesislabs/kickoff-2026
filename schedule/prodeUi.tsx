@@ -503,12 +503,10 @@ const MobileKickButton = () => {
         uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
         uiBackground={{ texture: { src: 'images/kick.png' }, textureMode: 'stretch' }}
       />
-      {state.pressed && (
-        <UiEntity
-          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
-          uiBackground={{ texture: { src: 'images/kick_pressed.png' }, textureMode: 'stretch' }}
-        />
-      )}
+      <UiEntity
+        uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+        uiBackground={{ texture: { src: 'images/kick_pressed.png' }, textureMode: 'stretch', color: Color4.create(1, 1, 1, state.pressed ? 1 : 0) }}
+      />
     </UiEntity>
   )
 }
@@ -1989,12 +1987,10 @@ const MobileSkipButton = () => {
           uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
           uiBackground={{ texture: { src: 'images/buttons/skip.png' }, textureMode: 'stretch' }}
         />
-        {mobileSkipBtnPressed && (
-          <UiEntity
-            uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
-            uiBackground={{ texture: { src: 'images/buttons/skip_pressed.png' }, textureMode: 'stretch' }}
-          />
-        )}
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', position: { top: 0, left: 0 } }}
+          uiBackground={{ texture: { src: 'images/buttons/skip_pressed.png' }, textureMode: 'stretch', color: Color4.create(1, 1, 1, mobileSkipBtnPressed ? 1 : 0) }}
+        />
       </UiEntity>
     </UiEntity>
   )
